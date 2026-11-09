@@ -25,9 +25,28 @@ export function onUnauthorized(listener: Listener): () => void {
   return () => unauthorizedListeners.delete(listener);
 }
 
+/**
+ * FastAPI-style errors: { "detail": "Alert not found." } or, for invalid input,
+ * { "detail": [{ "msg": "Field required", ... }] }.
+ */
+function detailMessage(json: unknown): string | null {
+  if (typeof json !== 'object' || json === null || !('detail' in json)) return null;
+  const { detail } = json;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    const first: unknown = detail[0];
+    if (typeof first === 'object' && first !== null && 'msg' in first && typeof first.msg === 'string') {
+      return first.msg.replace(/^Value error, /, '');
+    }
+  }
+  return null;
+}
+
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
+  /** Send as an HTML form (application/x-www-form-urlencoded) instead of JSON. */
+  form?: Record<string, string>;
   signal?: AbortSignal;
   /** Skip the "session expired" handling, e.g. for the login request itself. */
   skipAuthRedirect?: boolean;
@@ -42,18 +61,24 @@ export async function apiRequest<S extends z.ZodType>(
   schema: S,
   options: RequestOptions = {},
 ): Promise<z.infer<S>> {
-  const { method = 'GET', body, signal, skipAuthRedirect = false } = options;
+  const { method = 'GET', body, form, signal, skipAuthRedirect = false } = options;
   const headers: Record<string, string> = { Accept: 'application/json' };
   const token = tokenStorage.get();
   if (token) headers.Authorization = `Bearer ${token}`;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (form !== undefined) headers['Content-Type'] = 'application/x-www-form-urlencoded';
 
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers,
-      body: body === undefined ? null : JSON.stringify(body),
+      body:
+        form !== undefined
+          ? new URLSearchParams(form).toString()
+          : body === undefined
+            ? null
+            : JSON.stringify(body),
       signal: signal ?? null,
     });
   } catch (err) {
@@ -74,10 +99,11 @@ export async function apiRequest<S extends z.ZodType>(
   if (!response.ok) {
     if (response.status === 401 && !skipAuthRedirect) unauthorizedListeners.forEach((l) => l());
     const parsed = apiErrorSchema.safeParse(json);
+    if (parsed.success) throw new ApiError(response.status, parsed.data.code, parsed.data.message);
     throw new ApiError(
       response.status,
-      parsed.success ? parsed.data.code : `http_${response.status}`,
-      parsed.success ? parsed.data.message : `Request failed (${response.status}).`,
+      `http_${response.status}`,
+      detailMessage(json) ?? `Request failed (${response.status}).`,
     );
   }
 

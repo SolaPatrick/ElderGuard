@@ -8,7 +8,7 @@ import {
   loginRequestSchema,
   resolveRequestSchema,
 } from '@elderguard/shared';
-import { DEMO_PASSWORD, type SeedUser } from '@elderguard/shared/fixtures';
+import type { SeedUser } from '@elderguard/shared/fixtures';
 import { delay, http, HttpResponse } from 'msw';
 import { API_BASE_URL } from '../api/config';
 import { db } from './db';
@@ -46,13 +46,27 @@ export const handlers = [
     const parsed = loginRequestSchema.safeParse(await readJson(request));
     if (!parsed.success) return error(400, 'validation_error', 'Enter your username and password.');
     const user = db.findUserByLogin(parsed.data.username);
-    if (!user || parsed.data.password !== DEMO_PASSWORD) {
+    if (!user || !db.checkPassword(user, parsed.data.password)) {
       return error(401, 'invalid_credentials', 'Incorrect username or password.');
     }
     if (user.status === 'deactivated') {
       return error(403, 'account_deactivated', 'This account has been deactivated. Contact your Admin/Head.');
     }
     db.addActivity(user, `${user.fullName} logged in`);
+    return HttpResponse.json({ token: `${TOKEN_PREFIX}${user.id}`, user: db.toPublicUser(user) });
+  }),
+
+  http.post(url('/auth/change-password'), async ({ request }) => {
+    const user = authenticate(request);
+    if (user instanceof Response) return user;
+    const body = (await readJson(request)) as { currentPassword?: unknown; newPassword?: unknown } | null;
+    const current = typeof body?.currentPassword === 'string' ? body.currentPassword : '';
+    const next = typeof body?.newPassword === 'string' ? body.newPassword : '';
+    if (!db.checkPassword(user, current))
+      return error(400, 'wrong_password', 'Your current password is wrong.');
+    if (next.length < 8) return error(400, 'weak_password', 'Use at least 8 characters.');
+    if (next === current) return error(400, 'same_password', 'Choose a different password.');
+    db.changePassword(user, next);
     return HttpResponse.json({ token: `${TOKEN_PREFIX}${user.id}`, user: db.toPublicUser(user) });
   }),
 

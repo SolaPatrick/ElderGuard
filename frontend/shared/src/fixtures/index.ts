@@ -284,6 +284,7 @@ export function createSeed(now: Date = new Date()): Seed {
     roomWing: rooms.find((r) => r.id === roomId)!.wing,
     resolutionFps: '1080p · 15 FPS',
     liveUrl: null,
+    liveFormat: null,
     status,
     detectionEnabled: status !== 'paused',
     lastSeenAt: status === 'offline' ? t(25 * MIN) : t(5_000),

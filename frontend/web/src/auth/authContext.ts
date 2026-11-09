@@ -10,6 +10,8 @@ export interface AuthContextValue {
   state: AuthState;
   login: (credentials: LoginRequest, remember: boolean) => Promise<User>;
   logout: () => Promise<void>;
+  /** After a password change the server issues a new token for the same user. */
+  replaceSession: (token: string, user: User) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

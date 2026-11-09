@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { LoginRequest } from '@elderguard/shared';
+import type { LoginRequest, User } from '@elderguard/shared';
 import { AuthContext, type AuthState } from './authContext';
 import { api } from '../api/endpoints';
 import { onUnauthorized } from '../api/client';
@@ -56,6 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ status: 'anonymous', user: null, reason: 'logged_out' });
   }, [queryClient]);
 
-  const value = useMemo(() => ({ state, login, logout }), [state, login, logout]);
+  const replaceSession = useCallback((token: string, user: User) => {
+    tokenStorage.replace(token);
+    setState({ status: 'authenticated', user });
+  }, []);
+
+  const value = useMemo(
+    () => ({ state, login, logout, replaceSession }),
+    [state, login, logout, replaceSession],
+  );
   return <AuthContext value={value}>{children}</AuthContext>;
 }

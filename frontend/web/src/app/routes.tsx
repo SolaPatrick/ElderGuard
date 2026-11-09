@@ -2,6 +2,7 @@ import type { RouteObject } from 'react-router';
 import { RequireAuth } from '../auth/RequireAuth';
 import { AppShell } from '../layout/AppShell';
 import { LoginPage } from '../features/login/LoginPage';
+import { ChangePasswordPage } from '../features/login/ChangePasswordPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { AlertsQueuePage } from '../features/alerts/AlertsQueuePage';
 import { AlertDetailPage } from '../features/alerts/AlertDetailPage';
@@ -25,6 +26,7 @@ export const routes: RouteObject[] = [
     element: <RequireAuth />,
     errorElement: <RouteErrorPage />,
     children: [
+      { path: '/change-password', element: <ChangePasswordPage /> },
       {
         element: <AppShell />,
         children: [

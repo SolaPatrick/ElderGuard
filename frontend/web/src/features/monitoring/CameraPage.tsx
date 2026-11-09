@@ -63,7 +63,14 @@ function CameraFeed({ camera, alerting }: { camera: Camera; alerting: boolean })
         borderColor: alerting ? 'eg.comp.alertBorderNew' : 'transparent',
       }}
     >
-      {working && camera.liveUrl ? (
+      {working && camera.liveUrl && camera.liveFormat === 'mjpeg' ? (
+        <Box
+          component="img"
+          src={camera.liveUrl}
+          alt={`Live feed from ${camera.code}`}
+          sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        />
+      ) : working && camera.liveUrl ? (
         <Box
           component="video"
           src={camera.liveUrl}

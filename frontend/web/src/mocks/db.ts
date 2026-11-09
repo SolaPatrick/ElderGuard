@@ -14,14 +14,23 @@ import {
   type IncidentDetail,
   type IncidentEvent,
 } from '@elderguard/shared';
-import { createSeed, type Seed, type SeedResident, type SeedUser } from '@elderguard/shared/fixtures';
+import {
+  createSeed,
+  DEMO_PASSWORD,
+  type Seed,
+  type SeedResident,
+  type SeedUser,
+} from '@elderguard/shared/fixtures';
 
 let seed: Seed = createSeed();
+/** Passwords people changed during this session (everyone else uses the demo password). */
+let passwords = new Map<string, string>();
 let ids = 1000;
 const nextId = (prefix: string) => `${prefix}-${++ids}`;
 
 export function resetDb(now: Date = new Date()) {
   seed = createSeed(now);
+  passwords = new Map();
 }
 
 /**
@@ -56,6 +65,15 @@ export const db = {
     const key = login.trim().toLowerCase();
     return seed.users.find((u) => u.username === key || u.email.toLowerCase() === key);
   },
+  checkPassword(user: SeedUser, password: string): boolean {
+    return password === (passwords.get(user.id) ?? DEMO_PASSWORD);
+  },
+
+  changePassword(user: SeedUser, password: string) {
+    passwords.set(user.id, password);
+    user.mustChangePassword = false;
+  },
+
   findUserById(id: string) {
     return seed.users.find((u) => u.id === id);
   },
