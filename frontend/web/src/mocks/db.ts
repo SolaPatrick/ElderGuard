@@ -5,6 +5,9 @@
  */
 import {
   isActiveStatus,
+  type Camera,
+  type Resident,
+  type User,
   type DashboardSummary,
   type Incident,
   type IncidentDetail,
@@ -33,16 +36,41 @@ export const db = {
     return seed.users.find((u) => u.id === id);
   },
 
-  listIncidents(scope: 'active' | 'all', limit = 50): Incident[] {
+  /** The user as the API returns it (no password status, areas expanded). */
+  toPublicUser({ status: _s, areaIds, ...user }: SeedUser): User {
+    const areas = areaIds.flatMap((id) => {
+      const room = seed.rooms.find((r) => r.id === id);
+      return room ? [{ id: room.id, name: room.name, wing: room.wing }] : [];
+    });
+    return { ...user, areas };
+  },
+
+  /**
+   * Which rooms a user may see. null = everything (Admin/Head).
+   * Caregivers see only their assigned rooms/areas (AREA_ASSIGNMENT in the ERD).
+   */
+  visibleRoomIds(user: SeedUser): ReadonlySet<string> | null {
+    return user.role === 'admin' ? null : new Set(user.areaIds);
+  },
+
+  canSeeRoom(user: SeedUser, roomId: string | null): boolean {
+    const visible = db.visibleRoomIds(user);
+    return visible === null || (roomId !== null && visible.has(roomId));
+  },
+
+  listIncidents(user: SeedUser, scope: 'active' | 'all', limit = 50): Incident[] {
     return seed.incidents
+      .filter((i) => db.canSeeRoom(user, i.room.id))
       .filter((i) => scope === 'all' || isActiveStatus(i.status))
       .toSorted((a, b) => Date.parse(b.detectedAt) - Date.parse(a.detectedAt))
       .slice(0, limit)
       .map(({ events: _e, notes: _n, ...incident }) => incident);
   },
 
-  getIncident(code: string): IncidentDetail | undefined {
-    return seed.incidents.find((i) => i.code === code);
+  /** Returns the incident only if this user may see it (otherwise behaves as "not found"). */
+  getIncident(user: SeedUser, code: string): IncidentDetail | undefined {
+    const incident = seed.incidents.find((i) => i.code === code);
+    return incident && db.canSeeRoom(user, incident.room.id) ? incident : undefined;
   },
 
   updateIncident(code: string, change: (i: IncidentDetail) => void): IncidentDetail | undefined {
@@ -79,13 +107,43 @@ export const db = {
     return seed.activity.slice(0, limit);
   },
 
-  listCameras() {
-    return seed.cameras;
+  listCameras(user: SeedUser): Camera[] {
+    return seed.cameras.filter((c) => db.canSeeRoom(user, c.roomId));
   },
 
-  /** Creates a new fall alert, like the camera system would. Used by "Simulate fall". */
-  simulateFall(): IncidentDetail {
-    const residents = seed.residents;
+  listResidents(user: SeedUser): Resident[] {
+    // Only alerts this user can open count, so the badge never points at a page they cannot see.
+    const activeResidentIds = new Set(
+      seed.incidents
+        .filter((i) => isActiveStatus(i.status) && i.resident && db.canSeeRoom(user, i.room.id))
+        .map((i) => i.resident!.id),
+    );
+    return seed.residents
+      .filter((r) => db.canSeeRoom(user, r.roomId))
+      .map((r) => {
+        const room = seed.rooms.find((x) => x.id === r.roomId) ?? null;
+        return {
+          id: r.id,
+          fullName: r.fullName,
+          age: r.age,
+          fallRisk: r.fallRisk,
+          room: room ? { id: room.id, name: room.name, wing: room.wing } : null,
+          caregivers: r.caregiverIds.flatMap((id) => {
+            const u = seed.users.find((x) => x.id === id);
+            return u ? [{ id: u.id, fullName: u.fullName }] : [];
+          }),
+          hasActiveAlert: activeResidentIds.has(r.id),
+        };
+      });
+  },
+
+  /**
+   * Creates a new fall alert, like the camera system would. Used by "Simulate fall".
+   * Picks a resident the given user can see, so the alert shows up for them.
+   */
+  simulateFall(user: SeedUser): IncidentDetail {
+    const mine = seed.residents.filter((r) => db.canSeeRoom(user, r.roomId));
+    const residents = mine.length > 0 ? mine : seed.residents;
     const resident = residents[Math.floor(Math.random() * residents.length)]!;
     const room = seed.rooms.find((r) => r.id === resident.roomId)!;
     const camera = seed.cameras.find((c) => c.roomName === room.name) ?? null;
