@@ -58,7 +58,11 @@ Login errors the UI expects: `401 invalid_credentials`, `403 account_deactivated
 
 `GET /activity?limit=3` returns `[{ id, user: { id, fullName }, summary, createdAt }]`, newest first.
 
-`GET /cameras` returns `[{ id, code, roomId, roomName, status: "online"|"offline"|"error"|"paused"|"connecting", detectionEnabled, lastSeenAt }]`.
+`GET /cameras` returns `[{ id, code, roomId, roomName, roomWing, resolutionFps, liveUrl, status: "online"|"offline"|"error"|"paused"|"connecting", detectionEnabled, lastSeenAt }]`. Caregivers only get the cameras in their areas.
+
+- `resolutionFps` is a display string such as `"1080p · 15 FPS"`, or `null`.
+- `liveUrl` is a URL the browser can play in a `<video>` tag (for example an MP4 or HLS gateway in front of the RTSP camera). Send `null` until streaming is ready; the camera page then shows a placeholder.
+- `roomWing` is `null` for common areas (hallways, dining hall). The Live Monitoring area filter groups these as "Common areas".
 
 `GET /residents` returns `[{ id, fullName, age, fallRisk: "low"|"moderate"|"high", room: { id, name, wing } | null, caregivers: [{ id, fullName }], hasActiveAlert }]`. `hasActiveAlert` only counts alerts the caller can see.
 

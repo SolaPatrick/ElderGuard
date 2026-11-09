@@ -111,7 +111,7 @@ function ResidentsCard({ residents }: { residents: Resident[] }) {
   );
 }
 
-function AreasCard({ cameras, alertRoomIds }: { cameras: Camera[]; alertRoomIds: ReadonlySet<string> }) {
+function AreasCard({ cameras, alerts }: { cameras: Camera[]; alerts: Incident[] }) {
   return (
     <SectionCard
       title="My monitoring areas"
@@ -127,7 +127,11 @@ function AreasCard({ cameras, alertRoomIds }: { cameras: Camera[]; alertRoomIds:
         <Grid container spacing={2}>
           {cameras.map((c) => (
             <Grid key={c.id} size={{ xs: 12, sm: 6, md: 4 }}>
-              <CameraTile camera={c} alerting={c.roomId !== null && alertRoomIds.has(c.roomId)} />
+              <CameraTile
+                camera={c}
+                to={`/monitoring/${c.code}`}
+                alert={alerts.find((a) => a.room.id === c.roomId) ?? null}
+              />
             </Grid>
           ))}
         </Grid>
@@ -205,7 +209,6 @@ export function CaregiverDashboard() {
   const [now] = useState(() => new Date());
   const firstName = user.fullName.split(' ').filter((w) => !w.endsWith('.'))[0] ?? user.fullName;
   const activeIncidents = active.data ?? [];
-  const alertRoomIds = new Set(activeIncidents.map((i) => i.room.id));
   const handled = (incidents.data ?? [])
     .filter((i) => !isActiveStatus(i.status))
     .filter((i) => i.acknowledgedBy?.id === user.id || i.resolvedBy?.id === user.id)
@@ -263,7 +266,7 @@ export function CaregiverDashboard() {
           ) : cameras.isError ? (
             <ErrorState error={cameras.error} onRetry={() => void cameras.refetch()} />
           ) : (
-            <AreasCard cameras={cameras.data} alertRoomIds={alertRoomIds} />
+            <AreasCard cameras={cameras.data} alerts={activeIncidents} />
           )}
         </Grid>
       </Grid>

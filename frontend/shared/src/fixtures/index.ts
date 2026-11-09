@@ -119,6 +119,7 @@ export function createSeed(now: Date = new Date()): Seed {
     { id: 'r-dining', name: 'Dining Hall', wing: null },
     { id: 'r-activity', name: 'Activity Area', wing: null },
     { id: 'r-garden', name: 'Garden Walkway', wing: null },
+    { id: 'r-lobby', name: 'Lobby', wing: null },
   ];
 
   const residents: SeedResident[] = [
@@ -193,6 +194,9 @@ export function createSeed(now: Date = new Date()): Seed {
     code: `CAM-${String(n).padStart(2, '0')}`,
     roomId,
     roomName: rooms.find((r) => r.id === roomId)!.name,
+    roomWing: rooms.find((r) => r.id === roomId)!.wing,
+    resolutionFps: '1080p · 15 FPS',
+    liveUrl: null,
     status,
     detectionEnabled: status !== 'paused',
     lastSeenAt: status === 'offline' ? t(25 * MIN) : t(5_000),
@@ -205,10 +209,10 @@ export function createSeed(now: Date = new Date()): Seed {
     cam(5, 'r-105'),
     cam(6, 'r-106'),
     cam(7, 'r-hall-b', 'offline'),
-    cam(8, 'r-hall-a'),
+    cam(8, 'r-dining'),
     cam(9, 'r-garden', 'paused'),
-    cam(10, 'r-dining'),
-    cam(11, 'r-activity'),
+    cam(10, 'r-hall-a'),
+    cam(11, 'r-lobby'),
   ];
 
   const person = (id: string) => {
