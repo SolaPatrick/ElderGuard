@@ -153,6 +153,14 @@ export const cameraSchema = z.object({
   code: z.string(),
   roomId: z.string().nullable(),
   roomName: z.string().nullable(),
+  roomWing: z.string().nullable(),
+  /** e.g. "1080p · 15 FPS" */
+  resolutionFps: z.string().nullable(),
+  /**
+   * Browser-playable live stream (e.g. an MP4/HLS/WebRTC gateway URL from the backend).
+   * Null until the backend provides one; the UI then shows a placeholder.
+   */
+  liveUrl: z.string().nullable(),
   status: cameraStatusSchema,
   detectionEnabled: z.boolean(),
   lastSeenAt: isoDateTime.nullable(),

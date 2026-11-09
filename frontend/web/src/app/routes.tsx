@@ -6,6 +6,8 @@ import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { AlertsQueuePage } from '../features/alerts/AlertsQueuePage';
 import { AlertDetailPage } from '../features/alerts/AlertDetailPage';
 import { IncidentListPage } from '../features/incidents/IncidentListPage';
+import { MonitoringPage } from '../features/monitoring/MonitoringPage';
+import { CameraPage } from '../features/monitoring/CameraPage';
 import { ComingSoonPage } from '../features/system/ComingSoonPage';
 import { NotFoundPage } from '../features/system/NotFoundPage';
 import { RouteErrorPage } from '../features/system/RouteErrorPage';
@@ -32,7 +34,8 @@ export const routes: RouteObject[] = [
               { path: 'alerts/:code', element: <AlertDetailPage /> },
               { path: 'incidents', element: <IncidentListPage /> },
               { path: 'incidents/:code', element: <AlertDetailPage /> },
-              soon('monitoring', 'Live monitoring'),
+              { path: 'monitoring', element: <MonitoringPage /> },
+              { path: 'monitoring/:code', element: <CameraPage /> },
               soon('residents', 'Residents'),
               soon('notifications', 'Notifications'),
               soon('help', 'Help & About'),
