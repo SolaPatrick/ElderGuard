@@ -23,6 +23,7 @@ import {
   secondsBetween,
   type Incident,
 } from '@elderguard/shared';
+import { useCurrentUser } from '../auth/authContext';
 import { useAcknowledge } from '../api/queries';
 import { CameraSnapshot } from '../components/CameraSnapshot';
 import { errorMessage } from '../components/errorMessage';
@@ -51,15 +52,18 @@ export function FallAlertOverlay({ incidents }: { incidents: Incident[] }) {
   const now = useNow();
   const acknowledge = useAcknowledge();
   const [dismissed, setDismissed] = useState<ReadonlySet<string>>(() => new Set());
+  const userId = useCurrentUser().id;
 
   const pending = useMemo(
     () =>
       incidents
         .filter((i) => i.status === 'new' && !dismissed.has(i.code))
+        // The sender of an SOS already knows about it.
+        .filter((i) => i.sentBy?.id !== userId)
         // Do not cover the page of the alert the user is already looking at.
         .filter((i) => !location.pathname.endsWith(`/${i.code}`))
         .toSorted((a, b) => Date.parse(a.detectedAt) - Date.parse(b.detectedAt)),
-    [incidents, dismissed, location.pathname],
+    [incidents, dismissed, location.pathname, userId],
   );
   const current = pending[0];
   useAlarm(current !== undefined);

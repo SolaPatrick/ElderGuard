@@ -11,11 +11,13 @@ import {
   loginResponseSchema,
   residentDetailSchema,
   residentSchema,
+  roomRefSchema,
   userSchema,
   type AddNoteRequest,
   type ClassifyRequest,
   type LoginRequest,
   type ResolveRequest,
+  type SosRequest,
 } from '@elderguard/shared';
 import { z } from 'zod';
 import { apiRequest } from './client';
@@ -33,11 +35,13 @@ export const api = {
   activity: (limit: number) => apiRequest(`/activity?limit=${limit}`, z.array(activityEntrySchema)),
   cameras: () => apiRequest('/cameras', z.array(cameraSchema)),
   residents: () => apiRequest('/residents', z.array(residentSchema)),
+  rooms: () => apiRequest('/rooms', z.array(roomRefSchema)),
   resident: (id: string) => apiRequest(`/residents/${enc(id)}`, residentDetailSchema),
 
   activeIncidents: () => apiRequest('/incidents?scope=active', z.array(incidentSchema)),
   incidents: (limit = 50) => apiRequest(`/incidents?scope=all&limit=${limit}`, z.array(incidentSchema)),
   incident: (code: string) => apiRequest(`/incidents/${enc(code)}`, incidentDetailSchema),
+  sendSos: (body: SosRequest) => apiRequest('/incidents/sos', incidentDetailSchema, { method: 'POST', body }),
 
   acknowledge: (code: string) =>
     apiRequest(`/incidents/${enc(code)}/acknowledge`, incidentDetailSchema, { method: 'POST' }),

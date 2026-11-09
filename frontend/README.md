@@ -70,18 +70,19 @@ React 19 · TypeScript 7 (strict) · Vite 8 · MUI 9 · React Router 8 · TanSta
 
 ## What is built so far
 
-| Screen                                                                      | Status                         |
-| --------------------------------------------------------------------------- | ------------------------------ |
-| AUTH-01 Login (errors, deactivated, remember me)                            | Done                           |
-| SH-01/02 Layout shell (admin and caregiver sidebars)                        | Done                           |
-| SH-05/06 Incoming alert popup with alarm sound                              | Done                           |
-| SH-07 Active alert banner, SH-09 connection lost banner                     | Done                           |
-| DASH-01 Admin dashboard                                                     | Done                           |
-| DASH-02 Caregiver dashboard (only their own alerts, residents and cameras)  | Done                           |
-| ALT-01 Alert queue, ALT-02 alert detail, ALT-03 classify, ALT-04 resolve    | Done                           |
-| INC-01 Incident history (no filters yet), INC-03/04 detail, INC-05 add note | Done                           |
-| MON-01 Live Monitoring grid (layouts, area filter, search), MON-02 camera   | Done (placeholder until feeds) |
-| RES-01 Resident list (cards and table, filters), RES-03 resident profile    | Done (editing comes next)      |
-| SYS-01 404, SYS-02 403, SYS-03 crash page                                   | Done                           |
-| Night mode                                                                  | Done (profile menu)            |
-| Everything else in the Figma file                                           | Placeholder "coming soon" page |
+| Screen                                                                        | Status                         |
+| ----------------------------------------------------------------------------- | ------------------------------ |
+| AUTH-01 Login (errors, deactivated, remember me)                              | Done                           |
+| SH-01/02 Layout shell (admin and caregiver sidebars)                          | Done                           |
+| SH-05/06 Incoming alert popup with alarm sound                                | Done                           |
+| SH-07 Active alert banner, SH-09 connection lost banner                       | Done                           |
+| SOS-01 Send SOS (press and hold 3 s, from the top bar or caregiver dashboard) | Done                           |
+| DASH-01 Admin dashboard                                                       | Done                           |
+| DASH-02 Caregiver dashboard (only their own alerts, residents and cameras)    | Done                           |
+| ALT-01 Alert queue, ALT-02 alert detail, ALT-03 classify, ALT-04 resolve      | Done                           |
+| INC-01 Incident history (no filters yet), INC-03/04 detail, INC-05 add note   | Done                           |
+| MON-01 Live Monitoring grid (layouts, area filter, search), MON-02 camera     | Done (placeholder until feeds) |
+| RES-01 Resident list (cards and table, filters), RES-03 resident profile      | Done (editing comes next)      |
+| SYS-01 404, SYS-02 403, SYS-03 crash page                                     | Done                           |
+| Night mode                                                                    | Done (profile menu)            |
+| Everything else in the Figma file                                             | Placeholder "coming soon" page |
