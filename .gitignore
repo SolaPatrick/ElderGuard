@@ -1,0 +1,18 @@
+# Secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+
+# Pictures of residents
+backend/snapshots/
+
+# Training material with footage of people (kept on this computer only)
+elderguard/videos/
+elderguard/frames/
+elderguard/fall_data/
+elderguard/cvat_export/
+elderguard/*.zip
+elderguard/runs/**/train_batch*.jpg
+elderguard/runs/**/val_batch*.jpg
