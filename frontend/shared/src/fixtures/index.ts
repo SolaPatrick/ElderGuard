@@ -5,7 +5,16 @@
  * Times are generated relative to `now`, so the "elapsed" timers and the
  * "today" counts always look like the mockups no matter when you run the app.
  */
-import type { ActivityEntry, Camera, FallRisk, IncidentDetail, IncidentEvent, User } from '../schemas';
+import type {
+  ActivityEntry,
+  Camera,
+  EmergencyContact,
+  FallRisk,
+  IncidentDetail,
+  IncidentEvent,
+  Sex,
+  User,
+} from '../schemas';
 
 /** Demo password for every sample account (fake API only, never a real password). */
 export const DEMO_PASSWORD = 'elderguard123';
@@ -23,6 +32,12 @@ export interface SeedResident {
   fallRisk: FallRisk;
   roomId: string;
   caregiverIds: string[];
+  sex: Sex;
+  /** ISO date, chosen so the resident is exactly `age` today. */
+  birthDate: string;
+  mobilityAid: string | null;
+  careNotes: string | null;
+  emergencyContacts: EmergencyContact[];
 }
 
 export interface SeedRoom {
@@ -122,6 +137,13 @@ export function createSeed(now: Date = new Date()): Seed {
     { id: 'r-lobby', name: 'Lobby', wing: null },
   ];
 
+  /** Birth date (YYYY-MM-DD) on month-day `md` that makes someone `age` years old on `now`. */
+  const born = (age: number, md: string) => {
+    const [m, d] = md.split('-').map(Number) as [number, number];
+    const hadBirthday = now.getMonth() + 1 > m || (now.getMonth() + 1 === m && now.getDate() >= d);
+    return `${now.getFullYear() - age - (hadBirthday ? 0 : 1)}-${md}`;
+  };
+
   const residents: SeedResident[] = [
     {
       id: 'res-remedios',
@@ -130,6 +152,13 @@ export function createSeed(now: Date = new Date()): Seed {
       fallRisk: 'high',
       roomId: 'r-101',
       caregiverIds: ['u-joel'],
+      sex: 'female',
+      birthDate: born(84, '03-12'),
+      mobilityAid: 'Walker',
+      careNotes: 'Needs help standing up at night. Previous fall in August 2026.',
+      emergencyContacts: [
+        { id: 'ec-remedios-1', fullName: 'Maricel Santos', relationship: 'Daughter', phone: '0918 555 0172' },
+      ],
     },
     {
       id: 'res-lourdes',
@@ -138,6 +167,13 @@ export function createSeed(now: Date = new Date()): Seed {
       fallRisk: 'moderate',
       roomId: 'r-101',
       caregiverIds: ['u-joel'],
+      sex: 'female',
+      birthDate: born(85, '07-04'),
+      mobilityAid: 'Cane',
+      careNotes: 'Prefers to walk with a companion to the dining hall.',
+      emergencyContacts: [
+        { id: 'ec-lourdes-1', fullName: 'Ramon Aquino', relationship: 'Son', phone: '0917 555 0148' },
+      ],
     },
     {
       id: 'res-ernesto',
@@ -146,6 +182,18 @@ export function createSeed(now: Date = new Date()): Seed {
       fallRisk: 'moderate',
       roomId: 'r-102',
       caregiverIds: ['u-joel'],
+      sex: 'male',
+      birthDate: born(79, '01-22'),
+      mobilityAid: null,
+      careNotes: 'Takes blood pressure medicine in the morning; may feel dizzy after.',
+      emergencyContacts: [
+        {
+          id: 'ec-ernesto-1',
+          fullName: 'Grace Villanueva',
+          relationship: 'Daughter',
+          phone: '0920 555 0133',
+        },
+      ],
     },
     {
       id: 'res-corazon',
@@ -154,6 +202,19 @@ export function createSeed(now: Date = new Date()): Seed {
       fallRisk: 'high',
       roomId: 'r-103',
       caregiverIds: ['u-joel'],
+      sex: 'female',
+      birthDate: born(88, '11-30'),
+      mobilityAid: 'Wheelchair',
+      careNotes: 'Transfers from bed to wheelchair need two staff.',
+      emergencyContacts: [
+        { id: 'ec-corazon-1', fullName: 'Teodoro Mendoza', relationship: 'Son', phone: '0915 555 0190' },
+        {
+          id: 'ec-corazon-2',
+          fullName: 'Liza Mendoza',
+          relationship: 'Granddaughter',
+          phone: '0927 555 0111',
+        },
+      ],
     },
     {
       id: 'res-rodolfo',
@@ -162,6 +223,13 @@ export function createSeed(now: Date = new Date()): Seed {
       fallRisk: 'low',
       roomId: 'r-104',
       caregiverIds: ['u-mark'],
+      sex: 'male',
+      birthDate: born(76, '05-17'),
+      mobilityAid: null,
+      careNotes: null,
+      emergencyContacts: [
+        { id: 'ec-rodolfo-1', fullName: 'Elena Garcia', relationship: 'Wife', phone: '0918 555 0125' },
+      ],
     },
     {
       id: 'res-felicidad',
@@ -170,6 +238,13 @@ export function createSeed(now: Date = new Date()): Seed {
       fallRisk: 'high',
       roomId: 'r-105',
       caregiverIds: ['u-mark', 'u-angelica'],
+      sex: 'female',
+      birthDate: born(91, '09-08'),
+      mobilityAid: 'Walker',
+      careNotes: 'Hard of hearing; speak clearly and face her.',
+      emergencyContacts: [
+        { id: 'ec-felicidad-1', fullName: 'Jose Bautista', relationship: 'Nephew', phone: '0919 555 0164' },
+      ],
     },
     {
       id: 'res-antonio',
@@ -178,6 +253,13 @@ export function createSeed(now: Date = new Date()): Seed {
       fallRisk: 'moderate',
       roomId: 'r-106',
       caregiverIds: ['u-mark', 'u-angelica'],
+      sex: 'male',
+      birthDate: born(82, '02-14'),
+      mobilityAid: 'Cane',
+      careNotes: null,
+      emergencyContacts: [
+        { id: 'ec-antonio-1', fullName: 'Carmela Navarro', relationship: 'Daughter', phone: '0916 555 0157' },
+      ],
     },
     {
       id: 'res-benjamin',
@@ -186,6 +268,11 @@ export function createSeed(now: Date = new Date()): Seed {
       fallRisk: 'low',
       roomId: 'r-106',
       caregiverIds: ['u-mark'],
+      sex: 'male',
+      birthDate: born(80, '08-25'),
+      mobilityAid: null,
+      careNotes: null,
+      emergencyContacts: [],
     },
   ];
 

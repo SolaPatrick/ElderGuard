@@ -9,6 +9,7 @@ export const queryKeys = {
   activity: (limit: number) => ['activity', limit] as const,
   cameras: ['cameras'] as const,
   residents: ['residents'] as const,
+  resident: (id: string) => ['residents', id] as const,
   activeIncidents: ['incidents', 'active'] as const,
   incidents: ['incidents', 'all'] as const,
   incident: (code: string) => ['incidents', 'detail', code] as const,
@@ -53,6 +54,14 @@ export function useResidents() {
   return useQuery({
     queryKey: queryKeys.residents,
     queryFn: api.residents,
+    refetchInterval: ALERT_POLL_MS * 2,
+  });
+}
+
+export function useResident(id: string) {
+  return useQuery({
+    queryKey: queryKeys.resident(id),
+    queryFn: () => api.resident(id),
     refetchInterval: ALERT_POLL_MS * 2,
   });
 }

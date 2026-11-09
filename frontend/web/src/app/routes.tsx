@@ -8,6 +8,8 @@ import { AlertDetailPage } from '../features/alerts/AlertDetailPage';
 import { IncidentListPage } from '../features/incidents/IncidentListPage';
 import { MonitoringPage } from '../features/monitoring/MonitoringPage';
 import { CameraPage } from '../features/monitoring/CameraPage';
+import { ResidentsPage } from '../features/residents/ResidentsPage';
+import { ResidentProfilePage } from '../features/residents/ResidentProfilePage';
 import { ComingSoonPage } from '../features/system/ComingSoonPage';
 import { NotFoundPage } from '../features/system/NotFoundPage';
 import { RouteErrorPage } from '../features/system/RouteErrorPage';
@@ -36,7 +38,8 @@ export const routes: RouteObject[] = [
               { path: 'incidents/:code', element: <AlertDetailPage /> },
               { path: 'monitoring', element: <MonitoringPage /> },
               { path: 'monitoring/:code', element: <CameraPage /> },
-              soon('residents', 'Residents'),
+              { path: 'residents', element: <ResidentsPage /> },
+              { path: 'residents/:id', element: <ResidentProfilePage /> },
               soon('notifications', 'Notifications'),
               soon('help', 'Help & About'),
               {

@@ -9,6 +9,7 @@ import {
   incidentDetailSchema,
   incidentSchema,
   loginResponseSchema,
+  residentDetailSchema,
   residentSchema,
   userSchema,
   type AddNoteRequest,
@@ -32,6 +33,7 @@ export const api = {
   activity: (limit: number) => apiRequest(`/activity?limit=${limit}`, z.array(activityEntrySchema)),
   cameras: () => apiRequest('/cameras', z.array(cameraSchema)),
   residents: () => apiRequest('/residents', z.array(residentSchema)),
+  resident: (id: string) => apiRequest(`/residents/${enc(id)}`, residentDetailSchema),
 
   activeIncidents: () => apiRequest('/incidents?scope=active', z.array(incidentSchema)),
   incidents: (limit = 50) => apiRequest(`/incidents?scope=all&limit=${limit}`, z.array(incidentSchema)),
