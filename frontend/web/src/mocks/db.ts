@@ -7,6 +7,8 @@ import {
   isActiveStatus,
   type Camera,
   type Resident,
+  type RoomRef,
+  type SosRequest,
   type User,
   type DashboardSummary,
   type Incident,
@@ -21,6 +23,12 @@ const nextId = (prefix: string) => `${prefix}-${++ids}`;
 
 export function resetDb(now: Date = new Date()) {
   seed = createSeed(now);
+}
+
+function nextIncidentCode() {
+  const year = new Date().getFullYear();
+  const highest = Math.max(0, ...seed.incidents.map((i) => Number(i.code.split('-').at(-1)) || 0));
+  return `INC-${year}-${String(highest + 1).padStart(4, '0')}`;
 }
 
 export const db = {
@@ -147,9 +155,7 @@ export const db = {
     const resident = residents[Math.floor(Math.random() * residents.length)]!;
     const room = seed.rooms.find((r) => r.id === resident.roomId)!;
     const camera = seed.cameras.find((c) => c.roomName === room.name) ?? null;
-    const year = new Date().getFullYear();
-    const highest = Math.max(...seed.incidents.map((i) => Number(i.code.split('-').at(-1)) || 0));
-    const code = `INC-${year}-${String(highest + 1).padStart(4, '0')}`;
+    const code = nextIncidentCode();
     const confidence = Math.round((0.7 + Math.random() * 0.28) * 100) / 100;
     const now = new Date().toISOString();
     const incident: IncidentDetail = {
@@ -188,6 +194,58 @@ export const db = {
       notes: [],
     };
     seed.incidents.push(incident);
+    return incident;
+  },
+
+  /** Rooms and areas this user may see (all for the Admin/Head), in building order. */
+  listRooms(user: SeedUser): RoomRef[] {
+    return seed.rooms
+      .filter((r) => db.canSeeRoom(user, r.id))
+      .map((r) => ({ id: r.id, name: r.name, wing: r.wing }));
+  },
+
+  /** SOS-01. Returns undefined when the room (or resident) is not one this user may see. */
+  sendSos(user: SeedUser, req: SosRequest): IncidentDetail | undefined {
+    const room = seed.rooms.find((r) => r.id === req.roomId);
+    if (!room || !db.canSeeRoom(user, room.id)) return undefined;
+    const resident = req.residentId ? seed.residents.find((r) => r.id === req.residentId) : undefined;
+    if (req.residentId && (!resident || !db.canSeeRoom(user, resident.roomId))) return undefined;
+    const now = new Date().toISOString();
+    const by = { id: user.id, fullName: user.fullName };
+    const incident: IncidentDetail = {
+      code: nextIncidentCode(),
+      type: 'sos',
+      status: 'new',
+      resident: resident
+        ? { id: resident.id, fullName: resident.fullName, age: resident.age, fallRisk: resident.fallRisk }
+        : null,
+      room: { id: room.id, name: room.name, wing: room.wing },
+      camera: null,
+      sentBy: by,
+      confidence: null,
+      snapshotUrl: null,
+      clipUrl: null,
+      detectedAt: now,
+      acknowledgedAt: null,
+      acknowledgedBy: null,
+      resolvedAt: null,
+      resolvedBy: null,
+      escalatedAt: null,
+      falseAlarmReason: null,
+      outcome: null,
+      events: [
+        {
+          id: nextId('ev'),
+          action: 'detected',
+          occurredAt: now,
+          user: by,
+          detail: `SOS sent from ${room.name}`,
+        },
+      ],
+      notes: req.note ? [{ id: nextId('note'), body: req.note, author: by, createdAt: now }] : [],
+    };
+    seed.incidents.push(incident);
+    db.addActivity(user, `${user.fullName} sent an SOS from ${room.name}`);
     return incident;
   },
 

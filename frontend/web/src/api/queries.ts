@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import type { AddNoteRequest, ClassifyRequest, IncidentDetail, ResolveRequest } from '@elderguard/shared';
+import type {
+  AddNoteRequest,
+  ClassifyRequest,
+  IncidentDetail,
+  ResolveRequest,
+  SosRequest,
+} from '@elderguard/shared';
 import { ALERT_POLL_MS } from './config';
 import { api } from './endpoints';
 
@@ -8,6 +14,7 @@ export const queryKeys = {
   dashboard: ['dashboard'] as const,
   activity: (limit: number) => ['activity', limit] as const,
   cameras: ['cameras'] as const,
+  rooms: ['rooms'] as const,
   residents: ['residents'] as const,
   activeIncidents: ['incidents', 'active'] as const,
   incidents: ['incidents', 'all'] as const,
@@ -57,6 +64,11 @@ export function useResidents() {
   });
 }
 
+/** Rooms and areas the user may see (their assigned ones for caregivers). Changes rarely. */
+export function useRooms() {
+  return useQuery({ queryKey: queryKeys.rooms, queryFn: api.rooms, staleTime: 5 * 60_000 });
+}
+
 export function useCameras() {
   return useQuery({ queryKey: queryKeys.cameras, queryFn: api.cameras, refetchInterval: 30_000 });
 }
@@ -99,5 +111,14 @@ export function useAddNote(code: string) {
   return useMutation({
     mutationFn: (body: AddNoteRequest) => api.addNote(code, body),
     onSuccess: (data) => applyIncidentUpdate(qc, data),
+  });
+}
+
+/** SOS-01. Sending is never retried automatically, so one press is one SOS. */
+export function useSendSos() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SosRequest) => api.sendSos(body),
+    onSuccess: (incident) => applyIncidentUpdate(qc, incident),
   });
 }

@@ -134,6 +134,14 @@ export const classifyRequestSchema = z
   });
 export type ClassifyRequest = z.infer<typeof classifyRequestSchema>;
 
+/** SOS-01: a staff member asks every on-duty colleague for help. */
+export const sosRequestSchema = z.object({
+  roomId: z.string().min(1, 'Choose where you need help'),
+  residentId: z.string().optional(),
+  note: z.string().trim().max(500, 'Keep the note under 500 characters').optional(),
+});
+export type SosRequest = z.infer<typeof sosRequestSchema>;
+
 export const resolveRequestSchema = z.object({
   outcome: z.string().trim().min(1, 'Choose an outcome'),
   responseSummary: z.string().trim().max(1000).optional(),
