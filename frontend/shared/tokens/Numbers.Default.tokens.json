@@ -1,0 +1,372 @@
+{
+ "spacing": {
+  "space-0": {
+   "$type": "dimension",
+   "$value": {
+    "value": 0.0,
+    "unit": "px"
+   },
+   "$description": "Flush."
+  },
+  "space-4": {
+   "$type": "dimension",
+   "$value": {
+    "value": 4.0,
+    "unit": "px"
+   },
+   "$description": "Icon-to-label gap in chips."
+  },
+  "space-8": {
+   "$type": "dimension",
+   "$value": {
+    "value": 8.0,
+    "unit": "px"
+   },
+   "$description": "Gap between chips and inline actions."
+  },
+  "space-12": {
+   "$type": "dimension",
+   "$value": {
+    "value": 12.0,
+    "unit": "px"
+   },
+   "$description": "Card inner gap, list item vertical padding."
+  },
+  "space-16": {
+   "$type": "dimension",
+   "$value": {
+    "value": 16.0,
+    "unit": "px"
+   },
+   "$description": "Mobile margin and gutter; card padding."
+  },
+  "space-20": {
+   "$type": "dimension",
+   "$value": {
+    "value": 20.0,
+    "unit": "px"
+   },
+   "$description": "Dialog content gap."
+  },
+  "space-24": {
+   "$type": "dimension",
+   "$value": {
+    "value": 24.0,
+    "unit": "px"
+   },
+   "$description": "Web gutter; dialog padding; section gap."
+  },
+  "space-32": {
+   "$type": "dimension",
+   "$value": {
+    "value": 32.0,
+    "unit": "px"
+   },
+   "$description": "Web page margin."
+  },
+  "space-40": {
+   "$type": "dimension",
+   "$value": {
+    "value": 40.0,
+    "unit": "px"
+   },
+   "$description": "Large section gap."
+  },
+  "space-48": {
+   "$type": "dimension",
+   "$value": {
+    "value": 48.0,
+    "unit": "px"
+   },
+   "$description": "Page-level separation."
+  },
+  "space-64": {
+   "$type": "dimension",
+   "$value": {
+    "value": 64.0,
+    "unit": "px"
+   },
+   "$description": "Empty-state vertical padding."
+  }
+ },
+ "radius": {
+  "radius-none": {
+   "$type": "dimension",
+   "$value": {
+    "value": 0.0,
+    "unit": "px"
+   },
+   "$description": "Tables, full-bleed camera grids."
+  },
+  "radius-xs": {
+   "$type": "dimension",
+   "$value": {
+    "value": 4.0,
+    "unit": "px"
+   },
+   "$description": "Text fields, tooltips, badges."
+  },
+  "radius-sm": {
+   "$type": "dimension",
+   "$value": {
+    "value": 8.0,
+    "unit": "px"
+   },
+   "$description": "Chips, menus, snackbars."
+  },
+  "radius-md": {
+   "$type": "dimension",
+   "$value": {
+    "value": 12.0,
+    "unit": "px"
+   },
+   "$description": "Cards, alert cards, camera tiles."
+  },
+  "radius-lg": {
+   "$type": "dimension",
+   "$value": {
+    "value": 16.0,
+    "unit": "px"
+   },
+   "$description": "FAB, side sheets."
+  },
+  "radius-xl": {
+   "$type": "dimension",
+   "$value": {
+    "value": 28.0,
+    "unit": "px"
+   },
+   "$description": "Dialogs, bottom sheets (top corners), takeover."
+  },
+  "radius-full": {
+   "$type": "dimension",
+   "$value": {
+    "value": 9999.0,
+    "unit": "px"
+   },
+   "$description": "Buttons, switches, avatars, SOS."
+  }
+ },
+ "size": {
+  "target-mobile": {
+   "$type": "dimension",
+   "$value": {
+    "value": 48.0,
+    "unit": "px"
+   },
+   "$description": "Minimum touch target on mobile (48dp)."
+  },
+  "target-web": {
+   "$type": "dimension",
+   "$value": {
+    "value": 44.0,
+    "unit": "px"
+   },
+   "$description": "Minimum pointer target on web."
+  },
+  "target-urgent": {
+   "$type": "dimension",
+   "$value": {
+    "value": 64.0,
+    "unit": "px"
+   },
+   "$description": "Minimum height of SOS and Acknowledge buttons."
+  },
+  "icon-default": {
+   "$type": "dimension",
+   "$value": {
+    "value": 24.0,
+    "unit": "px"
+   },
+   "$description": "Default Material Symbols size."
+  },
+  "icon-dense": {
+   "$type": "dimension",
+   "$value": {
+    "value": 20.0,
+    "unit": "px"
+   },
+   "$description": "Dense contexts: chips S, table rows."
+  },
+  "avatar-xs": {
+   "$type": "dimension",
+   "$value": {
+    "value": 24.0,
+    "unit": "px"
+   },
+   "$description": "Inline mentions."
+  },
+  "avatar-sm": {
+   "$type": "dimension",
+   "$value": {
+    "value": 32.0,
+    "unit": "px"
+   },
+   "$description": "Table rows, caregiver stacks."
+  },
+  "avatar-md": {
+   "$type": "dimension",
+   "$value": {
+    "value": 40.0,
+    "unit": "px"
+   },
+   "$description": "List items, alert cards, notes."
+  },
+  "avatar-lg": {
+   "$type": "dimension",
+   "$value": {
+    "value": 56.0,
+    "unit": "px"
+   },
+   "$description": "Resident card, takeover."
+  },
+  "avatar-xl": {
+   "$type": "dimension",
+   "$value": {
+    "value": 96.0,
+    "unit": "px"
+   },
+   "$description": "Resident profile header."
+  },
+  "focus-ring-width": {
+   "$type": "dimension",
+   "$value": {
+    "value": 3.0,
+    "unit": "px"
+   },
+   "$description": "Focus ring thickness."
+  },
+  "focus-ring-offset": {
+   "$type": "dimension",
+   "$value": {
+    "value": 2.0,
+    "unit": "px"
+   },
+   "$description": "Focus ring offset."
+  }
+ },
+ "layout": {
+  "web-frame": {
+   "$type": "dimension",
+   "$value": {
+    "value": 1440.0,
+    "unit": "px"
+   },
+   "$description": "Web design frame width."
+  },
+  "web-columns": {
+   "$type": "number",
+   "$value": 12.0,
+   "$description": "Web grid columns."
+  },
+  "web-gutter": {
+   "$type": "dimension",
+   "$value": {
+    "value": 24.0,
+    "unit": "px"
+   },
+   "$description": "Web gutter."
+  },
+  "web-margin": {
+   "$type": "dimension",
+   "$value": {
+    "value": 32.0,
+    "unit": "px"
+   },
+   "$description": "Web page margin."
+  },
+  "sidebar-width": {
+   "$type": "dimension",
+   "$value": {
+    "value": 264.0,
+    "unit": "px"
+   },
+   "$description": "Expanded web sidebar."
+  },
+  "sidebar-collapsed": {
+   "$type": "dimension",
+   "$value": {
+    "value": 80.0,
+    "unit": "px"
+   },
+   "$description": "Collapsed sidebar / navigation rail."
+  },
+  "top-bar-height": {
+   "$type": "dimension",
+   "$value": {
+    "value": 64.0,
+    "unit": "px"
+   },
+   "$description": "Web top bar and mobile top app bar."
+  },
+  "mobile-frame": {
+   "$type": "dimension",
+   "$value": {
+    "value": 412.0,
+    "unit": "px"
+   },
+   "$description": "Mobile frame width (height 915)."
+  },
+  "mobile-columns": {
+   "$type": "number",
+   "$value": 4.0,
+   "$description": "Mobile grid columns."
+  },
+  "mobile-margin": {
+   "$type": "dimension",
+   "$value": {
+    "value": 16.0,
+    "unit": "px"
+   },
+   "$description": "Mobile margin and gutter."
+  },
+  "bottom-nav-height": {
+   "$type": "dimension",
+   "$value": {
+    "value": 80.0,
+    "unit": "px"
+   },
+   "$description": "Mobile bottom navigation."
+  },
+  "takeover-width": {
+   "$type": "dimension",
+   "$value": {
+    "value": 640.0,
+    "unit": "px"
+   },
+   "$description": "Web critical alert takeover width."
+  }
+ },
+ "opacity": {
+  "state-hover": {
+   "$type": "number",
+   "$value": 0.08,
+   "$description": "Hover state layer."
+  },
+  "state-focus": {
+   "$type": "number",
+   "$value": 0.1,
+   "$description": "Focus state layer (plus the focus ring)."
+  },
+  "state-pressed": {
+   "$type": "number",
+   "$value": 0.1,
+   "$description": "Pressed state layer (plus ripple)."
+  },
+  "state-dragged": {
+   "$type": "number",
+   "$value": 0.16,
+   "$description": "Dragged state layer."
+  },
+  "disabled-content": {
+   "$type": "number",
+   "$value": 0.38,
+   "$description": "Disabled label and icon opacity."
+  },
+  "disabled-container": {
+   "$type": "number",
+   "$value": 0.12,
+   "$description": "Disabled container opacity."
+  }
+ }
+}

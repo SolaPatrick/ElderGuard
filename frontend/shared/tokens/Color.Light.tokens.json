@@ -1,0 +1,956 @@
+{
+ "ref": {
+  "teal": {
+   "10": {
+    "$type": "color",
+    "$value": "#002020",
+    "$description": "Reference tone 10 of the teal palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "20": {
+    "$type": "color",
+    "$value": "#003737",
+    "$description": "Reference tone 20 of the teal palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "30": {
+    "$type": "color",
+    "$value": "#004f50",
+    "$description": "Reference tone 30 of the teal palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "40": {
+    "$type": "color",
+    "$value": "#00696b",
+    "$description": "Reference tone 40 of the teal palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "80": {
+    "$type": "color",
+    "$value": "#4fdadb",
+    "$description": "Reference tone 80 of the teal palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "90": {
+    "$type": "color",
+    "$value": "#9cf1f2",
+    "$description": "Reference tone 90 of the teal palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   }
+  },
+  "red": {
+   "10": {
+    "$type": "color",
+    "$value": "#410002",
+    "$description": "Reference tone 10 of the red palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "20": {
+    "$type": "color",
+    "$value": "#690005",
+    "$description": "Reference tone 20 of the red palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "30": {
+    "$type": "color",
+    "$value": "#93000a",
+    "$description": "Reference tone 30 of the red palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "40": {
+    "$type": "color",
+    "$value": "#ba1a1a",
+    "$description": "Reference tone 40 of the red palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "44": {
+    "$type": "color",
+    "$value": "#c62828",
+    "$description": "Reference tone 44 of the red palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "80": {
+    "$type": "color",
+    "$value": "#ffb4ab",
+    "$description": "Reference tone 80 of the red palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "90": {
+    "$type": "color",
+    "$value": "#ffdad6",
+    "$description": "Reference tone 90 of the red palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   }
+  },
+  "amber": {
+   "10": {
+    "$type": "color",
+    "$value": "#2a1800",
+    "$description": "Reference tone 10 of the amber palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "20": {
+    "$type": "color",
+    "$value": "#462a00",
+    "$description": "Reference tone 20 of the amber palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "30": {
+    "$type": "color",
+    "$value": "#653e00",
+    "$description": "Reference tone 30 of the amber palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "40": {
+    "$type": "color",
+    "$value": "#855300",
+    "$description": "Reference tone 40 of the amber palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "80": {
+    "$type": "color",
+    "$value": "#ffb951",
+    "$description": "Reference tone 80 of the amber palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "90": {
+    "$type": "color",
+    "$value": "#ffddb3",
+    "$description": "Reference tone 90 of the amber palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   }
+  },
+  "green": {
+   "10": {
+    "$type": "color",
+    "$value": "#002108",
+    "$description": "Reference tone 10 of the green palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "20": {
+    "$type": "color",
+    "$value": "#00390f",
+    "$description": "Reference tone 20 of the green palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "30": {
+    "$type": "color",
+    "$value": "#00531b",
+    "$description": "Reference tone 30 of the green palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "40": {
+    "$type": "color",
+    "$value": "#1b6c30",
+    "$description": "Reference tone 40 of the green palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "80": {
+    "$type": "color",
+    "$value": "#89d88e",
+    "$description": "Reference tone 80 of the green palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "90": {
+    "$type": "color",
+    "$value": "#a4f5a8",
+    "$description": "Reference tone 90 of the green palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   }
+  },
+  "blue": {
+   "10": {
+    "$type": "color",
+    "$value": "#001b3e",
+    "$description": "Reference tone 10 of the blue palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "20": {
+    "$type": "color",
+    "$value": "#002f65",
+    "$description": "Reference tone 20 of the blue palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "30": {
+    "$type": "color",
+    "$value": "#0b458e",
+    "$description": "Reference tone 30 of the blue palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "40": {
+    "$type": "color",
+    "$value": "#2b5ea7",
+    "$description": "Reference tone 40 of the blue palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "80": {
+    "$type": "color",
+    "$value": "#abc7ff",
+    "$description": "Reference tone 80 of the blue palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "90": {
+    "$type": "color",
+    "$value": "#d7e3ff",
+    "$description": "Reference tone 90 of the blue palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   }
+  },
+  "neutral": {
+   "4": {
+    "$type": "color",
+    "$value": "#0a0f0f",
+    "$description": "Reference tone 4 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "6": {
+    "$type": "color",
+    "$value": "#0f1414",
+    "$description": "Reference tone 6 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "10": {
+    "$type": "color",
+    "$value": "#171d1d",
+    "$description": "Reference tone 10 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "11": {
+    "$type": "color",
+    "$value": "#181c1c",
+    "$description": "Reference tone 11 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "12": {
+    "$type": "color",
+    "$value": "#191c1c",
+    "$description": "Reference tone 12 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "13": {
+    "$type": "color",
+    "$value": "#1b2121",
+    "$description": "Reference tone 13 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "17": {
+    "$type": "color",
+    "$value": "#252b2b",
+    "$description": "Reference tone 17 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "20": {
+    "$type": "color",
+    "$value": "#2d3131",
+    "$description": "Reference tone 20 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "22": {
+    "$type": "color",
+    "$value": "#303636",
+    "$description": "Reference tone 22 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "41": {
+    "$type": "color",
+    "$value": "#5c6363",
+    "$description": "Reference tone 41 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "71": {
+    "$type": "color",
+    "$value": "#a9b0af",
+    "$description": "Reference tone 71 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "90": {
+    "$type": "color",
+    "$value": "#dee4e3",
+    "$description": "Reference tone 90 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "91": {
+    "$type": "color",
+    "$value": "#e0e3e2",
+    "$description": "Reference tone 91 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "92": {
+    "$type": "color",
+    "$value": "#e0e3e3",
+    "$description": "Reference tone 92 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "93": {
+    "$type": "color",
+    "$value": "#e5e9e8",
+    "$description": "Reference tone 93 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "94": {
+    "$type": "color",
+    "$value": "#ebefee",
+    "$description": "Reference tone 94 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "95": {
+    "$type": "color",
+    "$value": "#eef1f0",
+    "$description": "Reference tone 95 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "96": {
+    "$type": "color",
+    "$value": "#f1f4f3",
+    "$description": "Reference tone 96 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "98": {
+    "$type": "color",
+    "$value": "#f7faf9",
+    "$description": "Reference tone 98 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "100": {
+    "$type": "color",
+    "$value": "#ffffff",
+    "$description": "Reference tone 100 of the neutral palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   }
+  },
+  "neutral-variant": {
+   "30": {
+    "$type": "color",
+    "$value": "#3f4949",
+    "$description": "Reference tone 30 of the neutral-variant palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "50": {
+    "$type": "color",
+    "$value": "#6f7979",
+    "$description": "Reference tone 50 of the neutral-variant palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "60": {
+    "$type": "color",
+    "$value": "#889392",
+    "$description": "Reference tone 60 of the neutral-variant palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   },
+   "80": {
+    "$type": "color",
+    "$value": "#bec9c8",
+    "$description": "Reference tone 80 of the neutral-variant palette (HCT tone ≈ L*). Never used directly in UI; system tokens alias it."
+   }
+  },
+  "black": {
+   "$type": "color",
+   "$value": "#000000",
+   "$description": "Reference black, for shadows and scrim only."
+  }
+ },
+ "sys": {
+  "primary": {
+   "$type": "color",
+   "$value": "{ref.teal.40}",
+   "$description": "Brand teal: filled buttons, active nav indicator, focus ring, links, selected controls. As text on surface tiers (light 6.3:1+, dark 9:1+)."
+  },
+  "on-primary": {
+   "$type": "color",
+   "$value": "{ref.neutral.100}",
+   "$description": "Text and icons on a primary fill."
+  },
+  "primary-container": {
+   "$type": "color",
+   "$value": "{ref.teal.90}",
+   "$description": "Tonal button, selected nav item, selected filter chip fill."
+  },
+  "on-primary-container": {
+   "$type": "color",
+   "$value": "{ref.teal.10}",
+   "$description": "Text and icons on primary-container."
+  },
+  "inverse-primary": {
+   "$type": "color",
+   "$value": "{ref.teal.80}",
+   "$description": "Action text inside a snackbar (on inverse-surface)."
+  },
+  "surface": {
+   "$type": "color",
+   "$value": "{ref.neutral.98}",
+   "$description": "Page background (level 0)."
+  },
+  "surface-container-lowest": {
+   "$type": "color",
+   "$value": "{ref.neutral.100}",
+   "$description": "Intentional addition (M3): camera-grid well, input backgrounds on tinted panels."
+  },
+  "surface-container-low": {
+   "$type": "color",
+   "$value": "{ref.neutral.96}",
+   "$description": "Elevation level 1 tonal surface: cards, sidebar."
+  },
+  "surface-container": {
+   "$type": "color",
+   "$value": "{ref.neutral.94}",
+   "$description": "Elevation level 2: menus, navigation bar, top bar on scroll."
+  },
+  "surface-container-high": {
+   "$type": "color",
+   "$value": "{ref.neutral.93}",
+   "$description": "Elevation level 3: dialogs, bottom sheets, search field."
+  },
+  "surface-container-highest": {
+   "$type": "color",
+   "$value": "{ref.neutral.91}",
+   "$description": "Intentional addition (M3): levels 4–5, switch track off, skeleton base."
+  },
+  "on-surface": {
+   "$type": "color",
+   "$value": "{ref.neutral.11}",
+   "$description": "Primary text and icons on every surface tier (≥12:1 light, ≥10:1 dark)."
+  },
+  "on-surface-variant": {
+   "$type": "color",
+   "$value": "{ref.neutral-variant.30}",
+   "$description": "Secondary text, metadata, inactive icons, on every surface tier (≥8:1 light, ≥8:1 dark)."
+  },
+  "outline": {
+   "$type": "color",
+   "$value": "{ref.neutral-variant.50}",
+   "$description": "Control borders (text field, outlined button, checkbox), ≥3:1 on all surfaces."
+  },
+  "outline-variant": {
+   "$type": "color",
+   "$value": "{ref.neutral-variant.80}",
+   "$description": "Decorative dividers and card outlines only — never the only boundary of a control."
+  },
+  "inverse-surface": {
+   "$type": "color",
+   "$value": "{ref.neutral.20}",
+   "$description": "Intentional addition (M3): snackbar and tooltip container."
+  },
+  "inverse-on-surface": {
+   "$type": "color",
+   "$value": "{ref.neutral.95}",
+   "$description": "Text on inverse-surface."
+  },
+  "critical": {
+   "$type": "color",
+   "$value": "{ref.red.40}",
+   "$description": "URGENT ONLY. Fill = a resident may need help now (Fall, SOS, New incident). As text/icon/outline: validation errors, destructive outlined buttons, outlined critical statuses."
+  },
+  "on-critical": {
+   "$type": "color",
+   "$value": "{ref.neutral.100}",
+   "$description": "Text on a critical fill. Dark value is an intentional addition (M3 error-on); the brief did not list it."
+  },
+  "critical-strong": {
+   "$type": "color",
+   "$value": "{ref.red.40}",
+   "$description": "Alert banners and critical-alert takeover header fills, which always carry white text (on-critical-strong). Light aliases the same tone as critical."
+  },
+  "on-critical-strong": {
+   "$type": "color",
+   "$value": "{ref.neutral.100}",
+   "$description": "Text on critical-strong (light 6.5:1, dark 5.6:1)."
+  },
+  "critical-container": {
+   "$type": "color",
+   "$value": "{ref.red.90}",
+   "$description": "Tinted background behind critical text: error banner body, alert card wash."
+  },
+  "on-critical-container": {
+   "$type": "color",
+   "$value": "{ref.red.10}",
+   "$description": "Text on critical-container."
+  },
+  "warning": {
+   "$type": "color",
+   "$value": "{ref.amber.40}",
+   "$description": "Acknowledged, Moderate risk, Degraded, Detection paused: icon, outline and text."
+  },
+  "on-warning": {
+   "$type": "color",
+   "$value": "{ref.neutral.100}",
+   "$description": "Text on a warning fill. Dark value is an intentional addition."
+  },
+  "warning-container": {
+   "$type": "color",
+   "$value": "{ref.amber.90}",
+   "$description": "Warning chip and banner fill."
+  },
+  "on-warning-container": {
+   "$type": "color",
+   "$value": "{ref.amber.10}",
+   "$description": "Text on warning-container."
+  },
+  "success": {
+   "$type": "color",
+   "$value": "{ref.green.40}",
+   "$description": "Resolved, Online, Active, Low risk, Operational: icon, outline and text."
+  },
+  "on-success": {
+   "$type": "color",
+   "$value": "{ref.neutral.100}",
+   "$description": "Text on a success fill. Dark value is an intentional addition."
+  },
+  "success-container": {
+   "$type": "color",
+   "$value": "{ref.green.90}",
+   "$description": "Success chip and snackbar fill."
+  },
+  "on-success-container": {
+   "$type": "color",
+   "$value": "{ref.green.10}",
+   "$description": "Text on success-container."
+  },
+  "info": {
+   "$type": "color",
+   "$value": "{ref.blue.40}",
+   "$description": "Connecting, informational banners and tips."
+  },
+  "on-info": {
+   "$type": "color",
+   "$value": "{ref.neutral.100}",
+   "$description": "Text on an info fill. Dark value is an intentional addition."
+  },
+  "info-container": {
+   "$type": "color",
+   "$value": "{ref.blue.90}",
+   "$description": "Info chip and banner fill."
+  },
+  "on-info-container": {
+   "$type": "color",
+   "$value": "{ref.blue.10}",
+   "$description": "Text on info-container."
+  },
+  "neutral-status": {
+   "$type": "color",
+   "$value": "{ref.neutral.41}",
+   "$description": "False alarm, Offline, Deactivated: icon and outline; as text on surface tiers."
+  },
+  "neutral-container": {
+   "$type": "color",
+   "$value": "{ref.neutral.92}",
+   "$description": "Neutral chip fill."
+  },
+  "on-neutral-container": {
+   "$type": "color",
+   "$value": "{ref.neutral.12}",
+   "$description": "Text on neutral-container."
+  },
+  "scrim": {
+   "$type": "color",
+   "$value": "#00000099",
+   "$description": "Modal scrim behind dialogs, sheets and the critical alert takeover (#000 at 60%)."
+  },
+  "shadow-color": {
+   "$type": "color",
+   "$value": "{ref.black}",
+   "$description": "Key and ambient shadow colour for elevation levels."
+  }
+ },
+ "chart": {
+  "1": {
+   "$type": "color",
+   "$value": "#00696b",
+   "$description": "Categorical series 1 (teal). Data only — never status. Never next to a critical value without a label."
+  },
+  "2": {
+   "$type": "color",
+   "$value": "#2b5ea7",
+   "$description": "Categorical series 2 (blue). Data only — never status. Never next to a critical value without a label."
+  },
+  "3": {
+   "$type": "color",
+   "$value": "#7b4fa0",
+   "$description": "Categorical series 3 (violet). Data only — never status. Never next to a critical value without a label."
+  },
+  "4": {
+   "$type": "color",
+   "$value": "#a35f00",
+   "$description": "Categorical series 4 (ochre). Data only — never status. Never next to a critical value without a label."
+  },
+  "5": {
+   "$type": "color",
+   "$value": "#4a6b2f",
+   "$description": "Categorical series 5 (olive). Data only — never status. Never next to a critical value without a label."
+  },
+  "6": {
+   "$type": "color",
+   "$value": "#8c4a6b",
+   "$description": "Categorical series 6 (plum). Data only — never status. Never next to a critical value without a label."
+  },
+  "grid": {
+   "$type": "color",
+   "$value": "{sys.outline-variant}",
+   "$description": "Chart gridlines."
+  },
+  "axis": {
+   "$type": "color",
+   "$value": "{sys.on-surface-variant}",
+   "$description": "Axis labels and ticks."
+  }
+ },
+ "status": {
+  "incident-new-bg": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "New / Unacknowledged incident — the only filled-red chip. Chip container."
+  },
+  "incident-new-fg": {
+   "$type": "color",
+   "$value": "{sys.on-critical}",
+   "$description": "New / Unacknowledged incident — the only filled-red chip. Label and icon, on status-incident-new-bg."
+  },
+  "incident-new-border": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "New / Unacknowledged incident — the only filled-red chip. 1px chip border (≥3:1 on surface)."
+  },
+  "incident-acknowledged-bg": {
+   "$type": "color",
+   "$value": "{sys.warning-container}",
+   "$description": "Acknowledged incident. Chip container."
+  },
+  "incident-acknowledged-fg": {
+   "$type": "color",
+   "$value": "{sys.on-warning-container}",
+   "$description": "Acknowledged incident. Label and icon, on status-incident-acknowledged-bg."
+  },
+  "incident-acknowledged-border": {
+   "$type": "color",
+   "$value": "{sys.warning}",
+   "$description": "Acknowledged incident. 1px chip border (≥3:1 on surface)."
+  },
+  "incident-confirmed-bg": {
+   "$type": "color",
+   "$value": "{sys.surface}",
+   "$description": "Confirmed incident (outlined critical). Chip container."
+  },
+  "incident-confirmed-fg": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "Confirmed incident (outlined critical). Label and icon, on status-incident-confirmed-bg."
+  },
+  "incident-confirmed-border": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "Confirmed incident (outlined critical). 1px chip border (≥3:1 on surface)."
+  },
+  "incident-false-alarm-bg": {
+   "$type": "color",
+   "$value": "{sys.neutral-container}",
+   "$description": "False alarm. Chip container."
+  },
+  "incident-false-alarm-fg": {
+   "$type": "color",
+   "$value": "{sys.on-neutral-container}",
+   "$description": "False alarm. Label and icon, on status-incident-false-alarm-bg."
+  },
+  "incident-false-alarm-border": {
+   "$type": "color",
+   "$value": "{sys.neutral-status}",
+   "$description": "False alarm. 1px chip border (≥3:1 on surface)."
+  },
+  "incident-resolved-bg": {
+   "$type": "color",
+   "$value": "{sys.success-container}",
+   "$description": "Resolved incident. Chip container."
+  },
+  "incident-resolved-fg": {
+   "$type": "color",
+   "$value": "{sys.on-success-container}",
+   "$description": "Resolved incident. Label and icon, on status-incident-resolved-bg."
+  },
+  "incident-resolved-border": {
+   "$type": "color",
+   "$value": "{sys.success}",
+   "$description": "Resolved incident. 1px chip border (≥3:1 on surface)."
+  },
+  "alert-fall-bg": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "Alert type Fall (person_alert icon). Chip container."
+  },
+  "alert-fall-fg": {
+   "$type": "color",
+   "$value": "{sys.on-critical}",
+   "$description": "Alert type Fall (person_alert icon). Label and icon, on status-alert-fall-bg."
+  },
+  "alert-fall-border": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "Alert type Fall (person_alert icon). 1px chip border (≥3:1 on surface)."
+  },
+  "alert-sos-bg": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "Alert type SOS (sos icon + 'SOS' label). Chip container."
+  },
+  "alert-sos-fg": {
+   "$type": "color",
+   "$value": "{sys.on-critical}",
+   "$description": "Alert type SOS (sos icon + 'SOS' label). Label and icon, on status-alert-sos-bg."
+  },
+  "alert-sos-border": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "Alert type SOS (sos icon + 'SOS' label). 1px chip border (≥3:1 on surface)."
+  },
+  "camera-online-bg": {
+   "$type": "color",
+   "$value": "{sys.success-container}",
+   "$description": "Camera online. Chip container."
+  },
+  "camera-online-fg": {
+   "$type": "color",
+   "$value": "{sys.on-success-container}",
+   "$description": "Camera online. Label and icon, on status-camera-online-bg."
+  },
+  "camera-online-border": {
+   "$type": "color",
+   "$value": "{sys.success}",
+   "$description": "Camera online. 1px chip border (≥3:1 on surface)."
+  },
+  "camera-offline-bg": {
+   "$type": "color",
+   "$value": "{sys.neutral-container}",
+   "$description": "Camera offline. Chip container."
+  },
+  "camera-offline-fg": {
+   "$type": "color",
+   "$value": "{sys.on-neutral-container}",
+   "$description": "Camera offline. Label and icon, on status-camera-offline-bg."
+  },
+  "camera-offline-border": {
+   "$type": "color",
+   "$value": "{sys.neutral-status}",
+   "$description": "Camera offline. 1px chip border (≥3:1 on surface)."
+  },
+  "camera-error-bg": {
+   "$type": "color",
+   "$value": "{sys.surface}",
+   "$description": "Camera no signal / error (outlined critical). Chip container."
+  },
+  "camera-error-fg": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "Camera no signal / error (outlined critical). Label and icon, on status-camera-error-bg."
+  },
+  "camera-error-border": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "Camera no signal / error (outlined critical). 1px chip border (≥3:1 on surface)."
+  },
+  "camera-paused-bg": {
+   "$type": "color",
+   "$value": "{sys.warning-container}",
+   "$description": "Detection paused. Chip container."
+  },
+  "camera-paused-fg": {
+   "$type": "color",
+   "$value": "{sys.on-warning-container}",
+   "$description": "Detection paused. Label and icon, on status-camera-paused-bg."
+  },
+  "camera-paused-border": {
+   "$type": "color",
+   "$value": "{sys.warning}",
+   "$description": "Detection paused. 1px chip border (≥3:1 on surface)."
+  },
+  "camera-connecting-bg": {
+   "$type": "color",
+   "$value": "{sys.info-container}",
+   "$description": "Camera connecting. Chip container."
+  },
+  "camera-connecting-fg": {
+   "$type": "color",
+   "$value": "{sys.on-info-container}",
+   "$description": "Camera connecting. Label and icon, on status-camera-connecting-bg."
+  },
+  "camera-connecting-border": {
+   "$type": "color",
+   "$value": "{sys.info}",
+   "$description": "Camera connecting. 1px chip border (≥3:1 on surface)."
+  },
+  "account-active-bg": {
+   "$type": "color",
+   "$value": "{sys.success-container}",
+   "$description": "User account active. Chip container."
+  },
+  "account-active-fg": {
+   "$type": "color",
+   "$value": "{sys.on-success-container}",
+   "$description": "User account active. Label and icon, on status-account-active-bg."
+  },
+  "account-active-border": {
+   "$type": "color",
+   "$value": "{sys.success}",
+   "$description": "User account active. 1px chip border (≥3:1 on surface)."
+  },
+  "account-deactivated-bg": {
+   "$type": "color",
+   "$value": "{sys.neutral-container}",
+   "$description": "User account deactivated. Chip container."
+  },
+  "account-deactivated-fg": {
+   "$type": "color",
+   "$value": "{sys.on-neutral-container}",
+   "$description": "User account deactivated. Label and icon, on status-account-deactivated-bg."
+  },
+  "account-deactivated-border": {
+   "$type": "color",
+   "$value": "{sys.neutral-status}",
+   "$description": "User account deactivated. 1px chip border (≥3:1 on surface)."
+  },
+  "risk-low-bg": {
+   "$type": "color",
+   "$value": "{sys.success-container}",
+   "$description": "Fall-risk Low. Chip container."
+  },
+  "risk-low-fg": {
+   "$type": "color",
+   "$value": "{sys.on-success-container}",
+   "$description": "Fall-risk Low. Label and icon, on status-risk-low-bg."
+  },
+  "risk-low-border": {
+   "$type": "color",
+   "$value": "{sys.success}",
+   "$description": "Fall-risk Low. 1px chip border (≥3:1 on surface)."
+  },
+  "risk-moderate-bg": {
+   "$type": "color",
+   "$value": "{sys.warning-container}",
+   "$description": "Fall-risk Moderate. Chip container."
+  },
+  "risk-moderate-fg": {
+   "$type": "color",
+   "$value": "{sys.on-warning-container}",
+   "$description": "Fall-risk Moderate. Label and icon, on status-risk-moderate-bg."
+  },
+  "risk-moderate-border": {
+   "$type": "color",
+   "$value": "{sys.warning}",
+   "$description": "Fall-risk Moderate. 1px chip border (≥3:1 on surface)."
+  },
+  "risk-high-bg": {
+   "$type": "color",
+   "$value": "{sys.surface}",
+   "$description": "Fall-risk High (outlined critical — a risk level is not an emergency). Chip container."
+  },
+  "risk-high-fg": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "Fall-risk High (outlined critical — a risk level is not an emergency). Label and icon, on status-risk-high-bg."
+  },
+  "risk-high-border": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "Fall-risk High (outlined critical — a risk level is not an emergency). 1px chip border (≥3:1 on surface)."
+  },
+  "system-operational-bg": {
+   "$type": "color",
+   "$value": "{sys.success-container}",
+   "$description": "System health Operational. Chip container."
+  },
+  "system-operational-fg": {
+   "$type": "color",
+   "$value": "{sys.on-success-container}",
+   "$description": "System health Operational. Label and icon, on status-system-operational-bg."
+  },
+  "system-operational-border": {
+   "$type": "color",
+   "$value": "{sys.success}",
+   "$description": "System health Operational. 1px chip border (≥3:1 on surface)."
+  },
+  "system-degraded-bg": {
+   "$type": "color",
+   "$value": "{sys.warning-container}",
+   "$description": "System health Degraded. Chip container."
+  },
+  "system-degraded-fg": {
+   "$type": "color",
+   "$value": "{sys.on-warning-container}",
+   "$description": "System health Degraded. Label and icon, on status-system-degraded-bg."
+  },
+  "system-degraded-border": {
+   "$type": "color",
+   "$value": "{sys.warning}",
+   "$description": "System health Degraded. 1px chip border (≥3:1 on surface)."
+  },
+  "system-down-bg": {
+   "$type": "color",
+   "$value": "{sys.surface}",
+   "$description": "System health Down (outlined critical; no resident is in danger by itself). Chip container."
+  },
+  "system-down-fg": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "System health Down (outlined critical; no resident is in danger by itself). Label and icon, on status-system-down-bg."
+  },
+  "system-down-border": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "System health Down (outlined critical; no resident is in danger by itself). 1px chip border (≥3:1 on surface)."
+  }
+ },
+ "comp": {
+  "focus-ring": {
+   "$type": "color",
+   "$value": "{sys.primary}",
+   "$description": "Keyboard focus: 3px solid ring, 2px offset, every interactive element."
+  },
+  "button-filled-container": {
+   "$type": "color",
+   "$value": "{sys.primary}",
+   "$description": "Filled button container."
+  },
+  "button-filled-label": {
+   "$type": "color",
+   "$value": "{sys.on-primary}",
+   "$description": "Filled button label."
+  },
+  "button-tonal-container": {
+   "$type": "color",
+   "$value": "{sys.primary-container}",
+   "$description": "Tonal button container."
+  },
+  "button-tonal-label": {
+   "$type": "color",
+   "$value": "{sys.on-primary-container}",
+   "$description": "Tonal button label."
+  },
+  "button-destructive-label": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "Destructive (outlined critical) button label and border. Never filled."
+  },
+  "nav-active-indicator": {
+   "$type": "color",
+   "$value": "{sys.primary-container}",
+   "$description": "Active pill behind the selected nav item."
+  },
+  "field-border": {
+   "$type": "color",
+   "$value": "{sys.outline}",
+   "$description": "Text field border, enabled."
+  },
+  "field-border-focus": {
+   "$type": "color",
+   "$value": "{sys.primary}",
+   "$description": "Text field border, focused (2px)."
+  },
+  "field-error": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "Validation error: text, icon, 2px border. Never a red fill."
+  },
+  "alert-border-new": {
+   "$type": "color",
+   "$value": "{sys.critical}",
+   "$description": "Alert card border while New (pulses twice, then solid)."
+  },
+  "alert-wash-new": {
+   "$type": "color",
+   "$value": "{sys.critical-container}",
+   "$description": "Alert card header wash while New."
+  },
+  "takeover-header": {
+   "$type": "color",
+   "$value": "{sys.critical-strong}",
+   "$description": "Critical alert takeover header band."
+  },
+  "takeover-header-label": {
+   "$type": "color",
+   "$value": "{sys.on-critical-strong}",
+   "$description": "Text on the takeover header."
+  },
+  "sos-fill": {
+   "$type": "color",
+   "$value": "{sys.critical-strong}",
+   "$description": "SOS button fill (urgent action; one of the two places a red fill is allowed)."
+  },
+  "sos-label": {
+   "$type": "color",
+   "$value": "{sys.on-critical-strong}",
+   "$description": "SOS button label."
+  },
+  "inverse-success": {
+   "$type": "color",
+   "$value": "{ref.green.80}",
+   "$description": "Snackbar success icon on inverse-surface."
+  },
+  "inverse-critical": {
+   "$type": "color",
+   "$value": "{ref.red.80}",
+   "$description": "Snackbar error icon on inverse-surface."
+  },
+  "inverse-warning": {
+   "$type": "color",
+   "$value": "{ref.amber.80}",
+   "$description": "Snackbar warning icon on inverse-surface."
+  },
+  "inverse-info": {
+   "$type": "color",
+   "$value": "{ref.blue.80}",
+   "$description": "Snackbar info icon on inverse-surface."
+  },
+  "camera-well": {
+   "$type": "color",
+   "$value": "{ref.neutral.6}",
+   "$description": "Camera video well (always dark so footage reads, both themes)."
+  },
+  "camera-overlay-text": {
+   "$type": "color",
+   "$value": "{ref.neutral.100}",
+   "$description": "Text on the camera scrim overlay."
+  }
+ }
+}
