@@ -7,13 +7,14 @@ import {
   isActiveStatus,
   type Camera,
   type Resident,
+  type ResidentDetail,
   type User,
   type DashboardSummary,
   type Incident,
   type IncidentDetail,
   type IncidentEvent,
 } from '@elderguard/shared';
-import { createSeed, type Seed, type SeedUser } from '@elderguard/shared/fixtures';
+import { createSeed, type Seed, type SeedResident, type SeedUser } from '@elderguard/shared/fixtures';
 
 let seed: Seed = createSeed();
 let ids = 1000;
@@ -21,6 +22,29 @@ const nextId = (prefix: string) => `${prefix}-${++ids}`;
 
 export function resetDb(now: Date = new Date()) {
   seed = createSeed(now);
+}
+
+/**
+ * A resident as the list returns it. Only incidents this user can open count towards
+ * hasActiveAlert and lastIncidentAt, so they never point at a page the user cannot see.
+ */
+function toResident(user: SeedUser, r: SeedResident): Resident {
+  const theirs = seed.incidents.filter((i) => i.resident?.id === r.id && db.canSeeRoom(user, i.room.id));
+  const room = seed.rooms.find((x) => x.id === r.roomId) ?? null;
+  const latest = theirs.toSorted((a, b) => Date.parse(b.detectedAt) - Date.parse(a.detectedAt))[0];
+  return {
+    id: r.id,
+    fullName: r.fullName,
+    age: r.age,
+    fallRisk: r.fallRisk,
+    room: room ? { id: room.id, name: room.name, wing: room.wing } : null,
+    caregivers: r.caregiverIds.flatMap((id) => {
+      const u = seed.users.find((x) => x.id === id);
+      return u ? [{ id: u.id, fullName: u.fullName }] : [];
+    }),
+    hasActiveAlert: theirs.some((i) => isActiveStatus(i.status)),
+    lastIncidentAt: latest?.detectedAt ?? null,
+  };
 }
 
 export const db = {
@@ -112,29 +136,21 @@ export const db = {
   },
 
   listResidents(user: SeedUser): Resident[] {
-    // Only alerts this user can open count, so the badge never points at a page they cannot see.
-    const activeResidentIds = new Set(
-      seed.incidents
-        .filter((i) => isActiveStatus(i.status) && i.resident && db.canSeeRoom(user, i.room.id))
-        .map((i) => i.resident!.id),
-    );
-    return seed.residents
-      .filter((r) => db.canSeeRoom(user, r.roomId))
-      .map((r) => {
-        const room = seed.rooms.find((x) => x.id === r.roomId) ?? null;
-        return {
-          id: r.id,
-          fullName: r.fullName,
-          age: r.age,
-          fallRisk: r.fallRisk,
-          room: room ? { id: room.id, name: room.name, wing: room.wing } : null,
-          caregivers: r.caregiverIds.flatMap((id) => {
-            const u = seed.users.find((x) => x.id === id);
-            return u ? [{ id: u.id, fullName: u.fullName }] : [];
-          }),
-          hasActiveAlert: activeResidentIds.has(r.id),
-        };
-      });
+    return seed.residents.filter((r) => db.canSeeRoom(user, r.roomId)).map((r) => toResident(user, r));
+  },
+
+  /** Returns the resident only if this user may see them (otherwise behaves as "not found"). */
+  getResident(user: SeedUser, id: string): ResidentDetail | undefined {
+    const r = seed.residents.find((x) => x.id === id);
+    if (!r || !db.canSeeRoom(user, r.roomId)) return undefined;
+    return {
+      ...toResident(user, r),
+      sex: r.sex,
+      birthDate: r.birthDate,
+      mobilityAid: r.mobilityAid,
+      careNotes: r.careNotes,
+      emergencyContacts: r.emergencyContacts,
+    };
   },
 
   /**
