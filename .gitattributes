@@ -1,0 +1,4 @@
+# Keep line endings consistent between Windows and the GitHub checks.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
