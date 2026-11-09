@@ -17,7 +17,7 @@ The app runs on a **fake API with sample data** until the backend is ready. Log 
 | Username         | Role                         | Password        |
 | ---------------- | ---------------------------- | --------------- |
 | `teresa.reyes`   | Admin/Head                   | `elderguard123` |
-| `joel.ramos`     | Caregiver                    | `elderguard123` |
+| `joel.ramos`     | Caregiver (Rooms 101–103)    | `elderguard123` |
 | `liza.fernandez` | Deactivated (shows an error) | `elderguard123` |
 
 To demo a live alert, open the profile menu (top right) and choose **Simulate a fall (demo)**. The popup and alarm show within 5 seconds. Reloading the page resets the sample data.
@@ -70,15 +70,16 @@ React 19 · TypeScript 7 (strict) · Vite 8 · MUI 9 · React Router 8 · TanSta
 
 ## What is built so far
 
-| Screen                                                                      | Status                           |
-| --------------------------------------------------------------------------- | -------------------------------- |
-| AUTH-01 Login (errors, deactivated, remember me)                            | Done                             |
-| SH-01/02 Layout shell (admin and caregiver sidebars)                        | Done                             |
-| SH-05/06 Incoming alert popup with alarm sound                              | Done                             |
-| SH-07 Active alert banner, SH-09 connection lost banner                     | Done                             |
-| DASH-01 Admin dashboard, DASH-02 caregiver greeting                         | Done (caregiver cards to refine) |
-| ALT-01 Alert queue, ALT-02 alert detail, ALT-03 classify, ALT-04 resolve    | Done                             |
-| INC-01 Incident history (no filters yet), INC-03/04 detail, INC-05 add note | Done                             |
-| SYS-01 404, SYS-02 403, SYS-03 crash page                                   | Done                             |
-| Night mode                                                                  | Done (profile menu)              |
-| Everything else in the Figma file                                           | Placeholder "coming soon" page   |
+| Screen                                                                      | Status                         |
+| --------------------------------------------------------------------------- | ------------------------------ |
+| AUTH-01 Login (errors, deactivated, remember me)                            | Done                           |
+| SH-01/02 Layout shell (admin and caregiver sidebars)                        | Done                           |
+| SH-05/06 Incoming alert popup with alarm sound                              | Done                           |
+| SH-07 Active alert banner, SH-09 connection lost banner                     | Done                           |
+| DASH-01 Admin dashboard                                                     | Done                           |
+| DASH-02 Caregiver dashboard (only their own alerts, residents and cameras)  | Done                           |
+| ALT-01 Alert queue, ALT-02 alert detail, ALT-03 classify, ALT-04 resolve    | Done                           |
+| INC-01 Incident history (no filters yet), INC-03/04 detail, INC-05 add note | Done                           |
+| SYS-01 404, SYS-02 403, SYS-03 crash page                                   | Done                           |
+| Night mode                                                                  | Done (profile menu)            |
+| Everything else in the Figma file                                           | Placeholder "coming soon" page |

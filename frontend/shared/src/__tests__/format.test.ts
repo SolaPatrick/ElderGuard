@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  describeAreas,
   formatElapsed,
   formatShortDuration,
   incidentPersonName,
@@ -68,5 +69,27 @@ describe('incident copy', () => {
     expect(incidentPersonName({ type: 'sos', sentBy, resident })).toBe('Angelica Cruz');
     expect(incidentPersonName({ type: 'fall', sentBy: null, resident })).toBe('Remedios Santos');
     expect(incidentPersonName({ type: 'fall', sentBy: null, resident: null })).toBe('Unknown resident');
+  });
+});
+
+describe('describeAreas', () => {
+  const room = (name: string, wing: string | null = null) => ({ name, wing });
+  it('matches the caregiver dashboard subtitle in the design', () => {
+    expect(
+      describeAreas([
+        room('Room 101', 'East Wing'),
+        room('Room 102', 'East Wing'),
+        room('Room 103', 'East Wing'),
+      ]),
+    ).toBe('East Wing · Rooms 101–103');
+  });
+  it('lists non-room areas and breaks room ranges', () => {
+    expect(describeAreas([room('Dining Hall'), room('Room 105'), room('Room 101'), room('Room 102')])).toBe(
+      'Rooms 101–102, 105, Dining Hall',
+    );
+  });
+  it('handles a single room and no assignment', () => {
+    expect(describeAreas([room('Room 104', 'West Wing')])).toBe('West Wing · Room 104');
+    expect(describeAreas([])).toBe('No areas assigned');
   });
 });

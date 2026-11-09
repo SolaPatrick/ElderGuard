@@ -10,9 +10,10 @@ import type { ActivityEntry, Camera, FallRisk, IncidentDetail, IncidentEvent, Us
 /** Demo password for every sample account (fake API only, never a real password). */
 export const DEMO_PASSWORD = 'elderguard123';
 
-export interface SeedUser extends User {
+export interface SeedUser extends Omit<User, 'areas'> {
   status: 'active' | 'deactivated';
-  wing: string | null;
+  /** Rooms and areas this caregiver monitors (AREA_ASSIGNMENT). Empty for the Admin/Head, who sees everything. */
+  areaIds: string[];
 }
 
 export interface SeedResident {
@@ -58,7 +59,7 @@ export function createSeed(now: Date = new Date()): Seed {
       title: 'Admin/Head',
       mustChangePassword: false,
       status: 'active',
-      wing: null,
+      areaIds: [],
     },
     {
       id: 'u-joel',
@@ -69,7 +70,7 @@ export function createSeed(now: Date = new Date()): Seed {
       title: 'Caregiver',
       mustChangePassword: false,
       status: 'active',
-      wing: 'East Wing',
+      areaIds: ['r-101', 'r-102', 'r-103'],
     },
     {
       id: 'u-angelica',
@@ -80,7 +81,7 @@ export function createSeed(now: Date = new Date()): Seed {
       title: 'Caregiver',
       mustChangePassword: false,
       status: 'active',
-      wing: 'Common Areas',
+      areaIds: ['r-dining', 'r-activity'],
     },
     {
       id: 'u-mark',
@@ -91,7 +92,7 @@ export function createSeed(now: Date = new Date()): Seed {
       title: 'Caregiver',
       mustChangePassword: false,
       status: 'active',
-      wing: 'West Wing',
+      areaIds: ['r-104', 'r-105', 'r-106', 'r-hall-a', 'r-hall-b', 'r-garden'],
     },
     {
       id: 'u-liza',
@@ -102,7 +103,7 @@ export function createSeed(now: Date = new Date()): Seed {
       title: 'Caregiver',
       mustChangePassword: false,
       status: 'deactivated',
-      wing: null,
+      areaIds: [],
     },
   ];
 
@@ -131,8 +132,8 @@ export function createSeed(now: Date = new Date()): Seed {
     },
     {
       id: 'res-lourdes',
-      fullName: 'Lourdes Mendoza',
-      age: 79,
+      fullName: 'Lourdes Aquino',
+      age: 85,
       fallRisk: 'moderate',
       roomId: 'r-101',
       caregiverIds: ['u-joel'],
@@ -140,31 +141,31 @@ export function createSeed(now: Date = new Date()): Seed {
     {
       id: 'res-ernesto',
       fullName: 'Ernesto Villanueva',
-      age: 88,
-      fallRisk: 'high',
+      age: 79,
+      fallRisk: 'moderate',
       roomId: 'r-102',
       caregiverIds: ['u-joel'],
     },
     {
       id: 'res-corazon',
-      fullName: 'Corazon Lim',
-      age: 76,
-      fallRisk: 'low',
+      fullName: 'Corazon Mendoza',
+      age: 88,
+      fallRisk: 'high',
       roomId: 'r-103',
       caregiverIds: ['u-joel'],
     },
     {
       id: 'res-rodolfo',
       fullName: 'Rodolfo Garcia',
-      age: 81,
-      fallRisk: 'moderate',
+      age: 76,
+      fallRisk: 'low',
       roomId: 'r-104',
       caregiverIds: ['u-mark'],
     },
     {
       id: 'res-felicidad',
       fullName: 'Felicidad Bautista',
-      age: 90,
+      age: 91,
       fallRisk: 'high',
       roomId: 'r-105',
       caregiverIds: ['u-mark', 'u-angelica'],
@@ -172,7 +173,7 @@ export function createSeed(now: Date = new Date()): Seed {
     {
       id: 'res-antonio',
       fullName: 'Antonio Navarro',
-      age: 83,
+      age: 82,
       fallRisk: 'moderate',
       roomId: 'r-106',
       caregiverIds: ['u-mark', 'u-angelica'],
@@ -180,33 +181,34 @@ export function createSeed(now: Date = new Date()): Seed {
     {
       id: 'res-benjamin',
       fullName: 'Benjamin Torres',
-      age: 77,
+      age: 80,
       fallRisk: 'low',
       roomId: 'r-106',
       caregiverIds: ['u-mark'],
     },
   ];
 
-  const cam = (n: number, roomName: string, status: Camera['status'] = 'online'): Camera => ({
+  const cam = (n: number, roomId: string, status: Camera['status'] = 'online'): Camera => ({
     id: `cam-${String(n).padStart(2, '0')}`,
     code: `CAM-${String(n).padStart(2, '0')}`,
-    roomName,
+    roomId,
+    roomName: rooms.find((r) => r.id === roomId)!.name,
     status,
     detectionEnabled: status !== 'paused',
     lastSeenAt: status === 'offline' ? t(25 * MIN) : t(5_000),
   });
   const cameras: Camera[] = [
-    cam(1, 'Room 101'),
-    cam(2, 'Room 102'),
-    cam(3, 'Room 103'),
-    cam(4, 'Room 104'),
-    cam(5, 'Room 105'),
-    cam(6, 'Room 106'),
-    cam(7, 'Hallway B', 'offline'),
-    cam(8, 'Hallway A'),
-    cam(9, 'Garden Walkway', 'paused'),
-    cam(10, 'Dining Hall'),
-    cam(11, 'Activity Area'),
+    cam(1, 'r-101'),
+    cam(2, 'r-102'),
+    cam(3, 'r-103'),
+    cam(4, 'r-104'),
+    cam(5, 'r-105'),
+    cam(6, 'r-106'),
+    cam(7, 'r-hall-b', 'offline'),
+    cam(8, 'r-hall-a'),
+    cam(9, 'r-garden', 'paused'),
+    cam(10, 'r-dining'),
+    cam(11, 'r-activity'),
   ];
 
   const person = (id: string) => {
@@ -387,14 +389,14 @@ export function createSeed(now: Date = new Date()): Seed {
       camera: camera(1),
       confidence: 0.58,
       detectedAt: t(29 * HOUR),
-      acknowledgedAt: t(29 * HOUR - 2 * MIN),
+      acknowledgedAt: t(29 * HOUR - 52_000),
       acknowledgedBy: person('u-joel'),
       resolvedAt: t(29 * HOUR - 4 * MIN),
       resolvedBy: person('u-joel'),
       falseAlarmReason: 'Object dropped on the floor',
       events: [
         ev('detected', t(29 * HOUR), null, 'CAM-01 · confidence 58%'),
-        ev('acknowledged', t(29 * HOUR - 2 * MIN), 'u-joel'),
+        ev('acknowledged', t(29 * HOUR - 52_000), 'u-joel'),
         ev('classified', t(29 * HOUR - 4 * MIN), 'u-joel', 'False alarm'),
       ],
     },

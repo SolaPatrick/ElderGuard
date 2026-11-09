@@ -8,6 +8,7 @@ export const queryKeys = {
   dashboard: ['dashboard'] as const,
   activity: (limit: number) => ['activity', limit] as const,
   cameras: ['cameras'] as const,
+  residents: ['residents'] as const,
   activeIncidents: ['incidents', 'active'] as const,
   incidents: ['incidents', 'all'] as const,
   incident: (code: string) => ['incidents', 'detail', code] as const,
@@ -47,6 +48,15 @@ export function useActivity(limit = 3) {
   return useQuery({ queryKey: queryKeys.activity(limit), queryFn: () => api.activity(limit) });
 }
 
+/** Residents the signed-in user may see (all for Admin/Head, assigned ones for caregivers). */
+export function useResidents() {
+  return useQuery({
+    queryKey: queryKeys.residents,
+    queryFn: api.residents,
+    refetchInterval: ALERT_POLL_MS * 2,
+  });
+}
+
 export function useCameras() {
   return useQuery({ queryKey: queryKeys.cameras, queryFn: api.cameras, refetchInterval: 30_000 });
 }
@@ -57,6 +67,7 @@ function applyIncidentUpdate(qc: QueryClient, updated: IncidentDetail) {
   void qc.invalidateQueries({ queryKey: ['incidents'] });
   void qc.invalidateQueries({ queryKey: queryKeys.dashboard });
   void qc.invalidateQueries({ queryKey: ['activity'] });
+  void qc.invalidateQueries({ queryKey: queryKeys.residents });
 }
 
 export function useAcknowledge() {

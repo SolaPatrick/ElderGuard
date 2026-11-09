@@ -40,7 +40,7 @@ describe('Fall alert flow (SH-05 -> ALT-02 -> ALT-03 -> ALT-04)', () => {
   });
 
   it('requires a reason before closing as a false alarm', async () => {
-    signInAs('u-joel');
+    signInAs('u-teresa');
     const { user } = renderApp('/alerts/INC-2026-0141'); // SOS, already acknowledged
     await user.click(await screen.findByRole('button', { name: 'Classify' }));
     const dialog = await screen.findByRole('dialog', { name: 'Classify alert' });

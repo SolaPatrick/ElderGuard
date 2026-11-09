@@ -4,10 +4,14 @@ import ErrorOutlined from '@mui/icons-material/ErrorOutlined';
 import HighlightOffOutlined from '@mui/icons-material/HighlightOffOutlined';
 import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined';
 import FiberNewOutlined from '@mui/icons-material/FiberNewOutlined';
+import GppMaybeOutlined from '@mui/icons-material/GppMaybeOutlined';
+import ShieldOutlined from '@mui/icons-material/ShieldOutlined';
 import type { SvgIconComponent } from '@mui/icons-material';
 import {
   CAMERA_STATUS_LABEL,
+  FALL_RISK_LABEL,
   INCIDENT_STATUS_LABEL,
+  type FallRisk,
   type CameraStatus,
   type IncidentStatus,
 } from '@elderguard/shared';
@@ -15,7 +19,8 @@ import {
 type Props =
   | { kind: 'incident'; status: IncidentStatus }
   | { kind: 'camera'; status: CameraStatus }
-  | { kind: 'system'; status: 'operational' | 'degraded' | 'down'; label: string };
+  | { kind: 'system'; status: 'operational' | 'degraded' | 'down'; label: string }
+  | { kind: 'risk'; risk: FallRisk };
 
 const incidentToken: Record<IncidentStatus, string> = {
   new: 'incidentNew',
@@ -55,6 +60,11 @@ export function StatusChip(props: Props) {
     token = cameraToken[props.status];
     label = CAMERA_STATUS_LABEL[props.status];
     Icon = props.status === 'online' ? CheckCircleOutlined : ErrorOutlined;
+  } else if (props.kind === 'risk') {
+    // DS rule: High risk is the one allowed red use outside alerts (outlined critical chip).
+    token = `risk${props.risk[0]!.toUpperCase()}${props.risk.slice(1)}`;
+    label = FALL_RISK_LABEL[props.risk];
+    Icon = props.risk === 'high' ? GppMaybeOutlined : ShieldOutlined;
   } else {
     token = `system${props.status[0]!.toUpperCase()}${props.status.slice(1)}`;
     label = props.label;

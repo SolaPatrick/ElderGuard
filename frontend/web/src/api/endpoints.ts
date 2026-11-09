@@ -9,6 +9,7 @@ import {
   incidentDetailSchema,
   incidentSchema,
   loginResponseSchema,
+  residentSchema,
   userSchema,
   type AddNoteRequest,
   type ClassifyRequest,
@@ -30,6 +31,7 @@ export const api = {
   dashboardSummary: () => apiRequest('/dashboard/summary', dashboardSummarySchema),
   activity: (limit: number) => apiRequest(`/activity?limit=${limit}`, z.array(activityEntrySchema)),
   cameras: () => apiRequest('/cameras', z.array(cameraSchema)),
+  residents: () => apiRequest('/residents', z.array(residentSchema)),
 
   activeIncidents: () => apiRequest('/incidents?scope=active', z.array(incidentSchema)),
   incidents: (limit = 50) => apiRequest(`/incidents?scope=all&limit=${limit}`, z.array(incidentSchema)),

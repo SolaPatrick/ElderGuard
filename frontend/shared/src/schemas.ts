@@ -16,6 +16,9 @@ const isoDateTime = z.iso.datetime({ offset: true });
 export const roleSchema = z.enum(['admin', 'employee']);
 export type Role = z.infer<typeof roleSchema>;
 
+export const roomRefSchema = z.object({ id: z.string(), name: z.string(), wing: z.string().nullable() });
+export type RoomRef = z.infer<typeof roomRefSchema>;
+
 export const userSchema = z.object({
   id: z.string(),
   fullName: z.string(),
@@ -25,6 +28,11 @@ export const userSchema = z.object({
   /** Job title shown under the name, e.g. "Admin/Head" or "Caregiver". */
   title: z.string(),
   mustChangePassword: z.boolean(),
+  /**
+   * Rooms and areas a caregiver is assigned to monitor. Caregivers only see
+   * alerts, cameras and residents in these areas. Empty for the Admin/Head (sees everything).
+   */
+  areas: z.array(roomRefSchema),
 });
 export type User = z.infer<typeof userSchema>;
 
@@ -65,7 +73,7 @@ export const incidentSchema = z.object({
   type: incidentTypeSchema,
   status: incidentStatusSchema,
   resident: personRefSchema.extend({ age: z.number().int().nullable(), fallRisk: fallRiskSchema }).nullable(),
-  room: z.object({ id: z.string(), name: z.string(), wing: z.string().nullable() }),
+  room: roomRefSchema,
   camera: z.object({ id: z.string(), code: z.string() }).nullable(),
   /** For SOS: the staff member who pressed SOS. */
   sentBy: personRefSchema.nullable(),
@@ -143,12 +151,25 @@ export type CameraStatus = z.infer<typeof cameraStatusSchema>;
 export const cameraSchema = z.object({
   id: z.string(),
   code: z.string(),
+  roomId: z.string().nullable(),
   roomName: z.string().nullable(),
   status: cameraStatusSchema,
   detectionEnabled: z.boolean(),
   lastSeenAt: isoDateTime.nullable(),
 });
 export type Camera = z.infer<typeof cameraSchema>;
+
+export const residentSchema = z.object({
+  id: z.string(),
+  fullName: z.string(),
+  age: z.number().int().nullable(),
+  fallRisk: fallRiskSchema,
+  room: roomRefSchema.nullable(),
+  caregivers: z.array(personRefSchema),
+  /** True while the resident is involved in an open alert. */
+  hasActiveAlert: z.boolean(),
+});
+export type Resident = z.infer<typeof residentSchema>;
 
 export const dashboardSummarySchema = z.object({
   facilityName: z.string(),

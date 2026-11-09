@@ -27,7 +27,15 @@ If the backend team prefers other paths or field names, that's fine. Change `web
 | GET    | `/auth/me`     | none                     | `user`            |
 | POST   | `/auth/logout` | none                     | `{ ok: true }`    |
 
-`user` = `{ id, fullName, username, email, role: "admin" | "employee", title, mustChangePassword }`
+`user` = `{ id, fullName, username, email, role: "admin" | "employee", title, mustChangePassword, areas: [{ id, name, wing }] }`
+
+`areas` lists the rooms and areas a caregiver monitors (AREA_ASSIGNMENT). It is empty for the Admin/Head.
+
+## Who sees what
+
+- **Admin/Head:** everything.
+- **Caregiver (employee):** only incidents, cameras and residents in their assigned `areas` (matched by room). An incident in another area must return **404**, both for `GET /incidents/{code}` and for the actions on it, so a shared link doesn't reveal it.
+- `GET /dashboard/summary` and `GET /activity` are Admin/Head only. They return **403** for caregivers.
 
 Login errors the UI expects: `401 invalid_credentials`, `403 account_deactivated`, `423 account_locked`.
 
@@ -50,7 +58,9 @@ Login errors the UI expects: `401 invalid_credentials`, `403 account_deactivated
 
 `GET /activity?limit=3` returns `[{ id, user: { id, fullName }, summary, createdAt }]`, newest first.
 
-`GET /cameras` returns `[{ id, code, roomName, status: "online"|"offline"|"error"|"paused"|"connecting", detectionEnabled, lastSeenAt }]`.
+`GET /cameras` returns `[{ id, code, roomId, roomName, status: "online"|"offline"|"error"|"paused"|"connecting", detectionEnabled, lastSeenAt }]`.
+
+`GET /residents` returns `[{ id, fullName, age, fallRisk: "low"|"moderate"|"high", room: { id, name, wing } | null, caregivers: [{ id, fullName }], hasActiveAlert }]`. `hasActiveAlert` only counts alerts the caller can see.
 
 ## Incidents (alerts)
 

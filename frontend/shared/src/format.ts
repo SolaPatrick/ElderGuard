@@ -105,3 +105,34 @@ export function initials(fullName: string): string {
   const last = words.length > 1 ? words[words.length - 1]!.charAt(0) : '';
   return (first + last).toUpperCase();
 }
+
+/**
+ * Short description of a caregiver's assigned areas for page subtitles:
+ * [{Room 101, East Wing}, {Room 102}, {Room 103}] -> "East Wing · Rooms 101–103".
+ */
+export function describeAreas(areas: readonly { name: string; wing: string | null }[]): string {
+  if (areas.length === 0) return 'No areas assigned';
+  const wings = [...new Set(areas.map((a) => a.wing).filter((w): w is string => !!w))];
+
+  const roomNumbers: number[] = [];
+  const others: string[] = [];
+  for (const a of areas) {
+    const m = /^Room (\d+)$/.exec(a.name);
+    if (m) roomNumbers.push(Number(m[1]));
+    else others.push(a.name);
+  }
+  roomNumbers.sort((x, y) => x - y);
+
+  // Collapse consecutive room numbers into ranges: 101,102,103,105 -> "101–103", "105"
+  const ranges: string[] = [];
+  for (let i = 0; i < roomNumbers.length;) {
+    let j = i;
+    while (j + 1 < roomNumbers.length && roomNumbers[j + 1] === roomNumbers[j]! + 1) j++;
+    ranges.push(j > i ? `${roomNumbers[i]}–${roomNumbers[j]}` : String(roomNumbers[i]));
+    i = j + 1;
+  }
+  const roomsText =
+    roomNumbers.length === 0 ? null : `${roomNumbers.length === 1 ? 'Room' : 'Rooms'} ${ranges.join(', ')}`;
+
+  return [...wings, [roomsText, ...others].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+}
