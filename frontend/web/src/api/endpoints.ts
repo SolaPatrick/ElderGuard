@@ -9,6 +9,7 @@ import {
   incidentDetailSchema,
   incidentSchema,
   loginResponseSchema,
+  residentDetailSchema,
   residentSchema,
   roomRefSchema,
   userSchema,
@@ -35,6 +36,7 @@ export const api = {
   cameras: () => apiRequest('/cameras', z.array(cameraSchema)),
   residents: () => apiRequest('/residents', z.array(residentSchema)),
   rooms: () => apiRequest('/rooms', z.array(roomRefSchema)),
+  resident: (id: string) => apiRequest(`/residents/${enc(id)}`, residentDetailSchema),
 
   activeIncidents: () => apiRequest('/incidents?scope=active', z.array(incidentSchema)),
   incidents: (limit = 50) => apiRequest(`/incidents?scope=all&limit=${limit}`, z.array(incidentSchema)),

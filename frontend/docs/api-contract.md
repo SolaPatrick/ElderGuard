@@ -64,7 +64,24 @@ Login errors the UI expects: `401 invalid_credentials`, `403 account_deactivated
 - `liveUrl` is a URL the browser can play in a `<video>` tag (for example an MP4 or HLS gateway in front of the RTSP camera). Send `null` until streaming is ready; the camera page then shows a placeholder.
 - `roomWing` is `null` for common areas (hallways, dining hall). The Live Monitoring area filter groups these as "Common areas".
 
-`GET /residents` returns `[{ id, fullName, age, fallRisk: "low"|"moderate"|"high", room: { id, name, wing } | null, caregivers: [{ id, fullName }], hasActiveAlert }]`. `hasActiveAlert` only counts alerts the caller can see.
+`GET /residents` returns `[{ id, fullName, age, fallRisk: "low"|"moderate"|"high", room: { id, name, wing } | null, caregivers: [{ id, fullName }], hasActiveAlert, lastIncidentAt }]`. `hasActiveAlert` and `lastIncidentAt` (ISO date-time or `null`) only count incidents the caller can see.
+
+`GET /residents/{id}` returns one resident with extra profile fields:
+
+```json
+{
+  "...": "every field from the list above",
+  "sex": "female",
+  "birthDate": "1942-03-12",
+  "mobilityAid": "Walker",
+  "careNotes": "Needs help standing up at night.",
+  "emergencyContacts": [
+    { "id": "…", "fullName": "Maricel Santos", "relationship": "Daughter", "phone": "0918 555 0172" }
+  ]
+}
+```
+
+`sex`, `birthDate`, `mobilityAid`, `careNotes` and `relationship` may be `null`. A caregiver asking for a resident outside their areas gets **404**.
 
 ## Incidents (alerts)
 

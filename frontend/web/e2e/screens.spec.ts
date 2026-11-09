@@ -21,3 +21,11 @@ test('live monitoring opens a single camera from the sidebar', async ({ page }) 
   await expect(page.getByRole('heading', { level: 1, name: 'CAM-01 · Room 101' })).toBeVisible();
   await expect(page.getByText('Live feed · CAM-01')).toBeVisible();
 });
+
+test('a resident profile opens from the residents list', async ({ page }) => {
+  await page.getByRole('link', { name: 'Residents' }).first().click();
+  await expect(page.getByText('8 residents in the facility')).toBeVisible();
+  await page.getByRole('link', { name: 'Remedios Santos' }).click();
+  await expect(page).toHaveURL(/\/residents\/res-remedios$/);
+  await expect(page.getByText('84 · Female · Room 101 · East Wing')).toBeVisible();
+});

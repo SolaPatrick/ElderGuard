@@ -214,6 +214,14 @@ export const handlers = [
     return HttpResponse.json(db.listResidents(user));
   }),
 
+  http.get(url('/residents/:id'), ({ request, params }) => {
+    const user = authenticate(request);
+    if (user instanceof Response) return user;
+    const resident = db.getResident(user, String(params.id));
+    if (!resident) return error(404, 'not_found', 'This resident does not exist.');
+    return HttpResponse.json(resident);
+  }),
+
   // Development only: pretend a camera just detected a fall.
   http.post(url('/dev/simulate-fall'), ({ request }) => {
     const user = authenticate(request);

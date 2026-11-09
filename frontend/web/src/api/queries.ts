@@ -16,6 +16,7 @@ export const queryKeys = {
   cameras: ['cameras'] as const,
   rooms: ['rooms'] as const,
   residents: ['residents'] as const,
+  resident: (id: string) => ['residents', id] as const,
   activeIncidents: ['incidents', 'active'] as const,
   incidents: ['incidents', 'all'] as const,
   incident: (code: string) => ['incidents', 'detail', code] as const,
@@ -67,6 +68,14 @@ export function useResidents() {
 /** Rooms and areas the user may see (their assigned ones for caregivers). Changes rarely. */
 export function useRooms() {
   return useQuery({ queryKey: queryKeys.rooms, queryFn: api.rooms, staleTime: 5 * 60_000 });
+}
+
+export function useResident(id: string) {
+  return useQuery({
+    queryKey: queryKeys.resident(id),
+    queryFn: () => api.resident(id),
+    refetchInterval: ALERT_POLL_MS * 2,
+  });
 }
 
 export function useCameras() {

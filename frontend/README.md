@@ -8,7 +8,7 @@ You need **Node.js 22.12 or newer** ([nodejs.org](https://nodejs.org), pick the 
 
 ```bash
 cd frontend
-npm install          # first time only, takes a minute
+npm ci               # installs exactly the locked versions; run again after every git pull
 npm run dev          # opens on http://localhost:5173
 ```
 
@@ -57,7 +57,7 @@ frontend/
     src/api/         API client (validates every response), endpoints, React Query hooks
     src/auth/        Login session, "remember me", role-based route guard
     src/layout/      Sidebar, top bar, red alert banner, fall alert popup + alarm
-    src/features/    One folder per area: login, dashboard, alerts, incidents, monitoring, system pages
+    src/features/    One folder per area: login, dashboard, alerts, incidents, monitoring, residents, system pages
     src/mocks/       Fake API (MSW) used in development and tests
     src/theme/       MUI theme built from the design tokens (day and night mode)
     e2e/             Playwright end-to-end tests
@@ -82,6 +82,7 @@ React 19 · TypeScript 7 (strict) · Vite 8 · MUI 9 · React Router 8 · TanSta
 | ALT-01 Alert queue, ALT-02 alert detail, ALT-03 classify, ALT-04 resolve      | Done                           |
 | INC-01 Incident history (no filters yet), INC-03/04 detail, INC-05 add note   | Done                           |
 | MON-01 Live Monitoring grid (layouts, area filter, search), MON-02 camera     | Done (placeholder until feeds) |
+| RES-01 Resident list (cards and table, filters), RES-03 resident profile      | Done (editing comes next)      |
 | SYS-01 404, SYS-02 403, SYS-03 crash page                                     | Done                           |
 | Night mode                                                                    | Done (profile menu)            |
 | Everything else in the Figma file                                             | Placeholder "coming soon" page |

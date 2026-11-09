@@ -184,8 +184,32 @@ export const residentSchema = z.object({
   caregivers: z.array(personRefSchema),
   /** True while the resident is involved in an open alert. */
   hasActiveAlert: z.boolean(),
+  /** When the resident's latest incident was detected (only incidents the caller may see). */
+  lastIncidentAt: isoDateTime.nullable(),
 });
 export type Resident = z.infer<typeof residentSchema>;
+
+export const sexSchema = z.enum(['female', 'male']);
+export type Sex = z.infer<typeof sexSchema>;
+
+export const emergencyContactSchema = z.object({
+  id: z.string(),
+  fullName: z.string(),
+  relationship: z.string().nullable(),
+  phone: z.string(),
+});
+export type EmergencyContact = z.infer<typeof emergencyContactSchema>;
+
+/** One resident's profile (RES-03). */
+export const residentDetailSchema = residentSchema.extend({
+  sex: sexSchema.nullable(),
+  birthDate: z.iso.date().nullable(),
+  /** e.g. "Walker", "Wheelchair". Null when none. */
+  mobilityAid: z.string().nullable(),
+  careNotes: z.string().nullable(),
+  emergencyContacts: z.array(emergencyContactSchema),
+});
+export type ResidentDetail = z.infer<typeof residentDetailSchema>;
 
 export const dashboardSummarySchema = z.object({
   facilityName: z.string(),
