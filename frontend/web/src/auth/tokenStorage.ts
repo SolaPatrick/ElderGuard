@@ -22,6 +22,11 @@ export const tokenStorage = {
       (remember ? localStorage : sessionStorage).setItem(KEY, token);
     }, undefined);
   },
+  /** Swaps the token (e.g. after a password change) and keeps the "remember me" choice. */
+  replace(token: string): void {
+    const remembered = safe(() => localStorage.getItem(KEY) !== null, false);
+    this.set(token, remembered);
+  },
   clear(): void {
     safe(() => {
       sessionStorage.removeItem(KEY);

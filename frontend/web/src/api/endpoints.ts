@@ -14,6 +14,7 @@ import {
   roomRefSchema,
   userSchema,
   type AddNoteRequest,
+  type ChangePasswordRequest,
   type ClassifyRequest,
   type LoginRequest,
   type ResolveRequest,
@@ -21,15 +22,20 @@ import {
 } from '@elderguard/shared';
 import { z } from 'zod';
 import { apiRequest } from './client';
+import { BACKEND } from './config';
+import { fastApi } from './fastapi';
 
 const ok = z.object({ ok: z.literal(true) });
 const enc = encodeURIComponent;
 
-export const api = {
+/** The backend described in frontend/docs/api-contract.md (also what the fake API follows). */
+const contractApi = {
   login: (body: LoginRequest) =>
     apiRequest('/auth/login', loginResponseSchema, { method: 'POST', body, skipAuthRedirect: true }),
   me: (signal?: AbortSignal) => apiRequest('/auth/me', userSchema, signal ? { signal } : {}),
   logout: () => apiRequest('/auth/logout', ok, { method: 'POST', skipAuthRedirect: true }),
+  changePassword: (body: ChangePasswordRequest) =>
+    apiRequest('/auth/change-password', loginResponseSchema, { method: 'POST', body }),
 
   dashboardSummary: () => apiRequest('/dashboard/summary', dashboardSummarySchema),
   activity: (limit: number) => apiRequest(`/activity?limit=${limit}`, z.array(activityEntrySchema)),
@@ -52,3 +58,9 @@ export const api = {
   addNote: (code: string, body: AddNoteRequest) =>
     apiRequest(`/incidents/${enc(code)}/notes`, incidentDetailSchema, { method: 'POST', body }),
 };
+
+/**
+ * Every screen calls the backend through this object. With VITE_BACKEND=fastapi it talks to
+ * the FastAPI server in backend/ through a translation layer (see fastapi.ts).
+ */
+export const api: typeof contractApi = BACKEND === 'fastapi' ? fastApi : contractApi;

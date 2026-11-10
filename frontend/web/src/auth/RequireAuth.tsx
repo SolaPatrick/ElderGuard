@@ -25,6 +25,10 @@ export function RequireAuth({ roles }: { roles?: Role[] }) {
       />
     );
   }
+  // A temporary password must be changed before anything else works (the server refuses other requests).
+  if (state.user.mustChangePassword && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" replace state={{ from: location.pathname + location.search }} />;
+  }
   if (roles && !roles.includes(state.user.role)) return <AccessDeniedPage />;
   return <Outlet />;
 }

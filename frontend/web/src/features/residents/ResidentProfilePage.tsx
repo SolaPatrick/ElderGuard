@@ -129,15 +129,17 @@ function ContactList({ resident, limit }: { resident: ResidentDetail; limit?: nu
           key={c.id}
           disableGutters
           secondaryAction={
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<PhoneOutlined />}
-              href={`tel:${c.phone.replace(/[^\d+]/g, '')}`}
-              aria-label={`Call ${c.fullName}`}
-            >
-              Call
-            </Button>
+            c.phone && (
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<PhoneOutlined />}
+                href={`tel:${c.phone.replace(/[^\d+]/g, '')}`}
+                aria-label={`Call ${c.fullName}`}
+              >
+                Call
+              </Button>
+            )
           }
         >
           <ListItemAvatar>
@@ -146,7 +148,7 @@ function ContactList({ resident, limit }: { resident: ResidentDetail; limit?: nu
             </Avatar>
           </ListItemAvatar>
           <ListItemText
-            sx={{ pr: 20 }}
+            sx={{ pr: c.phone ? 20 : 0 }}
             primary={c.fullName}
             secondary={[c.relationship, c.phone].filter(Boolean).join(' · ')}
           />

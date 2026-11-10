@@ -48,6 +48,24 @@ export const loginResponseSchema = z.object({
 });
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
 
+/** AUTH: the form on the change-password page. */
+export const changePasswordFormSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Enter your current password'),
+    newPassword: z.string().min(8, 'Use at least 8 characters'),
+    confirmPassword: z.string(),
+  })
+  .refine((v) => v.newPassword === v.confirmPassword, {
+    message: 'The two new passwords are different',
+    path: ['confirmPassword'],
+  })
+  .refine((v) => v.newPassword !== v.currentPassword, {
+    message: 'Choose a password different from the current one',
+    path: ['newPassword'],
+  });
+export type ChangePasswordForm = z.infer<typeof changePasswordFormSchema>;
+export type ChangePasswordRequest = Pick<ChangePasswordForm, 'currentPassword' | 'newPassword'>;
+
 export const incidentTypeSchema = z.enum(['fall', 'sos']);
 export type IncidentType = z.infer<typeof incidentTypeSchema>;
 
@@ -169,6 +187,8 @@ export const cameraSchema = z.object({
    * Null until the backend provides one; the UI then shows a placeholder.
    */
   liveUrl: z.string().nullable(),
+  /** How to show liveUrl: "mjpeg" in an <img> tag, "video" in a <video> tag. Null when there is no liveUrl. */
+  liveFormat: z.enum(['mjpeg', 'video']).nullable(),
   status: cameraStatusSchema,
   detectionEnabled: z.boolean(),
   lastSeenAt: isoDateTime.nullable(),
