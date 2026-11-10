@@ -9,7 +9,10 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('the Admin/Head cancels an SOS with a reason', async ({ page }) => {
-  await page.getByRole('link', { name: /^Alerts/ }).first().click();
+  await page
+    .getByRole('link', { name: /^Alerts/ })
+    .first()
+    .click();
   await page.getByRole('link', { name: 'INC-2026-0141' }).click();
   await page.getByRole('button', { name: 'Cancel SOS' }).click();
   const dialog = page.getByRole('dialog', { name: 'Cancel SOS?' });
