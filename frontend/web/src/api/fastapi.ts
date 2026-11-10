@@ -644,6 +644,9 @@ export const fastApi = {
   sendSos: async (_body: unknown): Promise<IncidentDetail> => {
     throw notYet('Sending an SOS');
   },
+  cancelSos: async (_code: string, _body: unknown): Promise<IncidentDetail> => {
+    throw notYet('Cancelling an SOS');
+  },
 
   acknowledge: (code: string) => act(code, 'acknowledge'),
   async classify(code: string, body: ClassifyRequest): Promise<IncidentDetail> {

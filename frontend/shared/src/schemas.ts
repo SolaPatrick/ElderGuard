@@ -161,6 +161,32 @@ export const sosRequestSchema = z.object({
 });
 export type SosRequest = z.infer<typeof sosRequestSchema>;
 
+/** SOS-03 Cancel SOS: why the sender (or the Admin/Head) stops it. */
+export const cancelSosReasonSchema = z.enum(['mistake', 'handled', 'other']);
+export type CancelSosReason = z.infer<typeof cancelSosReasonSchema>;
+export const CANCEL_SOS_REASON_LABEL: Record<CancelSosReason, string> = {
+  mistake: 'Pressed by mistake',
+  handled: 'Situation handled',
+  other: 'Other',
+};
+export const cancelSosFormSchema = z
+  .object({
+    reason: cancelSosReasonSchema,
+    note: z
+      .string()
+      .trim()
+      .max(500, 'Keep the note under 500 characters')
+      .transform((v) => (v === '' ? null : v)),
+  })
+  .refine((v) => v.reason !== 'other' || v.note !== null, { message: 'Explain why', path: ['note'] });
+export type CancelSosForm = z.input<typeof cancelSosFormSchema>;
+/** What POST /incidents/{code}/cancel-sos receives. */
+export const cancelSosRequestSchema = z.object({
+  reason: cancelSosReasonSchema,
+  note: z.string().trim().max(500).nullable(),
+});
+export type CancelSosRequest = z.infer<typeof cancelSosRequestSchema>;
+
 export const resolveRequestSchema = z.object({
   outcome: z.string().trim().min(1, 'Choose an outcome'),
   responseSummary: z.string().trim().max(1000).optional(),

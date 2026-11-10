@@ -90,3 +90,61 @@ describe('SOS API rules', () => {
     expect(res.status).toBe(403);
   });
 });
+
+async function sendSosAsJoel() {
+  signInAs('u-joel');
+  const app = renderApp('/');
+  await closeAlertPopup(app.user);
+  await openSos(app.user);
+  await waitFor(() => expect(holdButton()).toBeEnabled());
+  fireEvent.pointerDown(holdButton());
+  await waitFor(() => expect(app.router.state.location.pathname).toMatch(/^\/alerts\/INC-\d{4}-\d{4}$/), {
+    timeout: 5000,
+  });
+  return app;
+}
+
+describe('SOS status and cancel (SOS-02, SOS-03)', () => {
+  it('shows the sender their active SOS and lets them cancel it with a reason', async () => {
+    const { user } = await sendSosAsJoel();
+    const card = await screen.findByRole('heading', { name: 'Your SOS is active' });
+    expect(card).toBeInTheDocument();
+    expect(screen.getByText('Waiting for someone to respond')).toBeInTheDocument();
+    expect(
+      screen.getByText(/^Your SOS is active · \d+:\d{2} elapsed · \d+ active alerts?$/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View SOS' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Cancel SOS' }));
+    const dialog = screen.getByRole('dialog', { name: 'Cancel SOS?' });
+    await user.click(within(dialog).getByRole('radio', { name: 'Other' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel SOS' }));
+    expect(await within(dialog).findByText('Explain why')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('radio', { name: 'Situation handled' }));
+    await user.type(within(dialog).getByRole('textbox', { name: /Note/ }), 'Resident was helped up.');
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel SOS' }));
+
+    expect(await screen.findByText('SOS cancelled · Situation handled')).toBeInTheDocument();
+    expect(screen.getByText('Resident was helped up.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Your SOS is active' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Cancel SOS?' })).not.toBeInTheDocument();
+  });
+
+  it('lets the Admin/Head cancel someone else’s SOS', async () => {
+    signInAs('u-teresa');
+    const { user } = renderApp('/alerts/INC-2026-0141');
+    await closeAlertPopup(user);
+    await user.click(await screen.findByRole('button', { name: 'Cancel SOS' }));
+    expect(screen.queryByRole('heading', { name: 'Your SOS is active' })).not.toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Cancel SOS?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel SOS' }));
+    expect(await screen.findByText('SOS cancelled · Pressed by mistake')).toBeInTheDocument();
+  });
+
+  it('offers no cancel on a fall alert', async () => {
+    signInAs('u-joel');
+    renderApp('/alerts/INC-2026-0142');
+    expect(await screen.findByRole('button', { name: 'Add note' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel SOS' })).not.toBeInTheDocument();
+  });
+});
