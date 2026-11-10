@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type {
   AddNoteRequest,
+  Camera,
   ClassifyRequest,
   CreateStaffRequest,
   RoomRequest,
@@ -14,7 +15,7 @@ import type {
   SosRequest,
   CancelSosRequest,
 } from '@elderguard/shared';
-import { ALERT_POLL_MS, HISTORY_LIMIT } from './config';
+import { ALERT_POLL_MS, CAMERA_PICTURE_MS, HISTORY_LIMIT } from './config';
 import { api } from './endpoints';
 
 export const queryKeys = {
@@ -108,6 +109,42 @@ export function useResident(id: string) {
 
 export function useCameras() {
   return useQuery({ queryKey: queryKeys.cameras, queryFn: api.cameras, refetchInterval: 30_000 });
+}
+
+/** Turns a picture into a data: link, which needs no clean-up, unlike a blob: link. */
+async function toDataUrl(blob: Blob): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000)
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return `data:${blob.type || 'image/jpeg'};base64,${btoa(binary)}`;
+}
+
+/** True when the camera is sending live video. */
+export const hasLiveVideo = (camera: Camera) =>
+  camera.liveUrl !== null && (camera.status === 'online' || camera.status === 'paused');
+
+/** The camera's newest picture, fetched again every few seconds while `enabled` and the tab is visible. */
+export function useCameraPictureQuery(camera: Camera, enabled: boolean) {
+  return useQuery({
+    queryKey: ['camera-picture', camera.id],
+    queryFn: async ({ signal }) => toDataUrl(await api.cameraPicture(camera.id, signal)),
+    enabled,
+    refetchInterval: CAMERA_PICTURE_MS,
+    refetchIntervalInBackground: false,
+    retry: false,
+    gcTime: 0,
+  });
+}
+
+/**
+ * The picture shown on a camera tile (MON-01). Off when the camera has no live video. Null until a
+ * picture arrives, and after a failed refresh, so a frozen picture is never shown as live.
+ */
+export function useCameraPicture(camera: Camera): string | null {
+  const live = hasLiveVideo(camera);
+  const picture = useCameraPictureQuery(camera, live);
+  return live && !picture.isError ? (picture.data ?? null) : null;
 }
 
 /** After any change to an incident, update its cache entry and refresh lists and counts. */

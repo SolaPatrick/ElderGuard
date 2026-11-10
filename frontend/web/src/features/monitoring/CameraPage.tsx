@@ -1,5 +1,6 @@
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -25,14 +26,25 @@ import {
   incidentTitle,
   type Camera,
 } from '@elderguard/shared';
-import { useActiveIncidents, useCameras, useIncidents, useResidents } from '../../api/queries';
+import { ApiError } from '../../api/client';
+import {
+  hasLiveVideo,
+  useActiveIncidents,
+  useCameraPictureQuery,
+  useCameras,
+  useIncidents,
+  useResidents,
+} from '../../api/queries';
 import { PageHeader } from '../../components/PageHeader';
 import { ErrorState, LoadingBlock, SkeletonRows } from '../../components/QueryStates';
 import { StatusChip } from '../../components/StatusChip';
+import { errorMessage } from '../../components/errorMessage';
 import { useNow } from '../../hooks/useNow';
+import { usePageVisible } from '../../hooks/usePageVisible';
 import { SectionCard } from '../dashboard/DashboardCards';
 import { NotFoundPage } from '../system/NotFoundPage';
 import { alertForCamera } from './cameraFilters';
+import { useCameraSnapshot } from './snapshot';
 
 const tag = {
   position: 'absolute',
@@ -44,10 +56,54 @@ const tag = {
   typography: 'caption',
 } as const;
 
-/** The large live feed. Plays the backend's stream when there is one, otherwise a placeholder. */
+/** Seconds before a stopped stream tries again on its own. */
+const RECONNECT_SECONDS = 5;
+
+function FeedMessage({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return (
+    <Stack
+      sx={{ alignItems: 'center', color: 'eg.comp.cameraOverlayText', gap: 2, px: 4, textAlign: 'center' }}
+    >
+      {icon}
+      {children}
+    </Stack>
+  );
+}
+
+/**
+ * The large live feed. Plays the backend's stream when there is one, otherwise a placeholder.
+ * The stream stops while the tab is hidden, and reconnects on its own if it breaks.
+ */
 function CameraFeed({ camera, alerting }: { camera: Camera; alerting: boolean }) {
   const now = useNow();
+  const visible = usePageVisible();
+  // Each try at the stream: its number (the <img> key) and when it started.
+  const [attempt, setAttempt] = useState({ n: 0, at: 0 });
+  const [failedAttempt, setFailedAttempt] = useState<number | null>(null);
   const working = camera.status === 'online' || camera.status === 'paused';
+  const stream = working ? camera.liveUrl : null;
+  const retry = () => setAttempt((a) => ({ n: a.n + 1, at: Date.now() }));
+
+  // A browser keeps showing the last frame when an MJPEG stream breaks, with no error event. So the
+  // page also asks for the newest picture every few seconds: if the server stops answering, the
+  // stream counts as stopped. Only a lost server counts; a server without pictures is not a broken stream.
+  const check = useCameraPictureQuery(camera, stream !== null && visible && failedAttempt !== attempt.n);
+  const serverLost =
+    check.isError &&
+    check.errorUpdatedAt > attempt.at &&
+    (!(check.error instanceof ApiError) || check.error.status === 0 || check.error.status >= 500);
+  const failed = stream !== null && (failedAttempt === attempt.n || serverLost);
+
+  useEffect(() => {
+    if (!failed || !visible) return;
+    const id = window.setTimeout(retry, RECONNECT_SECONDS * 1000);
+    return () => window.clearTimeout(id);
+  }, [failed, visible, attempt.n]);
+
+  const onError = () => setFailedAttempt(attempt.n);
+  const feedSx = { width: '100%', height: '100%', objectFit: 'contain' } as const;
+  const nowIso = new Date(now).toISOString();
+
   return (
     <Box
       sx={{
@@ -63,38 +119,64 @@ function CameraFeed({ camera, alerting }: { camera: Camera; alerting: boolean })
         borderColor: alerting ? 'eg.comp.alertBorderNew' : 'transparent',
       }}
     >
-      {working && camera.liveUrl && camera.liveFormat === 'mjpeg' ? (
+      {stream && failed ? (
+        <FeedMessage icon={<VideocamOffOutlined sx={{ fontSize: 64 }} aria-hidden />}>
+          <Typography variant="body2" role="status">
+            The live video stopped. Trying again in a few seconds.
+          </Typography>
+          <Button variant="contained" size="small" onClick={retry}>
+            Reconnect now
+          </Button>
+        </FeedMessage>
+      ) : stream && !visible ? (
+        <FeedMessage icon={<VideocamOutlined sx={{ fontSize: 64 }} aria-hidden />}>
+          <Typography variant="body2">Live video is paused while this tab is hidden.</Typography>
+        </FeedMessage>
+      ) : stream && camera.liveFormat === 'mjpeg' ? (
         <Box
+          key={attempt.n}
           component="img"
-          src={camera.liveUrl}
+          src={stream}
           alt={`Live feed from ${camera.code}`}
-          sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          onError={onError}
+          sx={feedSx}
         />
-      ) : working && camera.liveUrl ? (
+      ) : stream ? (
         <Box
+          key={attempt.n}
           component="video"
-          src={camera.liveUrl}
+          src={stream}
           autoPlay
           muted
           playsInline
           aria-label={`Live feed from ${camera.code}`}
-          sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          onError={onError}
+          sx={feedSx}
         />
       ) : working ? (
-        <VideocamOutlined sx={{ fontSize: 64, color: 'rgba(255,255,255,0.35)' }} aria-hidden />
+        <FeedMessage
+          icon={<VideocamOutlined sx={{ fontSize: 64, color: 'rgba(255,255,255,0.35)' }} aria-hidden />}
+        >
+          <Typography variant="body2">
+            {camera.status === 'paused'
+              ? 'No live video while fall detection is paused.'
+              : 'Live video is not connected for this camera yet.'}
+          </Typography>
+        </FeedMessage>
       ) : (
-        <Stack sx={{ alignItems: 'center', color: 'eg.comp.cameraOverlayText', gap: 2 }}>
-          <VideocamOffOutlined sx={{ fontSize: 64 }} aria-hidden />
+        <FeedMessage icon={<VideocamOffOutlined sx={{ fontSize: 64 }} aria-hidden />}>
           <Typography variant="body2">
             Camera {camera.status === 'error' ? 'has an error' : 'is offline'}
             {camera.lastSeenAt ? ` · last seen ${formatTime(camera.lastSeenAt)}` : ''}
           </Typography>
-        </Stack>
+        </FeedMessage>
       )}
-      {working && (
+      {stream && !failed && visible && (
         <>
           <Box sx={{ ...tag, top: 12, left: 12 }}>LIVE</Box>
-          <Box sx={{ ...tag, top: 12, right: 12 }}>{formatTimeWithSeconds(new Date(now).toISOString())}</Box>
+          <Box sx={{ ...tag, top: 12, right: 12 }}>
+            {formatTimeWithSeconds(nowIso)} · {formatDate(nowIso)}
+          </Box>
         </>
       )}
       <Box sx={{ ...tag, bottom: 12, left: 12 }}>Live feed · {camera.code}</Box>
@@ -121,6 +203,7 @@ export function CameraPage() {
   const incidents = useIncidents();
   const active = useActiveIncidents();
   const feedRef = useRef<HTMLDivElement>(null);
+  const snapshot = useCameraSnapshot();
 
   if (cameras.isPending) return <LoadingBlock label="Loading camera" />;
   if (cameras.isError) return <ErrorState error={cameras.error} onRetry={() => void cameras.refetch()} />;
@@ -148,13 +231,24 @@ export function CameraPage() {
         title={`${camera.code}${camera.roomName ? ` · ${camera.roomName}` : ''}`}
         actions={
           <>
-            <Tooltip describeChild title="Snapshots will work once the live feed is connected">
-              <span>
-                <Button variant="outlined" startIcon={<PhotoCameraOutlined />} disabled>
-                  Snapshot
-                </Button>
-              </span>
-            </Tooltip>
+            {hasLiveVideo(camera) ? (
+              <Button
+                variant="outlined"
+                startIcon={<PhotoCameraOutlined />}
+                loading={snapshot.isPending}
+                onClick={() => snapshot.mutate(camera)}
+              >
+                Snapshot
+              </Button>
+            ) : (
+              <Tooltip describeChild title="Snapshots need live video from this camera">
+                <span>
+                  <Button variant="outlined" startIcon={<PhotoCameraOutlined />} disabled>
+                    Snapshot
+                  </Button>
+                </span>
+              </Tooltip>
+            )}
             <Button
               variant="outlined"
               startIcon={<FullscreenOutlined />}
@@ -166,6 +260,12 @@ export function CameraPage() {
           </>
         }
       />
+
+      {snapshot.isError && (
+        <Alert severity="error" role="alert" onClose={() => snapshot.reset()} sx={{ mb: 5 }}>
+          Couldn't save a snapshot. {errorMessage(snapshot.error)}
+        </Alert>
+      )}
 
       <Grid container spacing={5}>
         <Grid size={{ xs: 12, lg: 8 }}>

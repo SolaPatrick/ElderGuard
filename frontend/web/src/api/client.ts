@@ -52,17 +52,10 @@ interface RequestOptions {
   skipAuthRedirect?: boolean;
 }
 
-/**
- * Calls the backend and validates the JSON response with a zod schema.
- * Throws ApiError for network errors, HTTP errors and unexpected response shapes.
- */
-export async function apiRequest<S extends z.ZodType>(
-  path: string,
-  schema: S,
-  options: RequestOptions = {},
-): Promise<z.infer<S>> {
+/** Sends the request with the login token. Throws ApiError for network and HTTP errors. */
+async function send(path: string, options: RequestOptions, accept: string): Promise<Response> {
   const { method = 'GET', body, form, signal, skipAuthRedirect = false } = options;
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  const headers: Record<string, string> = { Accept: accept };
   const token = tokenStorage.get();
   if (token) headers.Authorization = `Bearer ${token}`;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
@@ -86,17 +79,8 @@ export async function apiRequest<S extends z.ZodType>(
     throw new ApiError(0, 'network_error', 'Cannot reach the ElderGuard server. Check your connection.');
   }
 
-  const text = await response.text();
-  let json: unknown = null;
-  if (text) {
-    try {
-      json = JSON.parse(text);
-    } catch {
-      json = null;
-    }
-  }
-
   if (!response.ok) {
+    const json = parseJson(await response.text());
     if (response.status === 401 && !skipAuthRedirect) unauthorizedListeners.forEach((l) => l());
     const parsed = apiErrorSchema.safeParse(json);
     if (parsed.success) throw new ApiError(response.status, parsed.data.code, parsed.data.message);
@@ -106,6 +90,36 @@ export async function apiRequest<S extends z.ZodType>(
       detailMessage(json) ?? `Request failed (${response.status}).`,
     );
   }
+  return response;
+}
+
+function parseJson(text: string): unknown {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/** Downloads a file, such as a camera picture, with the login token. */
+export async function apiBlob(path: string, options: Pick<RequestOptions, 'signal'> = {}): Promise<Blob> {
+  const response = await send(path, options, '*/*');
+  return response.blob();
+}
+
+/**
+ * Calls the backend and validates the JSON response with a zod schema.
+ * Throws ApiError for network errors, HTTP errors and unexpected response shapes.
+ */
+export async function apiRequest<S extends z.ZodType>(
+  path: string,
+  schema: S,
+  options: RequestOptions = {},
+): Promise<z.infer<S>> {
+  const { method = 'GET' } = options;
+  const response = await send(path, options, 'application/json');
+  const json = parseJson(await response.text());
 
   const result = schema.safeParse(json);
   if (!result.success) {

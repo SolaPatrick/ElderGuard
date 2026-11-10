@@ -227,6 +227,16 @@ describe('FastAPI adapter: requests', () => {
             detection_enabled: true,
             created_at: '2026-11-01T08:00:00',
           },
+          {
+            id: 5,
+            name: 'CAM-03',
+            source: '0',
+            room_id: null,
+            place: 'room',
+            privacy_blur: 'off',
+            detection_enabled: false,
+            created_at: '2026-11-01T08:00:00',
+          },
         ]),
       ),
       http.get('/api/cameras/status', () =>
@@ -236,7 +246,7 @@ describe('FastAPI adapter: requests', () => {
         ]),
       ),
     ]);
-    const [cam1, cam2] = await fastApi.cameras();
+    const [cam1, cam2, cam3] = await fastApi.cameras();
     expect(cam1).toMatchObject({
       code: 'CAM-01',
       roomName: 'Room 101',
@@ -246,6 +256,24 @@ describe('FastAPI adapter: requests', () => {
       liveUrl: '/api/cameras/3/stream?token=jwt-abc',
     });
     expect(cam2).toMatchObject({ status: 'error', roomName: null });
+    // The server only runs a camera while detection is on; otherwise its stream is a grey card.
+    expect(cam3).toMatchObject({ status: 'paused', liveUrl: null, liveFormat: null });
+  });
+
+  it('downloads the newest picture with the login header, not a token in the link', async () => {
+    let seen: { auth: string | null; url: string } | null = null;
+    backend([
+      http.get('/api/cameras/:id/snapshot', ({ request }) => {
+        seen = { auth: request.headers.get('Authorization'), url: request.url };
+        return new HttpResponse(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]), {
+          headers: { 'Content-Type': 'image/jpeg' },
+        });
+      }),
+    ]);
+    const picture = await fastApi.cameraPicture('3');
+    expect(picture).toMatchObject({ size: 4, type: 'image/jpeg' });
+    expect(seen).toEqual({ auth: 'Bearer jwt-abc', url: 'http://localhost:3000/api/cameras/3/snapshot' });
+    await expect(fastApi.cameraPicture('CAM-01')).rejects.toMatchObject({ status: 404 });
   });
 
   it('shows the free-text emergency contact without a phone number', async () => {

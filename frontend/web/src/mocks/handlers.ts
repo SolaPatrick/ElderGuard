@@ -123,6 +123,15 @@ export const handlers = [
     return HttpResponse.json(db.listCameras(user));
   }),
 
+  // The fake API has no real cameras behind it, so there is never a picture to send.
+  http.get(url('/cameras/:id/snapshot'), ({ request, params }) => {
+    const user = authenticate(request);
+    if (user instanceof Response) return user;
+    if (!db.listCameras(user).some((c) => c.id === String(params.id)))
+      return error(404, 'not_found', 'This camera does not exist.');
+    return error(404, 'no_picture', 'This camera is not sending pictures.');
+  }),
+
   http.post(url('/cameras/test'), async ({ request }) => {
     const admin = authenticateAdmin(request);
     if (admin instanceof Response) return admin;
