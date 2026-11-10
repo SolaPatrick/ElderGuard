@@ -29,3 +29,19 @@ test('a resident profile opens from the residents list', async ({ page }) => {
   await expect(page).toHaveURL(/\/residents\/res-remedios$/);
   await expect(page.getByText('84 · Female · Room 101 · East Wing')).toBeVisible();
 });
+
+test('the Admin/Head creates a staff account and gets its temporary password', async ({ page }) => {
+  await page.getByRole('link', { name: 'Users & Access' }).click();
+  await expect(page.getByText('5 accounts · 4 active')).toBeVisible();
+  await page.getByRole('link', { name: 'Create user' }).click();
+  await page.getByRole('textbox', { name: 'Full name' }).fill('Rosa Villanueva');
+  await page.getByRole('textbox', { name: 'Username' }).fill('rosa.villanueva');
+  await page.getByRole('checkbox', { name: 'Lobby' }).check();
+  await page.getByRole('button', { name: 'Create user' }).last().click();
+
+  const dialog = page.getByRole('dialog', { name: 'User created' });
+  await expect(dialog.getByLabel('Temporary password', { exact: true })).toHaveText(/^[A-Za-z0-9]{12}$/);
+  await dialog.getByRole('button', { name: 'Done' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Rosa Villanueva' })).toBeVisible();
+  await expect(page.getByLabel('Assigned rooms').getByText('Lobby')).toBeVisible();
+});

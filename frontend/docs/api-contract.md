@@ -27,7 +27,7 @@ If the backend team prefers other paths or field names, that's fine. Change `web
 | GET    | `/auth/me`     | none                     | `user`            |
 | POST   | `/auth/logout` | none                     | `{ ok: true }`    |
 
-`user` = `{ id, fullName, username, email, role: "admin" | "employee", title, mustChangePassword, areas: [{ id, name, wing }] }`
+`user` = `{ id, fullName, username, email (or null), role: "admin" | "employee", title, mustChangePassword, areas: [{ id, name, wing }] }`
 
 `areas` lists the rooms and areas a caregiver monitors (AREA_ASSIGNMENT). It is empty for the Admin/Head.
 
@@ -141,6 +141,30 @@ For SOS: `type: "sos"`, `camera: null`, `confidence: null`, and `sentBy: { id, f
 
 `incidentDetail` = `incident` + `events: [{ id, action, occurredAt, user, detail }]` + `notes: [{ id, body, author, createdAt }]`.
 `action` is one of `detected | acknowledged | classified | resolved | escalated`.
+
+## Users & Access (Admin/Head only)
+
+Every route here returns **403** for employees.
+
+| Method | Path                         | Body                                           | Response                           |
+| ------ | ---------------------------- | ---------------------------------------------- | ---------------------------------- |
+| GET    | `/users`                     | none                                           | `staffMember[]` (sorted by name)   |
+| GET    | `/users/{id}`                | none                                           | `staffMember`                      |
+| POST   | `/users`                     | `{ fullName, username, email, role, areaIds }` | `{ user, temporaryPassword }`, 201 |
+| PATCH  | `/users/{id}`                | `{ fullName, email, role, areaIds }`           | `staffMember`                      |
+| POST   | `/users/{id}/deactivate`     | none                                           | `staffMember`                      |
+| POST   | `/users/{id}/reactivate`     | none                                           | `staffMember`                      |
+| POST   | `/users/{id}/reset-password` | none                                           | `{ user, temporaryPassword }`      |
+
+`staffMember` = `user` plus `isActive`, `lastLoginAt` (null if they never logged in) and `createdAt`.
+
+- `email` is optional (`null`). Usernames are lowercase letters, numbers, `.`, `-` and `_`, and can't be changed.
+- `areaIds` are room ids. They are ignored for the Admin/Head, who sees everything.
+- The temporary password is returned only in these two responses. The person must change it at their next login
+  (`mustChangePassword: true`), and a reset makes the old password stop working.
+- **409** when the username or email is already used, or when the change would leave no active Admin/Head.
+  **400** when the Admin/Head tries to deactivate their own account.
+- A deactivated account can't log in, and its open sessions get **401**.
 
 ## Live updates
 

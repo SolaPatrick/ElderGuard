@@ -12,10 +12,14 @@ import {
   residentDetailSchema,
   residentSchema,
   roomRefSchema,
+  staffMemberSchema,
+  staffWithPasswordSchema,
   userSchema,
   type AddNoteRequest,
   type ChangePasswordRequest,
   type ClassifyRequest,
+  type CreateStaffRequest,
+  type UpdateStaffRequest,
   type LoginRequest,
   type ResolveRequest,
   type SosRequest,
@@ -57,6 +61,28 @@ const contractApi = {
     apiRequest(`/incidents/${enc(code)}/resolve`, incidentDetailSchema, { method: 'POST', body }),
   addNote: (code: string, body: AddNoteRequest) =>
     apiRequest(`/incidents/${enc(code)}/notes`, incidentDetailSchema, { method: 'POST', body }),
+
+  // Users & Access (Admin/Head only)
+  staff: () => apiRequest('/users', z.array(staffMemberSchema)),
+  staffMember: (id: string) => apiRequest(`/users/${enc(id)}`, staffMemberSchema),
+  createStaff: (body: CreateStaffRequest) =>
+    apiRequest('/users', staffWithPasswordSchema, { method: 'POST', body }),
+  updateStaff: (id: string, body: UpdateStaffRequest) =>
+    apiRequest(`/users/${enc(id)}`, staffMemberSchema, { method: 'PATCH', body }),
+  deactivateStaff: (id: string) =>
+    apiRequest(`/users/${enc(id)}/deactivate`, staffMemberSchema, { method: 'POST' }),
+  reactivateStaff: (id: string) =>
+    apiRequest(`/users/${enc(id)}/reactivate`, staffMemberSchema, { method: 'POST' }),
+  resetStaffPassword: (id: string) =>
+    apiRequest(`/users/${enc(id)}/reset-password`, staffWithPasswordSchema, { method: 'POST' }),
+};
+
+/**
+ * What the connected server can do. The FastAPI backend has no area assignments yet
+ * (frontend/docs/backend-gaps.md), so the screens hide that part instead of dropping input.
+ */
+export const serverFeatures = {
+  areaAssignment: BACKEND !== 'fastapi',
 };
 
 /**

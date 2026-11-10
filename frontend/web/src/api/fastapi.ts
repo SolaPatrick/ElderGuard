@@ -16,6 +16,10 @@ import {
   type Camera,
   type ChangePasswordRequest,
   type ClassifyRequest,
+  type CreateStaffRequest,
+  type StaffMember,
+  type StaffWithPassword,
+  type UpdateStaffRequest,
   type DashboardSummary,
   type Incident,
   type IncidentDetail,
@@ -47,6 +51,10 @@ const rawUser = z.object({
   must_change_password: z.boolean(),
 });
 type RawUser = z.infer<typeof rawUser>;
+
+const rawStaff = rawUser.extend({ is_active: z.boolean(), created_at: dateTime });
+type RawStaff = z.infer<typeof rawStaff>;
+const rawStaffWithPassword = z.object({ user: rawStaff, temporary_password: z.string().min(1) });
 
 const rawRoom = z.object({ id: z.number(), name: z.string(), area: z.string() });
 type RawRoom = z.infer<typeof rawRoom>;
@@ -154,12 +162,36 @@ const toUser = (u: RawUser): User => ({
   id: String(u.id),
   fullName: u.full_name,
   username: u.username,
-  email: u.email ?? '',
+  email: u.email,
   role: u.role,
   title: u.role === 'admin' ? 'Admin/Head' : 'Caregiver',
   mustChangePassword: u.must_change_password,
   areas: [], // the backend has no area assignments yet: caregivers see everything
 });
+
+const toStaff = (u: RawStaff): StaffMember => ({
+  ...toUser(u),
+  isActive: u.is_active,
+  lastLoginAt: null, // not recorded by the backend yet
+  createdAt: isoUtc(u.created_at),
+});
+
+const toStaffWithPassword = (r: z.infer<typeof rawStaffWithPassword>): StaffWithPassword => ({
+  user: toStaff(r.user),
+  temporaryPassword: r.temporary_password,
+});
+
+/** Staff ids in links are numbers on this backend. */
+function staffId(id: string): number {
+  const n = Number(id);
+  if (!Number.isInteger(n) || n <= 0) throw new ApiError(404, 'not_found', 'This user does not exist.');
+  return n;
+}
+
+/** The screens hide area assignment for this backend; refuse rather than silently drop it. */
+function noAreas(areaIds: string[]) {
+  if (areaIds.length > 0) throw notYet('Assigning rooms and areas to staff');
+}
 
 const toRoom = (r: RawRoom): RoomRef => ({ id: String(r.id), name: r.name, wing: r.area || null });
 
@@ -513,4 +545,34 @@ export const fastApi = {
       text: [`Outcome: ${body.outcome}.`, body.responseSummary?.trim()].filter(Boolean).join(' '),
     }),
   addNote: (code: string, body: AddNoteRequest) => act(code, 'notes', { text: body.body }),
+
+  staff: async (): Promise<StaffMember[]> => (await get('/users', z.array(rawStaff))).map(toStaff),
+  staffMember: async (id: string): Promise<StaffMember> =>
+    toStaff(await get(`/users/${staffId(id)}`, rawStaff)),
+  async createStaff(body: CreateStaffRequest): Promise<StaffWithPassword> {
+    noAreas(body.areaIds);
+    const res = await apiRequest('/users', rawStaffWithPassword, {
+      method: 'POST',
+      body: { username: body.username, full_name: body.fullName, email: body.email, role: body.role },
+    });
+    peopleCache = null;
+    return toStaffWithPassword(res);
+  },
+  async updateStaff(id: string, body: UpdateStaffRequest): Promise<StaffMember> {
+    noAreas(body.areaIds);
+    const res = await apiRequest(`/users/${staffId(id)}`, rawStaff, {
+      method: 'PATCH',
+      body: { full_name: body.fullName, email: body.email, role: body.role },
+    });
+    peopleCache = null;
+    return toStaff(res);
+  },
+  deactivateStaff: async (id: string): Promise<StaffMember> =>
+    toStaff(await apiRequest(`/users/${staffId(id)}/deactivate`, rawStaff, { method: 'POST' })),
+  reactivateStaff: async (id: string): Promise<StaffMember> =>
+    toStaff(await apiRequest(`/users/${staffId(id)}/reactivate`, rawStaff, { method: 'POST' })),
+  resetStaffPassword: async (id: string): Promise<StaffWithPassword> =>
+    toStaffWithPassword(
+      await apiRequest(`/users/${staffId(id)}/reset-password`, rawStaffWithPassword, { method: 'POST' }),
+    ),
 };

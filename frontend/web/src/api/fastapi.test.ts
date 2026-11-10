@@ -101,7 +101,7 @@ describe('FastAPI adapter: requests', () => {
       fullName: 'Joel Ramos',
       role: 'employee',
       title: 'Caregiver',
-      email: '',
+      email: null,
     });
   });
 
@@ -274,5 +274,76 @@ describe('FastAPI adapter: requests', () => {
 
   it('says clearly that SOS is not on the server yet', async () => {
     await expect(fastApi.sendSos({})).rejects.toMatchObject({ status: 501 });
+  });
+});
+
+describe('FastAPI adapter: staff accounts', () => {
+  const rawStaff = { ...rawUser, is_active: true };
+
+  it('maps users, with no last login or areas the backend does not have', async () => {
+    server.use(
+      http.get('/api/users', () => HttpResponse.json([rawStaff, { ...rawStaff, id: 8, is_active: false }])),
+    );
+    const [joel, other] = await fastApi.staff();
+    expect(joel).toEqual({
+      id: '7',
+      fullName: 'Joel Ramos',
+      username: 'joel',
+      email: null,
+      role: 'employee',
+      title: 'Caregiver',
+      isActive: true,
+      mustChangePassword: false,
+      areas: [],
+      lastLoginAt: null,
+      createdAt: '2026-11-01T08:00:00.000Z',
+    });
+    expect(other!.isActive).toBe(false);
+  });
+
+  it('creates a user with snake_case fields and returns the temporary password', async () => {
+    let body: unknown;
+    server.use(
+      http.post('/api/users', async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ user: rawStaff, temporary_password: 'Tmp-123456' }, { status: 201 });
+      }),
+    );
+    const res = await fastApi.createStaff({
+      fullName: 'Joel Ramos',
+      username: 'joel',
+      email: null,
+      role: 'employee',
+      areaIds: [],
+    });
+    expect(body).toEqual({ username: 'joel', full_name: 'Joel Ramos', email: null, role: 'employee' });
+    expect(res.temporaryPassword).toBe('Tmp-123456');
+    expect(res.user.id).toBe('7');
+  });
+
+  it('refuses room assignments instead of dropping them', async () => {
+    await expect(
+      fastApi.updateStaff('7', { fullName: 'Joel', email: null, role: 'employee', areaIds: ['5'] }),
+    ).rejects.toMatchObject({ status: 501 });
+  });
+
+  it('calls the deactivate, reactivate and reset-password routes', async () => {
+    const paths: string[] = [];
+    server.use(
+      http.post('/api/users/:id/:action', ({ params }) => {
+        paths.push(`${String(params.id)}/${String(params.action)}`);
+        return params.action === 'reset-password'
+          ? HttpResponse.json({ user: rawStaff, temporary_password: 'New-123456' })
+          : HttpResponse.json({ ...rawStaff, is_active: params.action === 'reactivate' });
+      }),
+    );
+    expect((await fastApi.deactivateStaff('7')).isActive).toBe(false);
+    expect((await fastApi.reactivateStaff('7')).isActive).toBe(true);
+    expect((await fastApi.resetStaffPassword('7')).temporaryPassword).toBe('New-123456');
+    expect(paths).toEqual(['7/deactivate', '7/reactivate', '7/reset-password']);
+  });
+
+  it('treats a non-numeric user id as not found', async () => {
+    await expect(fastApi.staffMember('u-joel')).rejects.toMatchObject({ status: 404 });
   });
 });

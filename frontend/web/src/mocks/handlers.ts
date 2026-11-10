@@ -5,6 +5,8 @@
 import {
   addNoteRequestSchema,
   classifyRequestSchema,
+  createStaffRequestSchema,
+  updateStaffRequestSchema,
   loginRequestSchema,
   resolveRequestSchema,
   sosRequestSchema,
@@ -30,6 +32,18 @@ function authenticate(request: Request): SeedUser | Response {
   return user;
 }
 
+/** Users & Access is for the Admin/Head only. */
+function authenticateAdmin(request: Request): SeedUser | Response {
+  const user = authenticate(request);
+  if (user instanceof Response || user.role === 'admin') return user;
+  return error(403, 'forbidden', 'Only the Admin/Head can manage staff accounts.');
+}
+
+/** The account in the URL, or a 404 response. */
+function staffFrom(params: Record<string, unknown>): SeedUser | Response {
+  return db.findUserById(String(params.id)) ?? error(404, 'not_found', 'This user does not exist.');
+}
+
 async function readJson(request: Request): Promise<unknown> {
   try {
     return await request.json();
@@ -53,6 +67,7 @@ export const handlers = [
     if (user.status === 'deactivated') {
       return error(403, 'account_deactivated', 'This account has been deactivated. Contact your Admin/Head.');
     }
+    db.recordLogin(user);
     db.addActivity(user, `${user.fullName} logged in`);
     return HttpResponse.json({ token: `${TOKEN_PREFIX}${user.id}`, user: db.toPublicUser(user) });
   }),
@@ -234,6 +249,93 @@ export const handlers = [
     const resident = db.getResident(user, String(params.id));
     if (!resident) return error(404, 'not_found', 'This resident does not exist.');
     return HttpResponse.json(resident);
+  }),
+
+  // ---------- staff accounts (USR) ----------
+
+  http.get(url('/users'), ({ request }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    return HttpResponse.json(db.listStaff());
+  }),
+
+  http.get(url('/users/:id'), ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const staff = staffFrom(params);
+    if (staff instanceof Response) return staff;
+    return HttpResponse.json(db.getStaff(staff.id));
+  }),
+
+  http.post(url('/users'), async ({ request }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const parsed = createStaffRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    await latency();
+    const conflict = db.staffConflict(parsed.data.username, parsed.data.email);
+    if (conflict) return error(409, 'conflict', conflict);
+    const created = db.createStaff(parsed.data);
+    db.addActivity(admin, `${admin.fullName} created an account for ${created.user.fullName}`);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+
+  http.patch(url('/users/:id'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const staff = staffFrom(params);
+    if (staff instanceof Response) return staff;
+    const parsed = updateStaffRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    await latency();
+    const conflict = db.staffConflict(null, parsed.data.email, staff.id);
+    if (conflict) return error(409, 'conflict', conflict);
+    if (parsed.data.role !== 'admin' && db.isLastActiveAdmin(staff)) {
+      return error(
+        409,
+        'last_admin',
+        'This is the only active Admin/Head. Make someone else an Admin/Head first.',
+      );
+    }
+    const updated = db.updateStaff(staff, parsed.data);
+    db.addActivity(admin, `${admin.fullName} updated ${updated.fullName}'s account`);
+    return HttpResponse.json(updated);
+  }),
+
+  http.post(url('/users/:id/deactivate'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const staff = staffFrom(params);
+    if (staff instanceof Response) return staff;
+    if (staff.id === admin.id) return error(400, 'self', "You can't deactivate your own account.");
+    await latency();
+    const updated = db.setStaffActive(staff, false);
+    db.addActivity(admin, `${admin.fullName} deactivated ${updated.fullName}`);
+    return HttpResponse.json(updated);
+  }),
+
+  http.post(url('/users/:id/reactivate'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const staff = staffFrom(params);
+    if (staff instanceof Response) return staff;
+    await latency();
+    const updated = db.setStaffActive(staff, true);
+    db.addActivity(admin, `${admin.fullName} reactivated ${updated.fullName}`);
+    return HttpResponse.json(updated);
+  }),
+
+  http.post(url('/users/:id/reset-password'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const staff = staffFrom(params);
+    if (staff instanceof Response) return staff;
+    await latency();
+    const result = db.resetStaffPassword(staff);
+    db.addActivity(admin, `${admin.fullName} reset ${staff.fullName}'s password`);
+    return HttpResponse.json(result);
   }),
 
   // Development only: pretend a camera just detected a fall.

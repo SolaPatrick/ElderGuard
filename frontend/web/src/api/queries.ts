@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import type {
   AddNoteRequest,
   ClassifyRequest,
+  CreateStaffRequest,
+  UpdateStaffRequest,
   IncidentDetail,
   ResolveRequest,
   SosRequest,
@@ -20,6 +22,8 @@ export const queryKeys = {
   activeIncidents: ['incidents', 'active'] as const,
   incidents: ['incidents', 'all'] as const,
   incident: (code: string) => ['incidents', 'detail', code] as const,
+  staff: ['staff'] as const,
+  staffMember: (id: string) => ['staff', id] as const,
 };
 
 /** Active alerts, refreshed every few seconds (also while the tab is in the background). */
@@ -129,5 +133,67 @@ export function useSendSos() {
   return useMutation({
     mutationFn: (body: SosRequest) => api.sendSos(body),
     onSuccess: (incident) => applyIncidentUpdate(qc, incident),
+  });
+}
+
+// ---------- Users & Access (Admin/Head) ----------
+
+export function useStaff() {
+  return useQuery({ queryKey: queryKeys.staff, queryFn: api.staff });
+}
+
+export function useStaffMember(id: string) {
+  return useQuery({ queryKey: queryKeys.staffMember(id), queryFn: () => api.staffMember(id) });
+}
+
+/** Staff names also appear on residents and in the activity log, so refresh those too. */
+function refreshStaff(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: queryKeys.staff });
+  void qc.invalidateQueries({ queryKey: queryKeys.residents });
+  void qc.invalidateQueries({ queryKey: ['activity'] });
+}
+
+/** Creating an account is never retried automatically, so one click is one account. */
+export function useCreateStaff() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateStaffRequest) => api.createStaff(body),
+    onSuccess: () => refreshStaff(qc),
+  });
+}
+
+export function useUpdateStaff(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: UpdateStaffRequest) => api.updateStaff(id, body),
+    onSuccess: (updated) => {
+      qc.setQueryData(queryKeys.staffMember(id), updated);
+      refreshStaff(qc);
+    },
+  });
+}
+
+type StaffAction = 'deactivate' | 'reactivate';
+
+export function useSetStaffActive(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (action: StaffAction) =>
+      action === 'deactivate' ? api.deactivateStaff(id) : api.reactivateStaff(id),
+    onSuccess: (updated) => {
+      qc.setQueryData(queryKeys.staffMember(id), updated);
+      refreshStaff(qc);
+    },
+  });
+}
+
+export function useResetStaffPassword(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.resetStaffPassword(id),
+    onSuccess: ({ user }) => {
+      qc.setQueryData(queryKeys.staffMember(id), user);
+      refreshStaff(qc);
+    },
   });
 }

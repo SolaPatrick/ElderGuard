@@ -21,6 +21,8 @@ export const DEMO_PASSWORD = 'elderguard123';
 
 export interface SeedUser extends Omit<User, 'areas'> {
   status: 'active' | 'deactivated';
+  lastLoginAt: string | null;
+  createdAt: string;
   /** Rooms and areas this caregiver monitors (AREA_ASSIGNMENT). Empty for the Admin/Head, who sees everything. */
   areaIds: string[];
 }
@@ -60,6 +62,7 @@ export interface Seed {
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
+const DAY = 24 * HOUR;
 
 export function createSeed(now: Date = new Date()): Seed {
   const t = (msAgo: number) => new Date(now.getTime() - msAgo).toISOString();
@@ -74,6 +77,8 @@ export function createSeed(now: Date = new Date()): Seed {
       title: 'Admin/Head',
       mustChangePassword: false,
       status: 'active',
+      lastLoginAt: t(2 * HOUR),
+      createdAt: t(300 * DAY),
       areaIds: [],
     },
     {
@@ -85,6 +90,8 @@ export function createSeed(now: Date = new Date()): Seed {
       title: 'Caregiver',
       mustChangePassword: false,
       status: 'active',
+      lastLoginAt: t(40 * MIN),
+      createdAt: t(160 * DAY),
       areaIds: ['r-101', 'r-102', 'r-103'],
     },
     {
@@ -96,6 +103,8 @@ export function createSeed(now: Date = new Date()): Seed {
       title: 'Caregiver',
       mustChangePassword: false,
       status: 'active',
+      lastLoginAt: t(70 * MIN),
+      createdAt: t(120 * DAY),
       areaIds: ['r-dining', 'r-activity'],
     },
     {
@@ -107,6 +116,8 @@ export function createSeed(now: Date = new Date()): Seed {
       title: 'Caregiver',
       mustChangePassword: false,
       status: 'active',
+      lastLoginAt: t(105 * MIN),
+      createdAt: t(150 * DAY),
       areaIds: ['r-104', 'r-105', 'r-106', 'r-hall-a', 'r-hall-b', 'r-garden'],
     },
     {
@@ -118,6 +129,8 @@ export function createSeed(now: Date = new Date()): Seed {
       title: 'Caregiver',
       mustChangePassword: false,
       status: 'deactivated',
+      lastLoginAt: t(68 * DAY),
+      createdAt: t(240 * DAY),
       areaIds: [],
     },
   ];

@@ -6,6 +6,8 @@ import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined';
 import FiberNewOutlined from '@mui/icons-material/FiberNewOutlined';
 import GppMaybeOutlined from '@mui/icons-material/GppMaybeOutlined';
 import ShieldOutlined from '@mui/icons-material/ShieldOutlined';
+import PersonOutlined from '@mui/icons-material/PersonOutlined';
+import BlockOutlined from '@mui/icons-material/BlockOutlined';
 import type { SvgIconComponent } from '@mui/icons-material';
 import {
   CAMERA_STATUS_LABEL,
@@ -20,7 +22,8 @@ type Props =
   | { kind: 'incident'; status: IncidentStatus }
   | { kind: 'camera'; status: CameraStatus }
   | { kind: 'system'; status: 'operational' | 'degraded' | 'down'; label: string }
-  | { kind: 'risk'; risk: FallRisk };
+  | { kind: 'risk'; risk: FallRisk }
+  | { kind: 'account'; active: boolean };
 
 const incidentToken: Record<IncidentStatus, string> = {
   new: 'incidentNew',
@@ -65,6 +68,11 @@ export function StatusChip(props: Props) {
     token = `risk${props.risk[0]!.toUpperCase()}${props.risk.slice(1)}`;
     label = FALL_RISK_LABEL[props.risk];
     Icon = props.risk === 'high' ? GppMaybeOutlined : ShieldOutlined;
+  } else if (props.kind === 'account') {
+    // Same colors as an online / offline camera: green for active, neutral for deactivated.
+    token = props.active ? 'cameraOnline' : 'cameraOffline';
+    label = props.active ? 'Active' : 'Deactivated';
+    Icon = props.active ? PersonOutlined : BlockOutlined;
   } else {
     token = `system${props.status[0]!.toUpperCase()}${props.status.slice(1)}`;
     label = props.label;
