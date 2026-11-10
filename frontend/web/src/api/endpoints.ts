@@ -22,6 +22,8 @@ import {
   type ClassifyRequest,
   type CreateStaffRequest,
   type RoomRequest,
+  type ResidentRequest,
+  type ArchiveRequest,
   type CameraRequest,
   type UpdateStaffRequest,
   type LoginRequest,
@@ -48,7 +50,9 @@ const contractApi = {
   dashboardSummary: () => apiRequest('/dashboard/summary', dashboardSummarySchema),
   activity: (limit: number) => apiRequest(`/activity?limit=${limit}`, z.array(activityEntrySchema)),
   cameras: () => apiRequest('/cameras', z.array(cameraSchema)),
-  residents: () => apiRequest('/residents', z.array(residentSchema)),
+  /** Current residents, or (archived = true, Admin/Head only) former ones. */
+  residents: (archived = false) =>
+    apiRequest(archived ? '/residents?archived=true' : '/residents', z.array(residentSchema)),
   rooms: () => apiRequest('/rooms', z.array(roomRefSchema)),
   resident: (id: string) => apiRequest(`/residents/${enc(id)}`, residentDetailSchema),
 
@@ -86,6 +90,20 @@ const contractApi = {
     await apiRequest(`/rooms/${enc(id)}`, z.null(), { method: 'DELETE' });
   },
 
+  // Resident editing (Admin/Head only)
+  createResident: (body: ResidentRequest) =>
+    apiRequest('/residents', residentDetailSchema, { method: 'POST', body }),
+  updateResident: (id: string, body: ResidentRequest) =>
+    apiRequest(`/residents/${enc(id)}`, residentDetailSchema, { method: 'PATCH', body }),
+  /** body is null on a server without residentDetails, which keeps no reason. */
+  archiveResident: (id: string, body: ArchiveRequest | null) =>
+    apiRequest(`/residents/${enc(id)}/archive`, residentDetailSchema, {
+      method: 'POST',
+      ...(body !== null && { body }),
+    }),
+  restoreResident: (id: string) =>
+    apiRequest(`/residents/${enc(id)}/restore`, residentDetailSchema, { method: 'POST' }),
+
   // Users & Access (Admin/Head only)
   staff: () => apiRequest('/users', z.array(staffMemberSchema)),
   staffMember: (id: string) => apiRequest(`/users/${enc(id)}`, staffMemberSchema),
@@ -107,6 +125,12 @@ const contractApi = {
  */
 export const serverFeatures = {
   areaAssignment: BACKEND !== 'fastapi',
+  /**
+   * Sex, birth date, mobility aid, several emergency contacts with phone numbers, caregivers
+   * and an archive reason. Without them the resident form asks for an age and one free-text
+   * contact, which is all the FastAPI backend keeps.
+   */
+  residentDetails: BACKEND !== 'fastapi',
 };
 
 /**

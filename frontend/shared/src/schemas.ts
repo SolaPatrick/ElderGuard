@@ -229,8 +229,163 @@ export const residentDetailSchema = residentSchema.extend({
   mobilityAid: z.string().nullable(),
   careNotes: z.string().nullable(),
   emergencyContacts: z.array(emergencyContactSchema),
+  /** Archived residents (moved out, transferred...) are kept for the incident history. */
+  isArchived: z.boolean(),
 });
 export type ResidentDetail = z.infer<typeof residentDetailSchema>;
+
+// ---------- resident editing (RES-02, RES-04 to RES-07, Admin/Head only) ----------
+
+/** Philippine mobile numbers: 09XX XXX XXXX or +63 9XX XXX XXXX. Spaces and dashes are allowed. */
+export const PH_MOBILE = /^(09|\+639)\d{9}$/;
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max, `Use at most ${max} characters`)
+    .transform((v) => (v === '' ? null : v));
+
+export const contactFormSchema = z.object({
+  fullName: z.string().trim().min(1, 'Enter the contact name').max(120, 'Use at most 120 characters'),
+  relationship: optionalText(60),
+  phone: z
+    .string()
+    .trim()
+    .refine(
+      (v) => PH_MOBILE.test(v.replace(/[\s-]/g, '')),
+      'Enter an 11-digit mobile number, e.g. 0917 555 0134',
+    ),
+});
+export type ContactForm = z.input<typeof contactFormSchema>;
+
+/** A valid date (YYYY-MM-DD) in the past, for someone at most 120 years old. */
+function isBirthDate(v: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const d = new Date(`${v}T00:00:00Z`);
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== v) return false;
+  const now = Date.now();
+  return d.getTime() < now && now - d.getTime() < 120 * 365.25 * 24 * 3600_000;
+}
+
+const fullName = z.string().trim().min(1, 'Enter the full name').max(120, 'Use at most 120 characters');
+const sexField = z.union([sexSchema, z.literal('')]);
+const ageField = z
+  .string()
+  .trim()
+  .refine((v) => v === '' || (/^\d+$/.test(v) && Number(v) <= 130), 'Enter an age from 0 to 130');
+const formFields = {
+  fullName,
+  roomId: z.string().min(1, 'Choose a room'),
+  fallRisk: fallRiskSchema,
+  careNotes: optionalText(2000),
+  mobilityAid: optionalText(60),
+  emergencyContacts: z.array(contactFormSchema).max(5, 'Add at most 5 contacts'),
+  caregiverIds: z.array(z.string()),
+  sex: sexField,
+  birthDate: z.string(),
+  age: ageField,
+  emergencyContact: optionalText(200),
+};
+
+/**
+ * RES-02 / RES-04 with every detail of the contract: sex, birth date (the server works out the
+ * age), mobility aid, emergency contacts with phone numbers and caregivers.
+ */
+export const residentFormSchema = z
+  .object({
+    ...formFields,
+    sex: sexField.refine((v) => v !== '', 'Choose the sex'),
+    birthDate: z.string().refine(isBirthDate, 'Enter a valid birth date'),
+    // Not on this form (the basic form's fields).
+    age: z.string(),
+    emergencyContact: z.string(),
+  })
+  .transform((v): ResidentRequest => ({
+    fullName: v.fullName,
+    sex: v.sex,
+    birthDate: v.birthDate,
+    age: null,
+    roomId: v.roomId,
+    fallRisk: v.fallRisk,
+    mobilityAid: v.mobilityAid,
+    careNotes: v.careNotes,
+    emergencyContacts: v.emergencyContacts,
+    caregiverIds: v.caregiverIds,
+  }));
+export type ResidentForm = z.input<typeof residentFormSchema>;
+
+/**
+ * The same form for a server that only keeps the basics (the FastAPI backend today):
+ * an age instead of a birth date, and one free-text emergency contact. The other fields are ignored.
+ */
+export const basicResidentFormSchema = z
+  .object({
+    ...formFields,
+    // Not on this form: a contact kept as free text has no phone number to check.
+    emergencyContacts: z.array(
+      z.object({ fullName: z.string(), relationship: z.string(), phone: z.string() }),
+    ),
+    mobilityAid: z.string(),
+  })
+  .transform((v): ResidentRequest => ({
+    fullName: v.fullName,
+    sex: null,
+    birthDate: null,
+    age: v.age === '' ? null : Number(v.age),
+    roomId: v.roomId,
+    fallRisk: v.fallRisk,
+    mobilityAid: null,
+    careNotes: v.careNotes,
+    emergencyContacts: v.emergencyContact
+      ? [{ fullName: v.emergencyContact, relationship: null, phone: '' }]
+      : [],
+    caregiverIds: [],
+  }));
+
+/** What POST /residents and PATCH /residents/{id} receive. */
+export const residentRequestSchema = z.object({
+  fullName: z.string().trim().min(1).max(120),
+  sex: sexSchema.nullable(),
+  birthDate: z.iso.date().nullable(),
+  /** Only when there is no birth date (basic servers). Otherwise the server works it out. */
+  age: z.number().int().min(0).max(130).nullable(),
+  roomId: z.string().nullable(),
+  fallRisk: fallRiskSchema,
+  mobilityAid: z.string().max(60).nullable(),
+  careNotes: z.string().max(2000).nullable(),
+  /** phone may be empty for a contact kept as free text. */
+  emergencyContacts: z
+    .array(
+      z.object({
+        fullName: z.string().min(1).max(200),
+        relationship: z.string().max(60).nullable(),
+        phone: z.string(),
+      }),
+    )
+    .max(5),
+  caregiverIds: z.array(z.string()),
+});
+export type ResidentRequest = z.infer<typeof residentRequestSchema>;
+
+export const archiveReasonSchema = z.enum(['moved_out', 'transferred', 'other']);
+export type ArchiveReason = z.infer<typeof archiveReasonSchema>;
+export const ARCHIVE_REASON_LABEL: Record<ArchiveReason, string> = {
+  moved_out: 'Moved out',
+  transferred: 'Transferred',
+  other: 'Other',
+};
+
+/** RES-07 Archive resident. A note is required for "Other". */
+export const archiveRequestSchema = z
+  .object({ reason: archiveReasonSchema, note: optionalText(500) })
+  .refine((v) => v.reason !== 'other' || v.note !== null, { message: 'Explain the reason', path: ['note'] });
+export type ArchiveForm = z.input<typeof archiveRequestSchema>;
+export type ArchiveRequest = z.output<typeof archiveRequestSchema>;
+/** What POST /residents/{id}/archive receives. */
+export const archiveBodySchema = z.object({
+  reason: archiveReasonSchema,
+  note: z.string().max(500).nullable(),
+});
 
 export const dashboardSummarySchema = z.object({
   facilityName: z.string(),

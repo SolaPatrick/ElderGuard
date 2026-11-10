@@ -7,6 +7,7 @@
  */
 import type {
   ActivityEntry,
+  ArchiveReason,
   Camera,
   EmergencyContact,
   FallRisk,
@@ -40,6 +41,8 @@ export interface SeedResident {
   mobilityAid: string | null;
   careNotes: string | null;
   emergencyContacts: EmergencyContact[];
+  /** Set when the resident moved out or was transferred (RES-07). */
+  archived: { reason: ArchiveReason; note: string | null } | null;
 }
 
 export interface SeedRoom {
@@ -169,6 +172,7 @@ export function createSeed(now: Date = new Date()): Seed {
       birthDate: born(84, '03-12'),
       mobilityAid: 'Walker',
       careNotes: 'Needs help standing up at night. Previous fall in August 2026.',
+      archived: null,
       emergencyContacts: [
         { id: 'ec-remedios-1', fullName: 'Maricel Santos', relationship: 'Daughter', phone: '0918 555 0172' },
       ],
@@ -184,6 +188,7 @@ export function createSeed(now: Date = new Date()): Seed {
       birthDate: born(85, '07-04'),
       mobilityAid: 'Cane',
       careNotes: 'Prefers to walk with a companion to the dining hall.',
+      archived: null,
       emergencyContacts: [
         { id: 'ec-lourdes-1', fullName: 'Ramon Aquino', relationship: 'Son', phone: '0917 555 0148' },
       ],
@@ -199,6 +204,7 @@ export function createSeed(now: Date = new Date()): Seed {
       birthDate: born(79, '01-22'),
       mobilityAid: null,
       careNotes: 'Takes blood pressure medicine in the morning; may feel dizzy after.',
+      archived: null,
       emergencyContacts: [
         {
           id: 'ec-ernesto-1',
@@ -219,6 +225,7 @@ export function createSeed(now: Date = new Date()): Seed {
       birthDate: born(88, '11-30'),
       mobilityAid: 'Wheelchair',
       careNotes: 'Transfers from bed to wheelchair need two staff.',
+      archived: null,
       emergencyContacts: [
         { id: 'ec-corazon-1', fullName: 'Teodoro Mendoza', relationship: 'Son', phone: '0915 555 0190' },
         {
@@ -240,6 +247,7 @@ export function createSeed(now: Date = new Date()): Seed {
       birthDate: born(76, '05-17'),
       mobilityAid: null,
       careNotes: null,
+      archived: null,
       emergencyContacts: [
         { id: 'ec-rodolfo-1', fullName: 'Elena Garcia', relationship: 'Wife', phone: '0918 555 0125' },
       ],
@@ -255,6 +263,7 @@ export function createSeed(now: Date = new Date()): Seed {
       birthDate: born(91, '09-08'),
       mobilityAid: 'Walker',
       careNotes: 'Hard of hearing; speak clearly and face her.',
+      archived: null,
       emergencyContacts: [
         { id: 'ec-felicidad-1', fullName: 'Jose Bautista', relationship: 'Nephew', phone: '0919 555 0164' },
       ],
@@ -270,6 +279,7 @@ export function createSeed(now: Date = new Date()): Seed {
       birthDate: born(82, '02-14'),
       mobilityAid: 'Cane',
       careNotes: null,
+      archived: null,
       emergencyContacts: [
         { id: 'ec-antonio-1', fullName: 'Carmela Navarro', relationship: 'Daughter', phone: '0916 555 0157' },
       ],
@@ -285,6 +295,7 @@ export function createSeed(now: Date = new Date()): Seed {
       birthDate: born(80, '08-25'),
       mobilityAid: null,
       careNotes: null,
+      archived: null,
       emergencyContacts: [],
     },
   ];

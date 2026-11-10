@@ -18,6 +18,8 @@ import {
   type ClassifyRequest,
   type CreateStaffRequest,
   type RoomRequest,
+  type ResidentRequest,
+  type ArchiveRequest,
   type CameraRequest,
   type CameraSettings,
   type CameraTestResult,
@@ -71,6 +73,7 @@ const rawResident = z.object({
   room_id: z.number().nullable(),
   emergency_contact: z.string(),
   notes: z.string(),
+  is_archived: z.boolean(),
 });
 type RawResident = z.infer<typeof rawResident>;
 
@@ -348,11 +351,17 @@ async function people(): Promise<People> {
 }
 
 const rooms = () => get('/rooms', z.array(rawRoom));
-const residentsRaw = () => get('/residents', z.array(rawResident));
+const residentsRaw = (archived = false) =>
+  get(archived ? '/residents?archived=true' : '/residents', z.array(rawResident));
+/**
+ * Current and archived residents, to name the resident on an alert. Alerts keep the names of
+ * the residents in the room at the time, so an archived resident's incidents still link to them.
+ */
+const everyResident = async () => (await Promise.all([residentsRaw(), residentsRaw(true)])).flat();
 const alertsRaw = (query: string) => get(`/alerts?${query}`, z.array(rawAlert));
 
 async function incidentsFrom(query: string, activeOnly: boolean): Promise<Incident[]> {
-  const [alerts, staff, residents] = await Promise.all([alertsRaw(query), people(), residentsRaw()]);
+  const [alerts, staff, residents] = await Promise.all([alertsRaw(query), people(), everyResident()]);
   return alerts
     .map((a) => summary(toIncident(a, staff, residents)))
     .filter((i) => !activeOnly || isActiveStatus(i.status));
@@ -362,7 +371,7 @@ async function incidentDetail(id: number): Promise<IncidentDetail> {
   const [alert, staff, residents] = await Promise.all([
     get(`/alerts/${id}`, rawAlert),
     people(),
-    residentsRaw(),
+    everyResident(),
   ]);
   return toIncident(alert, staff, residents);
 }
@@ -372,7 +381,7 @@ async function act(code: string, action: string, body?: unknown): Promise<Incide
   const [alert, staff, residents] = await Promise.all([
     apiRequest(`/alerts/${id}/${action}`, rawAlert, { method: 'POST', ...(body !== undefined && { body }) }),
     people(),
-    residentsRaw(),
+    everyResident(),
   ]);
   return toIncident(alert, staff, residents);
 }
@@ -393,6 +402,43 @@ function toResident(r: RawResident, roomList: readonly RawRoom[], incidents: rea
         .map((i) => i.detectedAt)
         .toSorted()
         .at(-1) ?? null,
+  };
+}
+
+/** A resident's profile. Fetches the rooms and incidents to fill in the room and alert state. */
+async function toResidentDetail(r: RawResident): Promise<ResidentDetail> {
+  const [roomList, incidents] = await Promise.all([rooms(), incidentsFrom('limit=500', false)]);
+  return {
+    ...toResident(r, roomList, incidents),
+    sex: null,
+    birthDate: null,
+    mobilityAid: null,
+    careNotes: r.notes || null,
+    isArchived: r.is_archived,
+    // The backend keeps one free-text contact; show it as is, without a phone button.
+    emergencyContacts: r.emergency_contact
+      ? [{ id: `${r.id}-contact`, fullName: r.emergency_contact, relationship: null, phone: '' }]
+      : [],
+  };
+}
+
+/**
+ * What POST/PATCH /api/residents take. The backend keeps an age, one free-text emergency contact
+ * and notes, so the screens only send those (serverFeatures.residentDetails).
+ */
+function residentBody(b: ResidentRequest) {
+  if (b.sex !== null || b.birthDate !== null || b.mobilityAid !== null || b.caregiverIds.length > 0)
+    throw notYet('Keeping sex, birth date, mobility aid and caregivers');
+  const [contact, ...more] = b.emergencyContacts;
+  if (more.length > 0 || (contact && contact.phone !== ''))
+    throw notYet('Keeping several emergency contacts with phone numbers');
+  return {
+    full_name: b.fullName,
+    age: b.age,
+    risk_level: b.fallRisk,
+    room_id: b.roomId === null ? null : numericId(b.roomId, 'room'),
+    emergency_contact: contact?.fullName ?? '',
+    notes: b.careNotes ?? '',
   };
 }
 
@@ -517,32 +563,37 @@ export const fastApi = {
     });
   },
 
-  async residents(): Promise<Resident[]> {
+  async residents(archived = false): Promise<Resident[]> {
     const [list, roomList, incidents] = await Promise.all([
-      residentsRaw(),
+      residentsRaw(archived),
       rooms(),
       incidentsFrom('limit=500', false),
     ]);
     return list.map((r) => toResident(r, roomList, incidents));
   },
-  async resident(id: string): Promise<ResidentDetail> {
-    const [r, roomList, incidents] = await Promise.all([
-      get(`/residents/${numericId(id, 'resident')}`, rawResident),
-      rooms(),
-      incidentsFrom('limit=500', false),
-    ]);
-    return {
-      ...toResident(r, roomList, incidents),
-      sex: null,
-      birthDate: null,
-      mobilityAid: null,
-      careNotes: r.notes || null,
-      // The backend keeps one free-text contact; show it as is, without a phone button.
-      emergencyContacts: r.emergency_contact
-        ? [{ id: `${r.id}-contact`, fullName: r.emergency_contact, relationship: null, phone: '' }]
-        : [],
-    };
+  resident: async (id: string): Promise<ResidentDetail> =>
+    toResidentDetail(await get(`/residents/${numericId(id, 'resident')}`, rawResident)),
+  createResident: async (body: ResidentRequest): Promise<ResidentDetail> =>
+    toResidentDetail(
+      await apiRequest('/residents', rawResident, { method: 'POST', body: residentBody(body) }),
+    ),
+  updateResident: async (id: string, body: ResidentRequest): Promise<ResidentDetail> =>
+    toResidentDetail(
+      await apiRequest(`/residents/${numericId(id, 'resident')}`, rawResident, {
+        method: 'PATCH',
+        body: residentBody(body),
+      }),
+    ),
+  async archiveResident(id: string, body: ArchiveRequest | null): Promise<ResidentDetail> {
+    if (body !== null) throw notYet('Keeping the reason a resident was archived');
+    return toResidentDetail(
+      await apiRequest(`/residents/${numericId(id, 'resident')}/archive`, rawResident, { method: 'POST' }),
+    );
   },
+  restoreResident: async (id: string): Promise<ResidentDetail> =>
+    toResidentDetail(
+      await apiRequest(`/residents/${numericId(id, 'resident')}/restore`, rawResident, { method: 'POST' }),
+    ),
   rooms: async (): Promise<RoomRef[]> => (await rooms()).map(toRoom),
   cameraSettings: async (id: string): Promise<CameraSettings> =>
     toCameraSettings(await get(`/cameras/${numericId(id, 'camera')}`, rawCameraSettings)),

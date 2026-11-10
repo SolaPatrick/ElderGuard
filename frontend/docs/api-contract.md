@@ -77,11 +77,47 @@ Login errors the UI expects: `401 invalid_credentials`, `403 account_deactivated
   "careNotes": "Needs help standing up at night.",
   "emergencyContacts": [
     { "id": "…", "fullName": "Maricel Santos", "relationship": "Daughter", "phone": "0918 555 0172" }
-  ]
+  ],
+  "isArchived": false
 }
 ```
 
-`sex`, `birthDate`, `mobilityAid`, `careNotes` and `relationship` may be `null`. A caregiver asking for a resident outside their areas gets **404**.
+`sex`, `birthDate`, `mobilityAid`, `careNotes` and `relationship` may be `null`. `isArchived` is `true` for a
+resident who moved out or was transferred (kept for the incident history). A caregiver asking for a resident outside
+their areas gets **404**.
+
+### Resident editing (Admin/Head only)
+
+| Call                           | Body                     | Returns                   |
+| ------------------------------ | ------------------------ | ------------------------- |
+| `GET /residents?archived=true` | —                        | archived residents (list) |
+| `POST /residents` (**201**)    | resident request (below) | the resident's profile    |
+| `PATCH /residents/{id}`        | resident request (below) | the resident's profile    |
+| `POST /residents/{id}/archive` | `{ reason, note }`       | the profile, archived     |
+| `POST /residents/{id}/restore` | —                        | the profile, not archived |
+
+```json
+{
+  "fullName": "Benjamin Torres",
+  "sex": "male",
+  "birthDate": "1946-02-14",
+  "age": null,
+  "roomId": "r-104",
+  "fallRisk": "low",
+  "mobilityAid": "Cane",
+  "careNotes": "Walks independently with a cane.",
+  "emergencyContacts": [{ "fullName": "Carlo Torres", "relationship": "Son", "phone": "0917 555 0134" }],
+  "caregiverIds": ["u-mark"]
+}
+```
+
+- PATCH takes the whole resident, the same as POST. The transfer-room and assign-caregivers dialogs send the
+  resident unchanged except for `roomId` or `caregiverIds`.
+- The server works the age out from `birthDate`. `age` is only sent by servers without birth dates.
+- At most 5 emergency contacts. `phone` is a Philippine mobile number (`09XX XXX XXXX` or `+63 9XX XXX XXXX`).
+- `caregiverIds` must be active employees. One already assigned may stay after being deactivated.
+- Archive `reason` is `"moved_out"`, `"transferred"` or `"other"`; `note` is required for `"other"`.
+- An unknown room or caregiver returns **400** with a message.
 
 ## Incidents (alerts)
 

@@ -5,6 +5,9 @@ import type {
   CreateStaffRequest,
   RoomRequest,
   CameraRequest,
+  ArchiveRequest,
+  ResidentDetail,
+  ResidentRequest,
   UpdateStaffRequest,
   IncidentDetail,
   ResolveRequest,
@@ -66,8 +69,17 @@ export function useActivity(limit = 3) {
 export function useResidents() {
   return useQuery({
     queryKey: queryKeys.residents,
-    queryFn: api.residents,
+    queryFn: () => api.residents(),
     refetchInterval: ALERT_POLL_MS * 2,
+  });
+}
+
+/** Former residents (RES-07), for the Admin/Head to look up or restore. */
+export function useArchivedResidents(enabled: boolean) {
+  return useQuery({
+    queryKey: ['residents', { archived: true }] as const,
+    queryFn: () => api.residents(true),
+    enabled,
   });
 }
 
@@ -197,6 +209,43 @@ export function useResetStaffPassword(id: string) {
       qc.setQueryData(queryKeys.staffMember(id), user);
       refreshStaff(qc);
     },
+  });
+}
+
+// ---------- Resident editing (Admin/Head) ----------
+
+/** After a resident changes, keep the new profile and refresh lists, counts and the log. */
+function applyResidentUpdate(qc: QueryClient, updated: ResidentDetail) {
+  qc.setQueryData(queryKeys.resident(updated.id), updated);
+  void qc.invalidateQueries({ queryKey: queryKeys.residents });
+  void qc.invalidateQueries({ queryKey: queryKeys.dashboard });
+  void qc.invalidateQueries({ queryKey: ['activity'] });
+}
+
+/** RES-02 add (id null) and RES-04 / RES-05 edit or transfer. */
+export function useSaveResident(id: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ResidentRequest) =>
+      id === null ? api.createResident(body) : api.updateResident(id, body),
+    onSuccess: (saved) => applyResidentUpdate(qc, saved),
+  });
+}
+
+/** RES-07 archive (body null when the server keeps no reason). */
+export function useArchiveResident(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ArchiveRequest | null) => api.archiveResident(id, body),
+    onSuccess: (saved) => applyResidentUpdate(qc, saved),
+  });
+}
+
+export function useRestoreResident(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.restoreResident(id),
+    onSuccess: (saved) => applyResidentUpdate(qc, saved),
   });
 }
 
