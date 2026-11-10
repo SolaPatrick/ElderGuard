@@ -5,6 +5,8 @@
 import {
   activityEntrySchema,
   cameraSchema,
+  cameraSettingsSchema,
+  cameraTestResultSchema,
   dashboardSummarySchema,
   incidentDetailSchema,
   incidentSchema,
@@ -20,6 +22,7 @@ import {
   type ClassifyRequest,
   type CreateStaffRequest,
   type RoomRequest,
+  type CameraRequest,
   type UpdateStaffRequest,
   type LoginRequest,
   type ResolveRequest,
@@ -62,6 +65,18 @@ const contractApi = {
     apiRequest(`/incidents/${enc(code)}/resolve`, incidentDetailSchema, { method: 'POST', body }),
   addNote: (code: string, body: AddNoteRequest) =>
     apiRequest(`/incidents/${enc(code)}/notes`, incidentDetailSchema, { method: 'POST', body }),
+
+  // Cameras & Devices (Admin/Head only)
+  cameraSettings: (id: string) => apiRequest(`/cameras/${enc(id)}/settings`, cameraSettingsSchema),
+  createCamera: (body: CameraRequest) =>
+    apiRequest('/cameras', cameraSettingsSchema, { method: 'POST', body }),
+  updateCamera: (id: string, body: CameraRequest) =>
+    apiRequest(`/cameras/${enc(id)}`, cameraSettingsSchema, { method: 'PATCH', body }),
+  deleteCamera: async (id: string) => {
+    await apiRequest(`/cameras/${enc(id)}`, z.null(), { method: 'DELETE' });
+  },
+  testCameraSource: (source: string) =>
+    apiRequest('/cameras/test', cameraTestResultSchema, { method: 'POST', body: { source } }),
 
   // Rooms & Areas (Admin/Head only)
   createRoom: (body: RoomRequest) => apiRequest('/rooms', roomRefSchema, { method: 'POST', body }),

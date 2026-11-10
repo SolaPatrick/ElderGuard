@@ -285,6 +285,64 @@ export const roomRequestSchema = z.object({
 });
 export type RoomRequest = z.infer<typeof roomRequestSchema>;
 
+// ---------- camera setup (CAM, Admin/Head only) ----------
+
+export const cameraPlaceSchema = z.enum(['room', 'bathroom']);
+export type CameraPlace = z.infer<typeof cameraPlaceSchema>;
+/** "person" blurs people, "whole" blurs the whole picture. Bathrooms always use "whole". */
+export const privacyBlurSchema = z.enum(['off', 'person', 'whole']);
+export type PrivacyBlur = z.infer<typeof privacyBlurSchema>;
+
+/** A camera's setup as the Admin/Head edits it. `source` can hold a password, so only admins get it. */
+export const cameraSettingsSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  /** An rtsp:// or http(s):// stream link, or a device number such as "0" for a USB camera. */
+  source: z.string(),
+  roomId: z.string().nullable(),
+  place: cameraPlaceSchema,
+  privacyBlur: privacyBlurSchema,
+  detectionEnabled: z.boolean(),
+});
+export type CameraSettings = z.infer<typeof cameraSettingsSchema>;
+
+/** CAM-02 Register camera and CAM-04 Edit camera. */
+export const cameraFormSchema = z
+  .object({
+    code: z
+      .string()
+      .trim()
+      .min(1, 'Enter a name, e.g. CAM-12')
+      .max(40, 'Use at most 40 characters')
+      .regex(
+        /^[A-Za-z0-9][A-Za-z0-9._-]*$/,
+        'Use letters, numbers, dots, dashes and underscores (no spaces)',
+      ),
+    source: z.string().trim().min(1, 'Enter the stream link or device number').max(500),
+    roomId: z.string().transform((v) => (v === '' ? null : v)),
+    place: cameraPlaceSchema,
+    privacyBlur: privacyBlurSchema,
+    detectionEnabled: z.boolean(),
+  })
+  // A bathroom camera always blurs the whole picture (same rule as the backend).
+  .transform((v) => (v.place === 'bathroom' ? { ...v, privacyBlur: 'whole' as const } : v));
+export type CameraForm = z.input<typeof cameraFormSchema>;
+
+/** What POST /cameras and PATCH /cameras/{id} receive. */
+export const cameraRequestSchema = z.object({
+  code: z.string().trim().min(1).max(40),
+  source: z.string().trim().min(1).max(500),
+  roomId: z.string().nullable(),
+  place: cameraPlaceSchema,
+  privacyBlur: privacyBlurSchema,
+  detectionEnabled: z.boolean(),
+});
+export type CameraRequest = z.infer<typeof cameraRequestSchema>;
+
+/** POST /cameras/test: one picture was read from the source. */
+export const cameraTestResultSchema = z.object({ width: z.number().int(), height: z.number().int() });
+export type CameraTestResult = z.infer<typeof cameraTestResultSchema>;
+
 // ---------- staff accounts (USR, Admin/Head only) ----------
 
 /** A staff account as the Users & Access screens show it. */

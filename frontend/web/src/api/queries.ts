@@ -4,6 +4,7 @@ import type {
   ClassifyRequest,
   CreateStaffRequest,
   RoomRequest,
+  CameraRequest,
   UpdateStaffRequest,
   IncidentDetail,
   ResolveRequest,
@@ -229,4 +230,38 @@ export function useDeleteRoom(id: string) {
     mutationFn: () => api.deleteRoom(id),
     onSuccess: () => refreshRooms(qc),
   });
+}
+
+// ---------- Cameras & Devices (Admin/Head) ----------
+
+export function useCameraSettings(id: string) {
+  return useQuery({ queryKey: ['cameras', 'settings', id] as const, queryFn: () => api.cameraSettings(id) });
+}
+
+/** Cameras appear on rooms, residents and the dashboard, so refresh those too. */
+function refreshCameras(qc: QueryClient) {
+  // Only the list: the settings of a camera that was just removed must not be fetched again.
+  void qc.invalidateQueries({ queryKey: queryKeys.cameras, exact: true });
+  void qc.invalidateQueries({ queryKey: queryKeys.dashboard });
+  void qc.invalidateQueries({ queryKey: ['activity'] });
+}
+
+export function useSaveCamera(id: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CameraRequest) => (id === null ? api.createCamera(body) : api.updateCamera(id, body)),
+    onSuccess: (saved) => {
+      qc.setQueryData(['cameras', 'settings', saved.id], saved);
+      refreshCameras(qc);
+    },
+  });
+}
+
+export function useDeleteCamera(id: string) {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: () => api.deleteCamera(id), onSuccess: () => refreshCameras(qc) });
+}
+
+export function useTestCameraSource() {
+  return useMutation({ mutationFn: (source: string) => api.testCameraSource(source) });
 }

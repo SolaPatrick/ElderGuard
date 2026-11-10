@@ -383,3 +383,65 @@ describe('FastAPI adapter: rooms', () => {
     ]);
   });
 });
+
+describe('FastAPI adapter: camera setup', () => {
+  const raw = {
+    id: 3,
+    name: 'CAM-01',
+    source: 'rtsp://cam/1',
+    room_id: 5,
+    place: 'room',
+    privacy_blur: 'person',
+    detection_enabled: true,
+    created_at: '2026-11-01T08:00:00',
+  };
+
+  it('reads and saves camera settings with the backend names', async () => {
+    let sent: unknown;
+    server.use(
+      http.get('/api/cameras/3', () => HttpResponse.json(raw)),
+      http.patch('/api/cameras/3', async ({ request }) => {
+        sent = await request.json();
+        return HttpResponse.json({ ...raw, room_id: null, place: 'bathroom', privacy_blur: 'whole' });
+      }),
+    );
+    expect(await fastApi.cameraSettings('3')).toEqual({
+      id: '3',
+      code: 'CAM-01',
+      source: 'rtsp://cam/1',
+      roomId: '5',
+      place: 'room',
+      privacyBlur: 'person',
+      detectionEnabled: true,
+    });
+    const saved = await fastApi.updateCamera('3', {
+      code: 'CAM-01',
+      source: 'rtsp://cam/1',
+      roomId: null,
+      place: 'bathroom',
+      privacyBlur: 'whole',
+      detectionEnabled: true,
+    });
+    expect(sent).toEqual({
+      name: 'CAM-01',
+      source: 'rtsp://cam/1',
+      room_id: null,
+      place: 'bathroom',
+      privacy_blur: 'whole',
+      detection_enabled: true,
+    });
+    expect(saved).toMatchObject({ roomId: null, privacyBlur: 'whole' });
+  });
+
+  it('sends the connection test source as a query parameter', async () => {
+    let query = '';
+    server.use(
+      http.post('/api/cameras/test', ({ request }) => {
+        query = new URL(request.url).searchParams.get('source') ?? '';
+        return HttpResponse.json({ ok: true, width: 1280, height: 720 });
+      }),
+    );
+    expect(await fastApi.testCameraSource('rtsp://a b/1?x=1')).toEqual({ width: 1280, height: 720 });
+    expect(query).toBe('rtsp://a b/1?x=1');
+  });
+});

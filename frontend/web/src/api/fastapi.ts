@@ -18,6 +18,9 @@ import {
   type ClassifyRequest,
   type CreateStaffRequest,
   type RoomRequest,
+  type CameraRequest,
+  type CameraSettings,
+  type CameraTestResult,
   type StaffMember,
   type StaffWithPassword,
   type UpdateStaffRequest,
@@ -78,6 +81,26 @@ const rawCamera = z.object({
   detection_enabled: z.boolean(),
 });
 type RawCamera = z.infer<typeof rawCamera>;
+
+const rawCameraSettings = z.object({
+  id: z.number(),
+  name: z.string(),
+  source: z.string(),
+  room_id: z.number().nullable(),
+  place: z.enum(['room', 'bathroom']),
+  privacy_blur: z.enum(['off', 'person', 'whole']),
+  detection_enabled: z.boolean(),
+});
+
+const toCameraSettings = (c: z.infer<typeof rawCameraSettings>): CameraSettings => ({
+  id: String(c.id),
+  code: c.name,
+  source: c.source,
+  roomId: c.room_id === null ? null : String(c.room_id),
+  place: c.place,
+  privacyBlur: c.privacy_blur,
+  detectionEnabled: c.detection_enabled,
+});
 
 const rawCameraStatus = z.object({
   camera_id: z.number(),
@@ -180,6 +203,15 @@ const toStaff = (u: RawStaff): StaffMember => ({
 const toStaffWithPassword = (r: z.infer<typeof rawStaffWithPassword>): StaffWithPassword => ({
   user: toStaff(r.user),
   temporaryPassword: r.temporary_password,
+});
+
+const cameraBody = (b: CameraRequest) => ({
+  name: b.code,
+  source: b.source,
+  room_id: b.roomId === null ? null : numericId(b.roomId, 'room'),
+  place: b.place,
+  privacy_blur: b.privacyBlur,
+  detection_enabled: b.detectionEnabled,
 });
 
 /** The screens hide area assignment for this backend; refuse rather than silently drop it. */
@@ -512,6 +544,31 @@ export const fastApi = {
     };
   },
   rooms: async (): Promise<RoomRef[]> => (await rooms()).map(toRoom),
+  cameraSettings: async (id: string): Promise<CameraSettings> =>
+    toCameraSettings(await get(`/cameras/${numericId(id, 'camera')}`, rawCameraSettings)),
+  createCamera: async (body: CameraRequest): Promise<CameraSettings> =>
+    toCameraSettings(
+      await apiRequest('/cameras', rawCameraSettings, { method: 'POST', body: cameraBody(body) }),
+    ),
+  updateCamera: async (id: string, body: CameraRequest): Promise<CameraSettings> =>
+    toCameraSettings(
+      await apiRequest(`/cameras/${numericId(id, 'camera')}`, rawCameraSettings, {
+        method: 'PATCH',
+        body: cameraBody(body),
+      }),
+    ),
+  deleteCamera: async (id: string) => {
+    await apiRequest(`/cameras/${numericId(id, 'camera')}`, z.null(), { method: 'DELETE' });
+  },
+  // The backend takes the source as a query parameter.
+  testCameraSource: async (source: string): Promise<CameraTestResult> => {
+    const res = await apiRequest(
+      `/cameras/test?source=${encodeURIComponent(source)}`,
+      z.object({ width: z.number(), height: z.number() }),
+      { method: 'POST' },
+    );
+    return { width: res.width, height: res.height };
+  },
   createRoom: async (body: RoomRequest): Promise<RoomRef> =>
     toRoom(
       await apiRequest('/rooms', rawRoom, {
