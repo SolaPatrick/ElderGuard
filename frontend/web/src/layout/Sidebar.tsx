@@ -4,6 +4,7 @@ import { NavLink, useMatch } from 'react-router';
 import { numbers, type User } from '@elderguard/shared';
 import { BrandMark } from '../components/BrandMark';
 import { NAV_ITEMS, type NavItem } from './navigation';
+import { APP_VERSION } from '../version';
 
 function NavEntry({
   item,
@@ -114,7 +115,10 @@ export function Sidebar({
         <ListItemIcon sx={{ minWidth: 32, color: 'inherit' }}>
           <HelpOutlined fontSize="small" />
         </ListItemIcon>
-        <ListItemText primary="Help & About · v0.1" slotProps={{ primary: { variant: 'caption' } }} />
+        <ListItemText
+          primary={`Help & About · v${APP_VERSION}`}
+          slotProps={{ primary: { variant: 'caption' } }}
+        />
       </ListItemButton>
     </Box>
   );
