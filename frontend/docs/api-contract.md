@@ -61,7 +61,11 @@ Login errors the UI expects: `401 invalid_credentials`, `403 account_deactivated
 `GET /cameras` returns `[{ id, code, roomId, roomName, roomWing, resolutionFps, liveUrl, status: "online"|"offline"|"error"|"paused"|"connecting", detectionEnabled, lastSeenAt }]`. Caregivers only get the cameras in their areas.
 
 - `resolutionFps` is a display string such as `"1080p · 15 FPS"`, or `null`.
-- `liveUrl` is a URL the browser can play in a `<video>` tag (for example an MP4 or HLS gateway in front of the RTSP camera). Send `null` until streaming is ready; the camera page then shows a placeholder.
+- `liveUrl` is a URL the browser can play, and `liveFormat` says how: `"video"` for a `<video>` tag (for example an MP4 or HLS gateway in front of the RTSP camera), `"mjpeg"` for an `<img>` tag. Send `null` for both until streaming is ready; the camera page then shows a placeholder. The stream link must work without the login header (an `<img>` or `<video>` tag can't send one).
+- The camera page stops the stream while its browser tab is hidden, and starts it again when the tab comes back. It tries again every 5 seconds if the stream fails.
+
+`GET /cameras/{id}/snapshot` returns the camera's newest picture as `image/jpeg`, with the login header. **404** when the camera has no picture (not running). The Live Monitoring tiles ask for it every 2 seconds instead of opening one stream per camera, because a browser keeps only about six connections open to one server. The camera page also asks for it every 2 seconds while the stream plays: a broken MJPEG stream keeps showing its last frame with no error, so a failed request (no answer, or a 5xx) is how the page notices the stream stopped. The Snapshot button saves this picture as `CAM-01 2026-11-10 14-41-08.jpg`.
+
 - `roomWing` is `null` for common areas (hallways, dining hall). The Live Monitoring area filter groups these as "Common areas".
 
 `GET /residents` returns `[{ id, fullName, age, fallRisk: "low"|"moderate"|"high", room: { id, name, wing } | null, caregivers: [{ id, fullName }], hasActiveAlert, lastIncidentAt }]`. `hasActiveAlert` and `lastIncidentAt` (ISO date-time or `null`) only count incidents the caller can see.

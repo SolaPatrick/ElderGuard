@@ -5,6 +5,7 @@ import PauseCircleOutlined from '@mui/icons-material/PauseCircleOutlined';
 import PersonAlertIcon from '@mui/icons-material/PersonOutlined';
 import { Link as RouterLink } from 'react-router';
 import { formatTime, incidentTitle, type Camera, type Incident } from '@elderguard/shared';
+import { useCameraPicture } from '../api/queries';
 
 const STATE_LABEL: Record<Camera['status'], string> = {
   online: 'LIVE',
@@ -52,7 +53,7 @@ function detectionChip(camera: Camera, alert: Incident | null) {
 
 /**
  * Dark camera preview. Used on the caregiver dashboard (compact) and in the
- * Live Monitoring grid (with detection status).
+ * Live Monitoring grid (with detection status). Shows the camera's newest picture when there is one.
  */
 export function CameraTile({
   camera,
@@ -72,6 +73,7 @@ export function CameraTile({
   const label = `${camera.code}${camera.roomName ? ` · ${camera.roomName}` : ''}`;
   const chip = detectionChip(camera, alert);
   const offline = camera.status === 'offline' || camera.status === 'error';
+  const picture = useCameraPicture(camera);
 
   return (
     <ButtonBase
@@ -92,7 +94,15 @@ export function CameraTile({
         borderColor: alert ? 'eg.comp.alertBorderNew' : 'transparent',
       }}
     >
-      {working ? (
+      {picture ? (
+        <Box
+          component="img"
+          src={picture}
+          alt=""
+          data-testid="camera-picture"
+          sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      ) : working ? (
         <VideocamOutlined sx={{ fontSize: 36, color: 'rgba(255,255,255,0.35)' }} aria-hidden />
       ) : (
         <VideocamOffOutlined sx={{ fontSize: 36, color: 'rgba(255,255,255,0.7)' }} aria-hidden />

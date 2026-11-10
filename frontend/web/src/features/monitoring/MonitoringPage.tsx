@@ -47,7 +47,11 @@ export function MonitoringPage() {
     <>
       <PageHeader
         title="Live Monitoring"
-        subtitle={cameras.data ? `${all.length} cameras · ${online} online` : undefined}
+        subtitle={
+          cameras.data
+            ? `${all.length} ${all.length === 1 ? 'camera' : 'cameras'} · ${online} online`
+            : undefined
+        }
       />
 
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} sx={{ mb: 5, alignItems: { md: 'center' } }}>
@@ -154,7 +158,7 @@ export function MonitoringPage() {
             sx={{ mt: 5, justifyContent: 'space-between', alignItems: 'center' }}
           >
             <Typography variant="body2" color="text.secondary">
-              Showing {visible.length} of {shown.length} cameras
+              Showing {visible.length} of {shown.length} {shown.length === 1 ? 'camera' : 'cameras'}
             </Typography>
             {pageCount > 1 && (
               <Pagination count={pageCount} page={current} onChange={(_, p) => setPage(p)} shape="rounded" />

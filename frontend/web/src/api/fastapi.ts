@@ -40,7 +40,7 @@ import {
   type User,
   isActiveStatus,
 } from '@elderguard/shared';
-import { ApiError, apiRequest } from './client';
+import { ApiError, apiBlob, apiRequest } from './client';
 import { API_BASE_URL } from './config';
 import { tokenStorage } from '../auth/tokenStorage';
 
@@ -554,14 +554,19 @@ export const fastApi = {
         roomName: room?.name ?? null,
         roomWing: room?.area || null,
         resolutionFps: s?.online ? `${s.fps} FPS` : null,
-        liveUrl: withToken(`/cameras/${c.id}/stream`),
-        liveFormat: 'mjpeg',
+        // The server only runs a camera while fall detection is on; otherwise it streams a grey card.
+        liveUrl: c.detection_enabled ? withToken(`/cameras/${c.id}/stream`) : null,
+        liveFormat: c.detection_enabled ? 'mjpeg' : null,
         status,
         detectionEnabled: c.detection_enabled,
         lastSeenAt: null,
       };
     });
   },
+
+  // Den's server sends its newest frame, with the login header (no token in the link).
+  cameraPicture: async (id: string, signal?: AbortSignal) =>
+    apiBlob(`/cameras/${numericId(id, 'camera')}/snapshot`, signal ? { signal } : {}),
 
   async residents(archived = false): Promise<Resident[]> {
     const [list, roomList, incidents] = await Promise.all([

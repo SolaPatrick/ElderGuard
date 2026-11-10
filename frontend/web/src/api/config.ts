@@ -8,6 +8,12 @@ export const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== 'false';
 export const ALERT_POLL_MS = 5_000;
 
 /**
+ * How often a camera tile fetches a new picture (ms). Tiles use pictures, not the live stream,
+ * because a browser keeps only about six connections open to one server, and every open stream holds one.
+ */
+export const CAMERA_PICTURE_MS = 2_000;
+
+/**
  * Which real backend to talk to when the fake API is off:
  * "contract" follows frontend/docs/api-contract.md, "fastapi" is the FastAPI server in backend/.
  */

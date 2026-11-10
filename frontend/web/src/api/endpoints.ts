@@ -32,7 +32,7 @@ import {
   type CancelSosRequest,
 } from '@elderguard/shared';
 import { z } from 'zod';
-import { apiRequest } from './client';
+import { apiBlob, apiRequest } from './client';
 import { BACKEND } from './config';
 import { fastApi } from './fastapi';
 
@@ -51,6 +51,9 @@ const contractApi = {
   dashboardSummary: () => apiRequest('/dashboard/summary', dashboardSummarySchema),
   activity: (limit: number) => apiRequest(`/activity?limit=${limit}`, z.array(activityEntrySchema)),
   cameras: () => apiRequest('/cameras', z.array(cameraSchema)),
+  /** The camera's newest picture as a JPEG. 404 when the camera has no picture yet. */
+  cameraPicture: (id: string, signal?: AbortSignal) =>
+    apiBlob(`/cameras/${enc(id)}/snapshot`, signal ? { signal } : {}),
   /** Current residents, or (archived = true, Admin/Head only) former ones. */
   residents: (archived = false) =>
     apiRequest(archived ? '/residents?archived=true' : '/residents', z.array(residentSchema)),
