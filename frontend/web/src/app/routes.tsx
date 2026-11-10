@@ -11,6 +11,10 @@ import { MonitoringPage } from '../features/monitoring/MonitoringPage';
 import { CameraPage } from '../features/monitoring/CameraPage';
 import { ResidentsPage } from '../features/residents/ResidentsPage';
 import { ResidentProfilePage } from '../features/residents/ResidentProfilePage';
+import { UsersPage } from '../features/users/UsersPage';
+import { CreateUserPage } from '../features/users/CreateUserPage';
+import { UserDetailPage } from '../features/users/UserDetailPage';
+import { EditUserPage } from '../features/users/EditUserPage';
 import { ComingSoonPage } from '../features/system/ComingSoonPage';
 import { NotFoundPage } from '../features/system/NotFoundPage';
 import { RouteErrorPage } from '../features/system/RouteErrorPage';
@@ -49,7 +53,10 @@ export const routes: RouteObject[] = [
                 children: [
                   soon('rooms', 'Rooms & areas'),
                   soon('cameras', 'Cameras & devices'),
-                  soon('users', 'Users & access'),
+                  { path: 'users', element: <UsersPage /> },
+                  { path: 'users/new', element: <CreateUserPage /> },
+                  { path: 'users/:id', element: <UserDetailPage /> },
+                  { path: 'users/:id/edit', element: <EditUserPage /> },
                   soon('reports', 'Reports & analytics'),
                   soon('activity', 'Activity log'),
                   soon('settings', 'Settings'),

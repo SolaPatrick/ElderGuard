@@ -12,6 +12,8 @@ export interface AuthContextValue {
   logout: () => Promise<void>;
   /** After a password change the server issues a new token for the same user. */
   replaceSession: (token: string, user: User) => void;
+  /** After an Admin/Head edits their own account, so the name and title update everywhere. */
+  updateCurrentUser: (user: User) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

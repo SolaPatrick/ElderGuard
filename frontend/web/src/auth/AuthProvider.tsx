@@ -61,9 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ status: 'authenticated', user });
   }, []);
 
+  const updateCurrentUser = useCallback((user: User) => {
+    setState((s) =>
+      s.status === 'authenticated' && s.user.id === user.id ? { status: 'authenticated', user } : s,
+    );
+  }, []);
+
   const value = useMemo(
-    () => ({ state, login, logout, replaceSession }),
-    [state, login, logout, replaceSession],
+    () => ({ state, login, logout, replaceSession, updateCurrentUser }),
+    [state, login, logout, replaceSession, updateCurrentUser],
   );
   return <AuthContext value={value}>{children}</AuthContext>;
 }

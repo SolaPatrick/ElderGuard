@@ -11,6 +11,11 @@ import {
   type SosRequest,
   type ResidentDetail,
   type User,
+  type Role,
+  type StaffMember,
+  type StaffWithPassword,
+  type CreateStaffRequest,
+  type UpdateStaffRequest,
   type DashboardSummary,
   type Incident,
   type IncidentDetail,
@@ -64,6 +69,46 @@ function toResident(user: SeedUser, r: SeedResident): Resident {
   };
 }
 
+const roomRefs = (ids: string[]): RoomRef[] =>
+  ids.flatMap((id) => {
+    const room = seed.rooms.find((r) => r.id === id);
+    return room ? [{ id: room.id, name: room.name, wing: room.wing }] : [];
+  });
+
+const titleFor = (role: Role) => (role === 'admin' ? 'Admin/Head' : 'Caregiver');
+
+function toStaff(u: SeedUser): StaffMember {
+  return {
+    id: u.id,
+    fullName: u.fullName,
+    username: u.username,
+    email: u.email,
+    role: u.role,
+    title: u.title,
+    isActive: u.status === 'active',
+    mustChangePassword: u.mustChangePassword,
+    areas: roomRefs(u.areaIds),
+    lastLoginAt: u.lastLoginAt,
+    createdAt: u.createdAt,
+  };
+}
+
+/** 12 random letters and digits, without look-alikes (0/O, 1/l/I). */
+function newTemporaryPassword(user: SeedUser): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  // Only bytes below a multiple of the alphabet size are used, so every character is equally likely.
+  const limit = 256 - (256 % chars.length);
+  let password = '';
+  while (password.length < 12) {
+    for (const b of crypto.getRandomValues(new Uint8Array(16))) {
+      if (b < limit && password.length < 12) password += chars[b % chars.length];
+    }
+  }
+  passwords.set(user.id, password);
+  user.mustChangePassword = true;
+  return password;
+}
+
 export const db = {
   get facilityName() {
     return seed.facilityName;
@@ -71,7 +116,7 @@ export const db = {
 
   findUserByLogin(login: string): SeedUser | undefined {
     const key = login.trim().toLowerCase();
-    return seed.users.find((u) => u.username === key || u.email.toLowerCase() === key);
+    return seed.users.find((u) => u.username === key || u.email?.toLowerCase() === key);
   },
   checkPassword(user: SeedUser, password: string): boolean {
     return password === (passwords.get(user.id) ?? DEMO_PASSWORD);
@@ -87,12 +132,84 @@ export const db = {
   },
 
   /** The user as the API returns it (no password status, areas expanded). */
-  toPublicUser({ status: _s, areaIds, ...user }: SeedUser): User {
-    const areas = areaIds.flatMap((id) => {
-      const room = seed.rooms.find((r) => r.id === id);
-      return room ? [{ id: room.id, name: room.name, wing: room.wing }] : [];
-    });
-    return { ...user, areas };
+  toPublicUser({ status: _s, areaIds, lastLoginAt: _l, createdAt: _c, ...user }: SeedUser): User {
+    return { ...user, areas: roomRefs(areaIds) };
+  },
+
+  recordLogin(user: SeedUser) {
+    user.lastLoginAt = new Date().toISOString();
+  },
+
+  // ---------- staff accounts (USR) ----------
+
+  listStaff(): StaffMember[] {
+    return seed.users.toSorted((a, b) => a.fullName.localeCompare(b.fullName)).map(toStaff);
+  },
+
+  getStaff(id: string): StaffMember | undefined {
+    const u = db.findUserById(id);
+    return u && toStaff(u);
+  },
+
+  /** Returns an error message when the username or email is already used by someone else. */
+  staffConflict(username: string | null, email: string | null, exceptId?: string): string | null {
+    const others = seed.users.filter((u) => u.id !== exceptId);
+    if (username && others.some((u) => u.username === username.toLowerCase()))
+      return 'That username is already taken.';
+    if (email && others.some((u) => u.email?.toLowerCase() === email.toLowerCase()))
+      return 'That email is already used by another account.';
+    return null;
+  },
+
+  /** Only rooms that exist; none for the Admin/Head, who sees everything. */
+  cleanAreaIds(role: Role, areaIds: string[]): string[] {
+    if (role === 'admin') return [];
+    return [...new Set(areaIds)].filter((id) => seed.rooms.some((r) => r.id === id));
+  },
+
+  createStaff(req: CreateStaffRequest): StaffWithPassword {
+    const user: SeedUser = {
+      id: nextId('u'),
+      fullName: req.fullName,
+      username: req.username.toLowerCase(),
+      email: req.email,
+      role: req.role,
+      title: titleFor(req.role),
+      mustChangePassword: true,
+      status: 'active',
+      lastLoginAt: null,
+      createdAt: new Date().toISOString(),
+      areaIds: db.cleanAreaIds(req.role, req.areaIds),
+    };
+    seed.users.push(user);
+    return { user: toStaff(user), temporaryPassword: newTemporaryPassword(user) };
+  },
+
+  updateStaff(user: SeedUser, req: UpdateStaffRequest): StaffMember {
+    user.fullName = req.fullName;
+    user.email = req.email;
+    user.role = req.role;
+    user.title = titleFor(req.role);
+    user.areaIds = db.cleanAreaIds(req.role, req.areaIds);
+    return toStaff(user);
+  },
+
+  /** True when this is the only active Admin/Head, so they can't be demoted or deactivated. */
+  isLastActiveAdmin(user: SeedUser): boolean {
+    return (
+      user.role === 'admin' &&
+      user.status === 'active' &&
+      !seed.users.some((u) => u.id !== user.id && u.role === 'admin' && u.status === 'active')
+    );
+  },
+
+  setStaffActive(user: SeedUser, active: boolean): StaffMember {
+    user.status = active ? 'active' : 'deactivated';
+    return toStaff(user);
+  },
+
+  resetStaffPassword(user: SeedUser): StaffWithPassword {
+    return { user: toStaff(user), temporaryPassword: newTemporaryPassword(user) };
   },
 
   /**

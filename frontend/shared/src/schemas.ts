@@ -23,7 +23,8 @@ export const userSchema = z.object({
   id: z.string(),
   fullName: z.string(),
   username: z.string(),
-  email: z.email(),
+  /** Optional: staff can log in with their username. */
+  email: z.email().nullable(),
   role: roleSchema,
   /** Job title shown under the name, e.g. "Admin/Head" or "Caregiver". */
   title: z.string(),
@@ -263,6 +264,86 @@ export const activityEntrySchema = z.object({
   createdAt: isoDateTime,
 });
 export type ActivityEntry = z.infer<typeof activityEntrySchema>;
+
+// ---------- staff accounts (USR, Admin/Head only) ----------
+
+/** A staff account as the Users & Access screens show it. */
+export const staffMemberSchema = z.object({
+  id: z.string(),
+  fullName: z.string(),
+  username: z.string(),
+  /** Optional: staff can log in with their username. */
+  email: z.email().nullable(),
+  role: roleSchema,
+  /** "Admin/Head" or "Caregiver". */
+  title: z.string(),
+  isActive: z.boolean(),
+  /** True until the person replaces their temporary password. */
+  mustChangePassword: z.boolean(),
+  /** Rooms and areas a caregiver monitors. Always empty for the Admin/Head (sees everything). */
+  areas: z.array(roomRefSchema),
+  /** Null when the person has never logged in (or the server does not record it). */
+  lastLoginAt: isoDateTime.nullable(),
+  createdAt: isoDateTime,
+});
+export type StaffMember = z.infer<typeof staffMemberSchema>;
+
+/** Returned once, when an account is created or its password is reset (USR-03, USR-08). */
+export const staffWithPasswordSchema = z.object({
+  user: staffMemberSchema,
+  temporaryPassword: z.string().min(1),
+});
+export type StaffWithPassword = z.infer<typeof staffWithPasswordSchema>;
+
+/** Usernames are what people type to log in, so keep them simple. */
+export const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
+
+const staffFields = {
+  fullName: z.string().trim().min(1, 'Enter the full name').max(120, 'Use at most 120 characters'),
+  email: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v === '' || z.email().safeParse(v).success,
+      'Enter a valid email address, or leave it empty',
+    )
+    .transform((v) => (v === '' ? null : v.toLowerCase())),
+  role: roleSchema,
+  /** Ignored for the Admin/Head. */
+  areaIds: z.array(z.string()),
+};
+
+/** USR-02 Create user form. */
+export const createStaffFormSchema = z.object({
+  ...staffFields,
+  username: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(3, 'Use at least 3 characters')
+    .max(40, 'Use at most 40 characters')
+    .regex(USERNAME_PATTERN, 'Use only lowercase letters, numbers, dots, dashes and underscores'),
+});
+export type CreateStaffForm = z.input<typeof createStaffFormSchema>;
+
+/** USR-05 Edit user form. The username can't be changed. */
+export const updateStaffFormSchema = z.object(staffFields);
+export type UpdateStaffForm = z.input<typeof updateStaffFormSchema>;
+
+/** What POST /users and PATCH /users/{id} receive (the forms above produce exactly this). */
+const staffRequestFields = {
+  fullName: z.string().trim().min(1).max(120),
+  email: z.email().nullable(),
+  role: roleSchema,
+  areaIds: z.array(z.string()),
+};
+export const createStaffRequestSchema = z.object({
+  ...staffRequestFields,
+  username: z.string().min(3).max(40).regex(USERNAME_PATTERN),
+});
+export type CreateStaffRequest = z.infer<typeof createStaffRequestSchema>;
+export const updateStaffRequestSchema = z.object(staffRequestFields);
+export type UpdateStaffRequest = z.infer<typeof updateStaffRequestSchema>;
 
 export const apiErrorSchema = z.object({
   code: z.string(),
