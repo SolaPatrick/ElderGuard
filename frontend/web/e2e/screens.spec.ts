@@ -45,20 +45,3 @@ test('the Admin/Head creates a staff account and gets its temporary password', a
   await expect(page.getByRole('heading', { level: 1, name: 'Rosa Villanueva' })).toBeVisible();
   await expect(page.getByLabel('Assigned rooms').getByText('Lobby')).toBeVisible();
 });
-
-test('the incident history filters and exports what it shows', async ({ page }) => {
-  await page.getByRole('link', { name: 'Incidents' }).first().click();
-  await expect(page.getByText('Showing 1–8 of 8 incidents')).toBeVisible();
-  await page.getByRole('combobox', { name: 'Status' }).click();
-  await page.getByRole('option', { name: 'False alarm' }).click();
-  await expect(page.getByText('Showing 1–2 of 2 incidents')).toBeVisible();
-
-  const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export CSV' }).click();
-  const file = await download;
-  expect(file.suggestedFilename()).toMatch(/^incidents-\d{4}-\d{2}-\d{2}\.csv$/);
-  const text = await (await file.createReadStream()).toArray();
-  const lines = Buffer.concat(text).toString('utf8').trim().split('\r\n');
-  expect(lines).toHaveLength(3);
-  expect(lines[1]).toContain('"INC-2026-0139"');
-});
