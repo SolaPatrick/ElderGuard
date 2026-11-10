@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import {
+  Alert,
   Avatar,
   Box,
   Button,
@@ -30,6 +31,7 @@ import {
   type ResidentDetail,
 } from '@elderguard/shared';
 import { ApiError } from '../../api/client';
+import { serverFeatures } from '../../api/endpoints';
 import { useActiveIncidents, useCameras, useIncidents, useResident } from '../../api/queries';
 import { useCurrentUser } from '../../auth/authContext';
 import { CameraTile } from '../../components/CameraTile';
@@ -39,9 +41,11 @@ import { StatusChip } from '../../components/StatusChip';
 import { SectionCard } from '../dashboard/DashboardCards';
 import { alertForCamera } from '../monitoring/cameraFilters';
 import { NotFoundPage } from '../system/NotFoundPage';
+import { ArchiveDialog, CaregiversDialog, RestoreDialog, TransferRoomDialog } from './ResidentDialogs';
 import { formatDateTime } from './residentFilters';
+import { SEX_LABEL } from './residentEditing';
 
-const SEX_LABEL = { female: 'Female', male: 'Male' } as const;
+type DialogId = 'transfer' | 'caregivers' | 'archive' | 'restore';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -185,6 +189,8 @@ export function ResidentProfilePage() {
   const cameras = useCameras();
   const active = useActiveIncidents();
   const [tab, setTab] = useState<TabId>('overview');
+  const [dialog, setDialog] = useState<DialogId | null>(null);
+  const isAdmin = user.role === 'admin';
 
   if (resident.isPending) return <LoadingBlock label="Loading resident" />;
   if (resident.isError) {
@@ -196,7 +202,8 @@ export function ResidentProfilePage() {
   const theirIncidents = (incidents.data ?? []).filter((i) => i.resident?.id === r.id);
   const roomCameras = (cameras.data ?? []).filter((c) => r.room !== null && c.roomId === r.room.id);
   const alerts = active.data ?? [];
-  const listName = user.role === 'admin' ? 'Residents' : 'My Residents';
+  const listName = isAdmin ? 'Residents' : 'My Residents';
+  const closeDialog = () => setDialog(null);
 
   const details = (
     <SectionCard title="Details">
@@ -231,7 +238,39 @@ export function ResidentProfilePage() {
           </>
         }
         title={r.fullName}
+        actions={
+          isAdmin &&
+          (r.isArchived ? (
+            <Button variant="contained" onClick={() => setDialog('restore')}>
+              Restore resident
+            </Button>
+          ) : (
+            <>
+              <Button variant="outlined" component={RouterLink} to={`/residents/${r.id}/edit`}>
+                Edit resident
+              </Button>
+              <Button variant="outlined" onClick={() => setDialog('transfer')}>
+                {r.room ? 'Transfer room' : 'Assign room'}
+              </Button>
+              {serverFeatures.residentDetails && (
+                <Button variant="outlined" onClick={() => setDialog('caregivers')}>
+                  Assign caregivers
+                </Button>
+              )}
+              <Button variant="outlined" color="error" onClick={() => setDialog('archive')}>
+                Archive
+              </Button>
+            </>
+          ))
+        }
       />
+
+      {r.isArchived && (
+        <Alert severity="info" sx={{ mb: 5 }}>
+          {r.fullName} is archived. They are not in the resident lists or on new alerts; their incident
+          history is kept.
+        </Alert>
+      )}
 
       <Card
         sx={{ mb: 5, ...(r.hasActiveAlert && { borderColor: 'eg.comp.alertBorderNew', borderWidth: 2 }) }}
@@ -348,6 +387,11 @@ export function ResidentProfilePage() {
           <ContactList resident={r} />
         </SectionCard>
       )}
+
+      {dialog === 'transfer' && <TransferRoomDialog resident={r} onClose={closeDialog} />}
+      {dialog === 'caregivers' && <CaregiversDialog resident={r} onClose={closeDialog} />}
+      {dialog === 'archive' && <ArchiveDialog resident={r} onClose={closeDialog} />}
+      {dialog === 'restore' && <RestoreDialog resident={r} onClose={closeDialog} />}
     </>
   );
 }

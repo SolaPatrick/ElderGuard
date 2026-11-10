@@ -7,6 +7,8 @@ import {
   classifyRequestSchema,
   createStaffRequestSchema,
   cameraRequestSchema,
+  residentRequestSchema,
+  archiveBodySchema,
   roomRequestSchema,
   updateStaffRequestSchema,
   loginRequestSchema,
@@ -354,7 +356,68 @@ export const handlers = [
   http.get(url('/residents'), ({ request }) => {
     const user = authenticate(request);
     if (user instanceof Response) return user;
-    return HttpResponse.json(db.listResidents(user));
+    const archived = new URL(request.url).searchParams.get('archived') === 'true';
+    // Only the Admin/Head looks through former residents (RES-07 restore).
+    if (archived && user.role !== 'admin') return error(403, 'forbidden', 'Only the Admin/Head can do this.');
+    return HttpResponse.json(db.listResidents(user, archived));
+  }),
+
+  http.post(url('/residents'), async ({ request }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const parsed = residentRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    await latency();
+    const problem = db.residentProblem(parsed.data);
+    if (problem) return error(400, 'validation_error', problem);
+    const saved = db.saveResident(parsed.data);
+    db.addActivity(admin, `${admin.fullName} added resident ${saved.fullName}`);
+    return HttpResponse.json(db.getResident(admin, saved.id), { status: 201 });
+  }),
+
+  http.patch(url('/residents/:id'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const parsed = residentRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    await latency();
+    const id = String(params.id);
+    const current = db.findResident(id);
+    if (!current) return error(404, 'not_found', 'This resident does not exist.');
+    const problem = db.residentProblem(parsed.data, current);
+    if (problem) return error(400, 'validation_error', problem);
+    const saved = db.saveResident(parsed.data, id);
+    db.addActivity(admin, `${admin.fullName} updated resident ${saved.fullName}`);
+    return HttpResponse.json(db.getResident(admin, saved.id));
+  }),
+
+  http.post(url('/residents/:id/archive'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const parsed = archiveBodySchema.safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    if (parsed.data.reason === 'other' && !parsed.data.note?.trim())
+      return error(400, 'validation_error', 'Explain the reason');
+    await latency();
+    const r = db.findResident(String(params.id));
+    if (!r) return error(404, 'not_found', 'This resident does not exist.');
+    db.setArchived(r, { reason: parsed.data.reason, note: parsed.data.note?.trim() || null });
+    db.addActivity(admin, `${admin.fullName} archived resident ${r.fullName}`);
+    return HttpResponse.json(db.getResident(admin, r.id));
+  }),
+
+  http.post(url('/residents/:id/restore'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    await latency();
+    const r = db.findResident(String(params.id));
+    if (!r) return error(404, 'not_found', 'This resident does not exist.');
+    db.setArchived(r, null);
+    db.addActivity(admin, `${admin.fullName} restored resident ${r.fullName}`);
+    return HttpResponse.json(db.getResident(admin, r.id));
   }),
 
   http.get(url('/residents/:id'), ({ request, params }) => {

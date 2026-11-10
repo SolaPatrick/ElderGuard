@@ -22,7 +22,9 @@ the ERD). The backend shows everyone everything. Needed:
 - `areas: [{ id, name, area }]` on the user from `/api/auth/me` and the login response.
 - Alerts, residents and cameras filtered to those rooms for employees. An alert outside their rooms should
   return **404**, so a shared link doesn't reveal it.
-- `caregivers: [{ id, full_name }]` on each resident (shown on the resident profile).
+- `caregivers: [{ id, full_name }]` on each resident (shown on the resident profile), and `caregiver_ids`
+  accepted by `POST/PATCH /api/residents`. Until then the resident form and the "Assign caregivers" dialog
+  are hidden.
 - `area_ids: [room ids]` accepted by `POST /api/users` and `PATCH /api/users/{id}`, and `areas` on the users
   they return. Until then, the Users & Access screens hide room assignment and say it isn't available yet.
 
@@ -50,7 +52,8 @@ admin-only, so caregivers see "A staff member". Adding `acknowledged_by_name`, `
 | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `outcome` field on resolve                                                                                                 | The app sends the outcome (e.g. "Assisted, no injury") inside the note text for now.                                                                                                                                             |
 | False alarm closes the alert                                                                                               | In the app a false alarm is closed straight away, so it sends classify and then resolve. One call would be cleaner.                                                                                                              |
-| Resident details: `sex`, `birth_date`, `mobility_aid`, and emergency contacts as a list of `{ name, relationship, phone }` | Shown on the resident profile. Today the one free-text contact is shown as is, without a Call button.                                                                                                                            |
+| Resident details: `sex`, `birth_date`, `mobility_aid`, and emergency contacts as a list of `{ name, relationship, phone }` | Shown on the resident profile and asked for on the Add/Edit resident form. Until then the form asks for an age and one free-text contact (what the backend keeps), and the profile shows that contact without a Call button.     |
+| Why a resident was archived (`reason`, `note` on `POST /api/residents/{id}/archive`)                                       | The Archive dialog in the designs asks for a reason (moved out, transferred, other). Until the backend keeps it, the app archives without asking, instead of asking and dropping the answer.                                     |
 | Unique camera names                                                                                                        | The app opens a camera by its name (`/monitoring/CAM-01`), so two cameras with the same name would clash. The app checks this before saving, but `POST/PATCH /api/cameras` should refuse a duplicate with **409** too.           |
 | `last_login_at` on users                                                                                                   | Shown in the "Last login" column of Users & Access. It shows "—" until then.                                                                                                                                                     |
 | Camera `last_seen_at` and resolution                                                                                       | Shown as "Last seen 2:15 PM" on offline cameras and as "1080p · 15 FPS" on the camera page.                                                                                                                                      |

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   Avatar,
   Box,
+  Button,
   Card,
   CardActionArea,
   CardContent,
@@ -21,10 +22,11 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
+import AddOutlined from '@mui/icons-material/AddOutlined';
 import SearchOutlined from '@mui/icons-material/SearchOutlined';
 import { Link as RouterLink } from 'react-router';
 import { FALL_RISK_LABEL, fallRiskSchema, initials, type FallRisk, type Resident } from '@elderguard/shared';
-import { useResidents } from '../../api/queries';
+import { useArchivedResidents, useResidents } from '../../api/queries';
 import { useCurrentUser } from '../../auth/authContext';
 import { PageHeader } from '../../components/PageHeader';
 import { ErrorState, LoadingBlock } from '../../components/QueryStates';
@@ -134,7 +136,10 @@ function ResidentCards({ residents }: { residents: Resident[] }) {
 export function ResidentsPage() {
   const user = useCurrentUser();
   const isAdmin = user.role === 'admin';
-  const residents = useResidents();
+  const [archived, setArchived] = useState(false);
+  const current = useResidents();
+  const former = useArchivedResidents(isAdmin && archived);
+  const residents = archived ? former : current;
   const [view, setView] = useState<ResidentView>(() => loadView(isAdmin ? 'table' : 'cards'));
   const [search, setSearch] = useState('');
   const [room, setRoom] = useState('');
@@ -143,13 +148,30 @@ export function ResidentsPage() {
   const all = residents.data ?? [];
   const shown = filterResidents(all, { search, room, risk });
   const count = `${all.length} ${all.length === 1 ? 'resident' : 'residents'}`;
+  const subtitle = !residents.data
+    ? undefined
+    : !isAdmin
+      ? `${count} assigned to you`
+      : archived
+        ? `${all.length} archived ${all.length === 1 ? 'resident' : 'residents'}`
+        : `${count} in the facility`;
 
   return (
     <>
       <PageHeader
         title={isAdmin ? 'Residents' : 'My Residents'}
-        subtitle={
-          residents.data ? (isAdmin ? `${count} in the facility` : `${count} assigned to you`) : undefined
+        subtitle={subtitle}
+        actions={
+          isAdmin && (
+            <Button
+              variant="contained"
+              startIcon={<AddOutlined />}
+              component={RouterLink}
+              to="/residents/new"
+            >
+              Add resident
+            </Button>
+          )
         }
       />
 
@@ -203,6 +225,24 @@ export function ResidentsPage() {
             </MenuItem>
           ))}
         </TextField>
+        {isAdmin && (
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={archived ? 'archived' : 'active'}
+            aria-label="Show"
+            onChange={(_, value: 'active' | 'archived' | null) => {
+              if (value !== null) setArchived(value === 'archived');
+            }}
+          >
+            <ToggleButton value="active" sx={{ px: 4 }}>
+              Active
+            </ToggleButton>
+            <ToggleButton value="archived" sx={{ px: 4 }}>
+              Archived
+            </ToggleButton>
+          </ToggleButtonGroup>
+        )}
         <Box sx={{ flex: 1 }} />
         <ToggleButtonGroup
           exclusive
@@ -232,9 +272,11 @@ export function ResidentsPage() {
         <Card sx={{ p: 8, textAlign: 'center' }}>
           <Typography color="text.secondary">
             {all.length === 0
-              ? isAdmin
-                ? 'No residents yet.'
-                : 'No residents are assigned to you yet.'
+              ? archived
+                ? 'No archived residents.'
+                : isAdmin
+                  ? 'No residents yet.'
+                  : 'No residents are assigned to you yet.'
               : 'No residents match your search.'}
           </Typography>
         </Card>

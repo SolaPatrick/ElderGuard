@@ -9,6 +9,7 @@ import {
   type Resident,
   type RoomRef,
   type RoomRequest,
+  type ResidentRequest,
   type CameraRequest,
   type CameraSettings,
   type SosRequest,
@@ -61,6 +62,13 @@ function nextIncidentCode() {
   const year = new Date().getFullYear();
   const highest = Math.max(0, ...seed.incidents.map((i) => Number(i.code.split('-').at(-1)) || 0));
   return `INC-${year}-${String(highest + 1).padStart(4, '0')}`;
+}
+
+/** Whole years between a YYYY-MM-DD birth date and `now` (local time). */
+function ageOn(birthDate: string, now: Date): number {
+  const [y, m, d] = birthDate.split('-').map(Number) as [number, number, number];
+  const hadBirthday = now.getMonth() + 1 > m || (now.getMonth() + 1 === m && now.getDate() >= d);
+  return now.getFullYear() - y - (hadBirthday ? 0 : 1);
 }
 
 /**
@@ -437,8 +445,71 @@ export const db = {
     return seed.cameras.filter((c) => db.canSeeRoom(user, c.roomId));
   },
 
-  listResidents(user: SeedUser): Resident[] {
-    return seed.residents.filter((r) => db.canSeeRoom(user, r.roomId)).map((r) => toResident(user, r));
+  /** Current residents, or (archived = true) the ones who moved out or were transferred. */
+  listResidents(user: SeedUser, archived = false): Resident[] {
+    return seed.residents
+      .filter((r) => (r.archived !== null) === archived && db.canSeeRoom(user, r.roomId))
+      .map((r) => toResident(user, r));
+  },
+
+  findResident(id: string) {
+    return seed.residents.find((r) => r.id === id);
+  },
+
+  /**
+   * Returns an error message when the request refers to something that doesn't exist.
+   * New caregivers must be active employees; one already assigned may stay after being deactivated.
+   */
+  residentProblem(req: ResidentRequest, current?: SeedResident): string | null {
+    if (req.roomId !== null && !seed.rooms.some((r) => r.id === req.roomId))
+      return 'That room does not exist.';
+    const ok = (id: string) =>
+      seed.users.some(
+        (u) =>
+          u.id === id &&
+          u.role === 'employee' &&
+          (u.status === 'active' || current?.caregiverIds.includes(id)),
+      );
+    if (!req.caregiverIds.every(ok)) return 'Only active employees can be assigned as caregivers.';
+    if (req.birthDate === null || req.sex === null) return 'Enter the sex and birth date.';
+    return null;
+  },
+
+  /** Creates (no id) or updates a resident. Call residentProblem first. */
+  saveResident(req: ResidentRequest, id?: string): SeedResident {
+    let r = id ? seed.residents.find((x) => x.id === id) : undefined;
+    if (!r) {
+      r = {
+        id: nextId('res'),
+        fullName: '',
+        age: 0,
+        fallRisk: 'moderate',
+        roomId: '',
+        caregiverIds: [],
+        sex: 'female',
+        birthDate: '',
+        mobilityAid: null,
+        careNotes: null,
+        emergencyContacts: [],
+        archived: null,
+      };
+      seed.residents.push(r);
+    }
+    r.fullName = req.fullName;
+    r.sex = req.sex!;
+    r.birthDate = req.birthDate!;
+    r.age = ageOn(req.birthDate!, new Date());
+    r.roomId = req.roomId ?? '';
+    r.fallRisk = req.fallRisk;
+    r.mobilityAid = req.mobilityAid;
+    r.careNotes = req.careNotes;
+    r.emergencyContacts = req.emergencyContacts.map((c) => ({ id: nextId('contact'), ...c }));
+    r.caregiverIds = [...new Set(req.caregiverIds)];
+    return r;
+  },
+
+  setArchived(r: SeedResident, archived: SeedResident['archived']) {
+    r.archived = archived;
   },
 
   /** Returns the resident only if this user may see them (otherwise behaves as "not found"). */
@@ -452,6 +523,7 @@ export const db = {
       mobilityAid: r.mobilityAid,
       careNotes: r.careNotes,
       emergencyContacts: r.emergencyContacts,
+      isArchived: r.archived !== null,
     };
   },
 
@@ -460,8 +532,9 @@ export const db = {
    * Picks a resident the given user can see, so the alert shows up for them.
    */
   simulateFall(user: SeedUser): IncidentDetail {
-    const mine = seed.residents.filter((r) => db.canSeeRoom(user, r.roomId));
-    const residents = mine.length > 0 ? mine : seed.residents;
+    const current = seed.residents.filter((r) => r.archived === null);
+    const mine = current.filter((r) => db.canSeeRoom(user, r.roomId));
+    const residents = mine.length > 0 ? mine : current;
     const resident = residents[Math.floor(Math.random() * residents.length)]!;
     const room = seed.rooms.find((r) => r.id === resident.roomId)!;
     const camera = seed.cameras.find((c) => c.roomName === room.name) ?? null;
@@ -519,7 +592,8 @@ export const db = {
     const room = seed.rooms.find((r) => r.id === req.roomId);
     if (!room || !db.canSeeRoom(user, room.id)) return undefined;
     const resident = req.residentId ? seed.residents.find((r) => r.id === req.residentId) : undefined;
-    if (req.residentId && (!resident || !db.canSeeRoom(user, resident.roomId))) return undefined;
+    if (req.residentId && (!resident || resident.archived !== null || !db.canSeeRoom(user, resident.roomId)))
+      return undefined;
     const now = new Date().toISOString();
     const by = { id: user.id, fullName: user.fullName };
     const incident: IncidentDetail = {
@@ -607,7 +681,7 @@ export const db = {
         paused: count('paused'),
         error: count('error'),
       },
-      residentsMonitored: seed.residents.length,
+      residentsMonitored: seed.residents.filter((r) => r.archived === null).length,
       falseAlarmRate7d:
         lastWeek.length === 0
           ? null

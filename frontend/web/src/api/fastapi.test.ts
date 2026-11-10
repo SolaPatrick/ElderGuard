@@ -445,3 +445,99 @@ describe('FastAPI adapter: camera setup', () => {
     expect(query).toBe('rtsp://a b/1?x=1');
   });
 });
+
+describe('FastAPI adapter: resident editing', () => {
+  const basic = {
+    fullName: 'Benjamin Torres',
+    sex: null,
+    birthDate: null,
+    age: 80,
+    roomId: '5',
+    fallRisk: 'low' as const,
+    mobilityAid: null,
+    careNotes: 'Walks with a cane.',
+    emergencyContacts: [{ fullName: 'Carlo Torres (son) 0917 555 0134', relationship: null, phone: '' }],
+    caregiverIds: [],
+  };
+
+  it('creates and updates a resident with the backend names', async () => {
+    const sent: unknown[] = [];
+    const saved = { ...rawResident, id: 9, full_name: 'Benjamin Torres', age: 80, risk_level: 'low' };
+    backend([
+      http.get('/api/alerts', () => HttpResponse.json([])),
+      http.post('/api/residents', async ({ request }) => {
+        sent.push(await request.json());
+        return HttpResponse.json(saved, { status: 201 });
+      }),
+      http.patch('/api/residents/9', async ({ request }) => {
+        sent.push(await request.json());
+        return HttpResponse.json({ ...saved, room_id: null });
+      }),
+    ]);
+    const created = await fastApi.createResident(basic);
+    expect(sent[0]).toEqual({
+      full_name: 'Benjamin Torres',
+      age: 80,
+      risk_level: 'low',
+      room_id: 5,
+      emergency_contact: 'Carlo Torres (son) 0917 555 0134',
+      notes: 'Walks with a cane.',
+    });
+    expect(created).toMatchObject({ id: '9', fullName: 'Benjamin Torres', isArchived: false });
+    expect(created.room).toEqual({ id: '5', name: 'Room 101', wing: 'East Wing' });
+
+    await fastApi.updateResident('9', { ...basic, roomId: null, emergencyContacts: [], careNotes: null });
+    expect(sent[1]).toMatchObject({ room_id: null, emergency_contact: '', notes: '' });
+  });
+
+  it('refuses details the backend does not keep instead of dropping them', async () => {
+    await expect(fastApi.createResident({ ...basic, sex: 'male' })).rejects.toMatchObject({ status: 501 });
+    await expect(fastApi.createResident({ ...basic, caregiverIds: ['7'] })).rejects.toMatchObject({
+      status: 501,
+    });
+    await expect(
+      fastApi.createResident({
+        ...basic,
+        emergencyContacts: [{ fullName: 'Carlo Torres', relationship: 'Son', phone: '09175550134' }],
+      }),
+    ).rejects.toMatchObject({ status: 501 });
+    await expect(fastApi.archiveResident('4', { reason: 'moved_out', note: null })).rejects.toMatchObject({
+      status: 501,
+    });
+  });
+
+  it('archives and restores with no body, and lists archived residents', async () => {
+    const calls: string[] = [];
+    backend([
+      http.get('/api/alerts', () => HttpResponse.json([])),
+      http.post('/api/residents/4/archive', async ({ request }) => {
+        calls.push(`archive:${await request.text()}`);
+        return HttpResponse.json({ ...rawResident, is_archived: true });
+      }),
+      http.post('/api/residents/4/restore', () => {
+        calls.push('restore');
+        return HttpResponse.json(rawResident);
+      }),
+      http.get('/api/residents', ({ request }) => {
+        const archived = new URL(request.url).searchParams.get('archived') === 'true';
+        return HttpResponse.json(archived ? [{ ...rawResident, id: 8, full_name: 'Former' }] : [rawResident]);
+      }),
+    ]);
+    expect((await fastApi.archiveResident('4', null)).isArchived).toBe(true);
+    expect((await fastApi.restoreResident('4')).isArchived).toBe(false);
+    expect(calls).toEqual(['archive:', 'restore']);
+    expect((await fastApi.residents(true)).map((r) => r.fullName)).toEqual(['Former']);
+  });
+
+  it('still names an archived resident on their past alerts', async () => {
+    backend([
+      http.get('/api/alerts/12', () => HttpResponse.json(rawAlert({ residents: ['Former'] }))),
+      http.get('/api/residents', ({ request }) => {
+        const archived = new URL(request.url).searchParams.get('archived') === 'true';
+        return HttpResponse.json(archived ? [{ ...rawResident, id: 8, full_name: 'Former' }] : [rawResident]);
+      }),
+    ]);
+    const incident = await fastApi.incident('INC-2026-0012');
+    expect(incident.resident).toMatchObject({ id: '8', fullName: 'Former' });
+  });
+});

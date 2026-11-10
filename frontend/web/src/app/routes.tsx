@@ -11,6 +11,7 @@ import { MonitoringPage } from '../features/monitoring/MonitoringPage';
 import { CameraPage } from '../features/monitoring/CameraPage';
 import { ResidentsPage } from '../features/residents/ResidentsPage';
 import { ResidentProfilePage } from '../features/residents/ResidentProfilePage';
+import { AddResidentPage, EditResidentPage } from '../features/residents/ResidentFormPages';
 import { UsersPage } from '../features/users/UsersPage';
 import { CreateUserPage } from '../features/users/CreateUserPage';
 import { UserDetailPage } from '../features/users/UserDetailPage';
@@ -56,6 +57,8 @@ export const routes: RouteObject[] = [
               {
                 element: <RequireAuth roles={['admin']} />,
                 children: [
+                  { path: 'residents/new', element: <AddResidentPage /> },
+                  { path: 'residents/:id/edit', element: <EditResidentPage /> },
                   { path: 'rooms', element: <RoomsPage /> },
                   { path: 'rooms/:id', element: <RoomDetailPage /> },
                   { path: 'cameras', element: <CamerasPage /> },
