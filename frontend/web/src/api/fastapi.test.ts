@@ -58,7 +58,9 @@ const rawRoom = { id: 5, name: 'Room 101', area: 'East Wing' };
 function backend(extra: Parameters<typeof server.use> = []) {
   server.use(
     ...extra,
-    http.get('/api/users', () => HttpResponse.json({ detail: 'Only an admin can do this.' }, { status: 403 })),
+    http.get('/api/users', () =>
+      HttpResponse.json({ detail: 'Only an admin can do this.' }, { status: 403 }),
+    ),
     http.get('/api/residents', () => HttpResponse.json([rawResident])),
     http.get('/api/rooms', () => HttpResponse.json([rawRoom])),
   );
@@ -94,7 +96,13 @@ describe('FastAPI adapter: requests', () => {
     expect(type).toBe('application/x-www-form-urlencoded');
     expect(new URLSearchParams(sent).get('password')).toBe('p@ss word');
     expect(res.token).toBe('jwt-1');
-    expect(res.user).toMatchObject({ id: '7', fullName: 'Joel Ramos', role: 'employee', title: 'Caregiver', email: '' });
+    expect(res.user).toMatchObject({
+      id: '7',
+      fullName: 'Joel Ramos',
+      role: 'employee',
+      title: 'Caregiver',
+      email: '',
+    });
   });
 
   it('shows the backend error message from "detail"', async () => {
@@ -116,7 +124,13 @@ describe('FastAPI adapter: requests', () => {
         query = new URL(request.url).search;
         return HttpResponse.json([
           rawAlert(),
-          rawAlert({ id: 13, status: 'classified', classification: 'false_alarm', classified_at: '2026-11-09T03:45:00', false_alarm_reason: 'sitting_down' }),
+          rawAlert({
+            id: 13,
+            status: 'classified',
+            classification: 'false_alarm',
+            classified_at: '2026-11-09T03:45:00',
+            false_alarm_reason: 'sitting_down',
+          }),
         ]);
       }),
     ]);
@@ -134,7 +148,10 @@ describe('FastAPI adapter: requests', () => {
     });
 
     const all = await fastApi.incidents();
-    expect(all[1]).toMatchObject({ status: 'false_alarm', falseAlarmReason: 'Resident sat or lay down on purpose' });
+    expect(all[1]).toMatchObject({
+      status: 'false_alarm',
+      falseAlarmReason: 'Resident sat or lay down on purpose',
+    });
   });
 
   it('classifies a false alarm and then closes it on the backend', async () => {
@@ -143,7 +160,12 @@ describe('FastAPI adapter: requests', () => {
       http.post('/api/alerts/:id/:action', async ({ request, params }) => {
         calls.push({ path: `${String(params.id)}/${String(params.action)}`, body: await request.json() });
         return HttpResponse.json(
-          rawAlert({ status: params.action === 'resolve' ? 'resolved' : 'classified', classification: 'false_alarm', classified_at: '2026-11-09T03:45:00', false_alarm_reason: 'other' }),
+          rawAlert({
+            status: params.action === 'resolve' ? 'resolved' : 'classified',
+            classification: 'false_alarm',
+            classified_at: '2026-11-09T03:45:00',
+            false_alarm_reason: 'other',
+          }),
         );
       }),
     ]);
@@ -152,7 +174,14 @@ describe('FastAPI adapter: requests', () => {
       falseAlarmReason: 'Staff or visitor in view',
     });
     expect(calls).toEqual([
-      { path: '12/classify', body: { classification: 'false_alarm', false_alarm_reason: 'other', note: 'Staff or visitor in view' } },
+      {
+        path: '12/classify',
+        body: {
+          classification: 'false_alarm',
+          false_alarm_reason: 'other',
+          note: 'Staff or visitor in view',
+        },
+      },
       { path: '12/resolve', body: { text: '' } },
     ]);
     expect(result.status).toBe('false_alarm');
@@ -167,7 +196,10 @@ describe('FastAPI adapter: requests', () => {
         return HttpResponse.json(rawAlert({ status: 'resolved', classification: 'confirmed' }));
       }),
     ]);
-    await fastApi.resolve('INC-2026-0012', { outcome: 'Assisted, no injury', responseSummary: 'Helped back to bed.' });
+    await fastApi.resolve('INC-2026-0012', {
+      outcome: 'Assisted, no injury',
+      responseSummary: 'Helped back to bed.',
+    });
     expect(body).toEqual({ text: 'Outcome: Assisted, no injury. Helped back to bed.' });
   });
 
@@ -175,8 +207,26 @@ describe('FastAPI adapter: requests', () => {
     backend([
       http.get('/api/cameras', () =>
         HttpResponse.json([
-          { id: 3, name: 'CAM-01', source: '', room_id: 5, place: 'room', privacy_blur: 'off', detection_enabled: true, created_at: '2026-11-01T08:00:00' },
-          { id: 4, name: 'CAM-02', source: '', room_id: null, place: 'room', privacy_blur: 'off', detection_enabled: true, created_at: '2026-11-01T08:00:00' },
+          {
+            id: 3,
+            name: 'CAM-01',
+            source: '',
+            room_id: 5,
+            place: 'room',
+            privacy_blur: 'off',
+            detection_enabled: true,
+            created_at: '2026-11-01T08:00:00',
+          },
+          {
+            id: 4,
+            name: 'CAM-02',
+            source: '',
+            room_id: null,
+            place: 'room',
+            privacy_blur: 'off',
+            detection_enabled: true,
+            created_at: '2026-11-01T08:00:00',
+          },
         ]),
       ),
       http.get('/api/cameras/status', () =>

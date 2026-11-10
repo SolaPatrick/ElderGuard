@@ -44,16 +44,16 @@ admin-only, so caregivers see "A staff member". Adding `acknowledged_by_name`, `
 
 ## 6. Smaller things
 
-| What | Why |
-| --- | --- |
-| `outcome` field on resolve | The app sends the outcome (e.g. "Assisted, no injury") inside the note text for now. |
-| False alarm closes the alert | In the app a false alarm is closed straight away, so it sends classify and then resolve. One call would be cleaner. |
-| Resident details: `sex`, `birth_date`, `mobility_aid`, and emergency contacts as a list of `{ name, relationship, phone }` | Shown on the resident profile. Today the one free-text contact is shown as is, without a Call button. |
-| Camera `last_seen_at` and resolution | Shown as "Last seen 2:15 PM" on offline cameras and as "1080p · 15 FPS" on the camera page. |
-| Activity log (`GET /api/activity?limit=3`) | The admin dashboard's "Recent staff activity" card is empty without it. |
-| Facility name | The dashboard shows "ElderGuard" until there's a setting for it. |
-| `backend/requirements.txt` | So everyone installs the same versions. What I needed: `fastapi uvicorn sqlmodel python-dotenv pyjwt "pwdlib[argon2,bcrypt]" "psycopg[binary]" opencv-python-headless numpy python-multipart`, plus `ultralytics` for the model. |
-| `MODEL_PATH` default | It points to `C:\Elderguard\...`, so it only works on one computer. A path relative to the repo (`../elderguard/runs/fall/weights/best.pt`) works everywhere. |
+| What                                                                                                                       | Why                                                                                                                                                                                                                              |
+| -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `outcome` field on resolve                                                                                                 | The app sends the outcome (e.g. "Assisted, no injury") inside the note text for now.                                                                                                                                             |
+| False alarm closes the alert                                                                                               | In the app a false alarm is closed straight away, so it sends classify and then resolve. One call would be cleaner.                                                                                                              |
+| Resident details: `sex`, `birth_date`, `mobility_aid`, and emergency contacts as a list of `{ name, relationship, phone }` | Shown on the resident profile. Today the one free-text contact is shown as is, without a Call button.                                                                                                                            |
+| Camera `last_seen_at` and resolution                                                                                       | Shown as "Last seen 2:15 PM" on offline cameras and as "1080p · 15 FPS" on the camera page.                                                                                                                                      |
+| Activity log (`GET /api/activity?limit=3`)                                                                                 | The admin dashboard's "Recent staff activity" card is empty without it.                                                                                                                                                          |
+| Facility name                                                                                                              | The dashboard shows "ElderGuard" until there's a setting for it.                                                                                                                                                                 |
+| `backend/requirements.txt`                                                                                                 | So everyone installs the same versions. What I needed: `fastapi uvicorn sqlmodel python-dotenv pyjwt "pwdlib[argon2,bcrypt]" "psycopg[binary]" opencv-python-headless numpy python-multipart`, plus `ultralytics` for the model. |
+| `MODEL_PATH` default                                                                                                       | It points to `C:\Elderguard\...`, so it only works on one computer. A path relative to the repo (`../elderguard/runs/fall/weights/best.pt`) works everywhere.                                                                    |
 
 ## How to run the two together
 
