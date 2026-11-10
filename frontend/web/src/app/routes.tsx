@@ -15,6 +15,8 @@ import { UsersPage } from '../features/users/UsersPage';
 import { CreateUserPage } from '../features/users/CreateUserPage';
 import { UserDetailPage } from '../features/users/UserDetailPage';
 import { EditUserPage } from '../features/users/EditUserPage';
+import { RoomsPage } from '../features/rooms/RoomsPage';
+import { RoomDetailPage } from '../features/rooms/RoomDetailPage';
 import { ComingSoonPage } from '../features/system/ComingSoonPage';
 import { NotFoundPage } from '../features/system/NotFoundPage';
 import { RouteErrorPage } from '../features/system/RouteErrorPage';
@@ -51,7 +53,8 @@ export const routes: RouteObject[] = [
               {
                 element: <RequireAuth roles={['admin']} />,
                 children: [
-                  soon('rooms', 'Rooms & areas'),
+                  { path: 'rooms', element: <RoomsPage /> },
+                  { path: 'rooms/:id', element: <RoomDetailPage /> },
                   soon('cameras', 'Cameras & devices'),
                   { path: 'users', element: <UsersPage /> },
                   { path: 'users/new', element: <CreateUserPage /> },

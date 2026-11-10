@@ -8,6 +8,7 @@ import {
   type Camera,
   type Resident,
   type RoomRef,
+  type RoomRequest,
   type SosRequest,
   type ResidentDetail,
   type User,
@@ -138,6 +139,62 @@ export const db = {
 
   recordLogin(user: SeedUser) {
     user.lastLoginAt = new Date().toISOString();
+  },
+
+  // ---------- rooms and areas (ROOM) ----------
+
+  /** Returns an error message when this wing already has a room with that name. */
+  roomConflict(req: RoomRequest, exceptId?: string): string | null {
+    const same = (a: string | null, b: string | null) => (a ?? '').toLowerCase() === (b ?? '').toLowerCase();
+    const taken = seed.rooms.some(
+      (r) => r.id !== exceptId && same(r.name, req.name) && same(r.wing, req.wing),
+    );
+    return taken ? `${req.wing ?? 'This facility'} already has a room called ${req.name}.` : null;
+  },
+
+  findRoom(id: string) {
+    return seed.rooms.find((r) => r.id === id);
+  },
+
+  createRoom(req: RoomRequest): RoomRef {
+    const room = { id: nextId('r'), name: req.name, wing: req.wing };
+    seed.rooms.push(room);
+    return { ...room };
+  },
+
+  /** Cameras show their room's name, so they follow a rename. Past incidents keep the old name. */
+  updateRoom(id: string, req: RoomRequest): RoomRef | undefined {
+    const room = seed.rooms.find((r) => r.id === id);
+    if (!room) return undefined;
+    room.name = req.name;
+    room.wing = req.wing;
+    for (const c of seed.cameras.filter((x) => x.roomId === id)) {
+      c.roomName = req.name;
+      c.roomWing = req.wing;
+    }
+    return { ...room };
+  },
+
+  /**
+   * Why a room can't be deleted, or null when it can. Like the real backend: residents and
+   * cameras must be moved out first, and a room with incident history is kept (rename it instead).
+   */
+  roomDeleteBlocker(id: string): string | null {
+    const residents = seed.residents.filter((r) => r.roomId === id).length;
+    const cameras = seed.cameras.filter((c) => c.roomId === id).length;
+    if (residents || cameras) {
+      return `Move ${residents} resident(s) and ${cameras} camera(s) out of this room first.`;
+    }
+    const incidents = seed.incidents.filter((i) => i.room.id === id).length;
+    if (incidents) {
+      return `This room has ${incidents} incident(s) in its history, so it can't be deleted. Rename it instead.`;
+    }
+    return null;
+  },
+
+  deleteRoom(id: string) {
+    seed.rooms = seed.rooms.filter((r) => r.id !== id);
+    for (const u of seed.users) u.areaIds = u.areaIds.filter((a) => a !== id);
   },
 
   // ---------- staff accounts (USR) ----------

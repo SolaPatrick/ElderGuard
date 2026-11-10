@@ -3,6 +3,7 @@ import type {
   AddNoteRequest,
   ClassifyRequest,
   CreateStaffRequest,
+  RoomRequest,
   UpdateStaffRequest,
   IncidentDetail,
   ResolveRequest,
@@ -195,5 +196,37 @@ export function useResetStaffPassword(id: string) {
       qc.setQueryData(queryKeys.staffMember(id), user);
       refreshStaff(qc);
     },
+  });
+}
+
+// ---------- Rooms & Areas (Admin/Head) ----------
+
+/** Room names appear on residents, cameras, incidents and staff, so refresh all of them. */
+function refreshRooms(qc: QueryClient) {
+  for (const key of [
+    queryKeys.rooms,
+    queryKeys.residents,
+    queryKeys.cameras,
+    ['incidents'],
+    queryKeys.staff,
+  ]) {
+    void qc.invalidateQueries({ queryKey: key });
+  }
+  void qc.invalidateQueries({ queryKey: ['activity'] });
+}
+
+export function useSaveRoom(id: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: RoomRequest) => (id === null ? api.createRoom(body) : api.updateRoom(id, body)),
+    onSuccess: () => refreshRooms(qc),
+  });
+}
+
+export function useDeleteRoom(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.deleteRoom(id),
+    onSuccess: () => refreshRooms(qc),
   });
 }

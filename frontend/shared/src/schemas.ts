@@ -265,6 +265,26 @@ export const activityEntrySchema = z.object({
 });
 export type ActivityEntry = z.infer<typeof activityEntrySchema>;
 
+// ---------- rooms and areas (ROOM, Admin/Head only) ----------
+
+/** ROOM-02 Add / edit room. Two wings may each have a "Room 101", but one wing can't have it twice. */
+export const roomFormSchema = z.object({
+  name: z.string().trim().min(1, 'Enter a name').max(80, 'Use at most 80 characters'),
+  wing: z
+    .string()
+    .trim()
+    .max(80, 'Use at most 80 characters')
+    .transform((v) => (v === '' ? null : v)),
+});
+export type RoomForm = z.input<typeof roomFormSchema>;
+
+/** What POST /rooms and PATCH /rooms/{id} receive. */
+export const roomRequestSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  wing: z.string().trim().min(1).max(80).nullable(),
+});
+export type RoomRequest = z.infer<typeof roomRequestSchema>;
+
 // ---------- staff accounts (USR, Admin/Head only) ----------
 
 /** A staff account as the Users & Access screens show it. */

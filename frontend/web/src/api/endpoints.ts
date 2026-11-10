@@ -19,6 +19,7 @@ import {
   type ChangePasswordRequest,
   type ClassifyRequest,
   type CreateStaffRequest,
+  type RoomRequest,
   type UpdateStaffRequest,
   type LoginRequest,
   type ResolveRequest,
@@ -61,6 +62,14 @@ const contractApi = {
     apiRequest(`/incidents/${enc(code)}/resolve`, incidentDetailSchema, { method: 'POST', body }),
   addNote: (code: string, body: AddNoteRequest) =>
     apiRequest(`/incidents/${enc(code)}/notes`, incidentDetailSchema, { method: 'POST', body }),
+
+  // Rooms & Areas (Admin/Head only)
+  createRoom: (body: RoomRequest) => apiRequest('/rooms', roomRefSchema, { method: 'POST', body }),
+  updateRoom: (id: string, body: RoomRequest) =>
+    apiRequest(`/rooms/${enc(id)}`, roomRefSchema, { method: 'PATCH', body }),
+  deleteRoom: async (id: string) => {
+    await apiRequest(`/rooms/${enc(id)}`, z.null(), { method: 'DELETE' });
+  },
 
   // Users & Access (Admin/Head only)
   staff: () => apiRequest('/users', z.array(staffMemberSchema)),

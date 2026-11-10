@@ -142,6 +142,20 @@ For SOS: `type: "sos"`, `camera: null`, `confidence: null`, and `sentBy: { id, f
 `incidentDetail` = `incident` + `events: [{ id, action, occurredAt, user, detail }]` + `notes: [{ id, body, author, createdAt }]`.
 `action` is one of `detected | acknowledged | classified | resolved | escalated`.
 
+## Rooms & Areas
+
+| Method | Path          | Body             | Response                                         |
+| ------ | ------------- | ---------------- | ------------------------------------------------ |
+| GET    | `/rooms`      | none             | `[{ id, name, wing }]` (caregivers: only theirs) |
+| POST   | `/rooms`      | `{ name, wing }` | `{ id, name, wing }`, 201 (Admin/Head)           |
+| PATCH  | `/rooms/{id}` | `{ name, wing }` | `{ id, name, wing }` (Admin/Head)                |
+| DELETE | `/rooms/{id}` | none             | 204, no body (Admin/Head)                        |
+
+- `wing` is optional (`null`), e.g. for a dining hall. One wing can't have two rooms with the same name (any case): **409**.
+- Renaming a room renames it on its cameras. Past incidents keep the name they had.
+- DELETE returns **409** with a message while residents or cameras are in the room, or when the room has incident
+  history (rename it instead). Deleting also removes it from staff area assignments.
+
 ## Users & Access (Admin/Head only)
 
 Every route here returns **403** for employees.

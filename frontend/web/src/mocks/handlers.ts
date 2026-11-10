@@ -6,6 +6,7 @@ import {
   addNoteRequestSchema,
   classifyRequestSchema,
   createStaffRequestSchema,
+  roomRequestSchema,
   updateStaffRequestSchema,
   loginRequestSchema,
   resolveRequestSchema,
@@ -32,11 +33,11 @@ function authenticate(request: Request): SeedUser | Response {
   return user;
 }
 
-/** Users & Access is for the Admin/Head only. */
+/** Users, rooms and cameras are managed by the Admin/Head only. */
 function authenticateAdmin(request: Request): SeedUser | Response {
   const user = authenticate(request);
   if (user instanceof Response || user.role === 'admin') return user;
-  return error(403, 'forbidden', 'Only the Admin/Head can manage staff accounts.');
+  return error(403, 'forbidden', 'Only the Admin/Head can do this.');
 }
 
 /** The account in the URL, or a 404 response. */
@@ -235,6 +236,49 @@ export const handlers = [
     const user = authenticate(request);
     if (user instanceof Response) return user;
     return HttpResponse.json(db.listRooms(user));
+  }),
+
+  http.post(url('/rooms'), async ({ request }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const parsed = roomRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    await latency();
+    const conflict = db.roomConflict(parsed.data);
+    if (conflict) return error(409, 'conflict', conflict);
+    const room = db.createRoom(parsed.data);
+    db.addActivity(admin, `${admin.fullName} added ${room.name}`);
+    return HttpResponse.json(room, { status: 201 });
+  }),
+
+  http.patch(url('/rooms/:id'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const parsed = roomRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    await latency();
+    const id = String(params.id);
+    if (!db.findRoom(id)) return error(404, 'not_found', 'This room does not exist.');
+    const conflict = db.roomConflict(parsed.data, id);
+    if (conflict) return error(409, 'conflict', conflict);
+    const room = db.updateRoom(id, parsed.data)!;
+    db.addActivity(admin, `${admin.fullName} updated ${room.name}`);
+    return HttpResponse.json(room);
+  }),
+
+  http.delete(url('/rooms/:id'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    await latency();
+    const room = db.findRoom(String(params.id));
+    if (!room) return error(404, 'not_found', 'This room does not exist.');
+    const blocker = db.roomDeleteBlocker(room.id);
+    if (blocker) return error(409, 'room_in_use', blocker);
+    db.deleteRoom(room.id);
+    db.addActivity(admin, `${admin.fullName} deleted ${room.name}`);
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.get(url('/residents'), ({ request }) => {
