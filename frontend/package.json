@@ -4,7 +4,8 @@
   "type": "module",
   "workspaces": [
     "shared",
-    "web"
+    "web",
+    "mobile"
   ],
   "engines": {
     "node": ">=22.12.0"
@@ -26,5 +27,9 @@
     "prettier": "^3.9.10",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
+  },
+  "overrides": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   }
 }
