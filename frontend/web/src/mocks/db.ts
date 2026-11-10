@@ -9,6 +9,8 @@ import {
   type Resident,
   type RoomRef,
   type RoomRequest,
+  type CameraRequest,
+  type CameraSettings,
   type SosRequest,
   type ResidentDetail,
   type User,
@@ -33,12 +35,26 @@ import {
 let seed: Seed = createSeed();
 /** Passwords people changed during this session (everyone else uses the demo password). */
 let passwords = new Map<string, string>();
+/** Setup details of each camera (stream link, placement, blur), which the camera list doesn't include. */
+let cameraSetup = new Map<string, Omit<CameraSettings, 'id' | 'code' | 'roomId' | 'detectionEnabled'>>();
 let ids = 1000;
 const nextId = (prefix: string) => `${prefix}-${++ids}`;
 
 export function resetDb(now: Date = new Date()) {
   seed = createSeed(now);
   passwords = new Map();
+  cameraSetup = new Map();
+}
+
+function setupOf(cameraId: string) {
+  let setup = cameraSetup.get(cameraId);
+  if (!setup) {
+    // Sample cameras sit on the facility network as 192.168.10.21, .22, ...
+    const n = Number(cameraId.replace(/\D/g, '')) || 0;
+    setup = { source: `rtsp://192.168.10.${20 + n}:554/stream1`, place: 'room', privacyBlur: 'off' };
+    cameraSetup.set(cameraId, setup);
+  }
+  return setup;
 }
 
 function nextIncidentCode() {
@@ -195,6 +211,92 @@ export const db = {
   deleteRoom(id: string) {
     seed.rooms = seed.rooms.filter((r) => r.id !== id);
     for (const u of seed.users) u.areaIds = u.areaIds.filter((a) => a !== id);
+  },
+
+  // ---------- camera setup (CAM) ----------
+
+  findCamera(id: string): Camera | undefined {
+    return seed.cameras.find((c) => c.id === id);
+  },
+
+  cameraSettings(c: Camera): CameraSettings {
+    return {
+      id: c.id,
+      code: c.code,
+      roomId: c.roomId,
+      detectionEnabled: c.detectionEnabled,
+      ...setupOf(c.id),
+    };
+  },
+
+  /** Returns an error message when the request can't be saved. Codes are used in links, so they must be unique. */
+  cameraProblem(req: CameraRequest, exceptId?: string): string | null {
+    if (seed.cameras.some((c) => c.id !== exceptId && c.code.toLowerCase() === req.code.toLowerCase()))
+      return `There is already a camera called ${req.code}.`;
+    if (req.roomId !== null && !seed.rooms.some((r) => r.id === req.roomId))
+      return 'That room does not exist.';
+    return null;
+  },
+
+  saveCamera(req: CameraRequest, id?: string): CameraSettings {
+    const room = req.roomId ? seed.rooms.find((r) => r.id === req.roomId) : undefined;
+    let camera = id ? seed.cameras.find((c) => c.id === id) : undefined;
+    if (!camera) {
+      // A new camera stays "connecting" in the fake API: there is no real stream behind it.
+      camera = {
+        id: nextId('cam'),
+        code: req.code,
+        roomId: null,
+        roomName: null,
+        roomWing: null,
+        resolutionFps: null,
+        liveUrl: null,
+        liveFormat: null,
+        status: 'connecting',
+        detectionEnabled: true,
+        lastSeenAt: null,
+      };
+      seed.cameras.push(camera);
+    }
+    const wasPaused = !camera.detectionEnabled;
+    camera.code = req.code;
+    camera.roomId = room?.id ?? null;
+    camera.roomName = room?.name ?? null;
+    camera.roomWing = room?.wing ?? null;
+    camera.detectionEnabled = req.detectionEnabled;
+    if (!req.detectionEnabled) camera.status = 'paused';
+    else if (wasPaused && camera.status === 'paused') camera.status = 'online';
+    cameraSetup.set(camera.id, {
+      source: req.source,
+      place: req.place,
+      privacyBlur: req.place === 'bathroom' ? 'whole' : req.privacyBlur,
+    });
+    return db.cameraSettings(camera);
+  },
+
+  /** Like the real backend: a camera with alerts in the incident history is kept (turn detection off instead). */
+  cameraDeleteBlocker(id: string): string | null {
+    const alerts = seed.incidents.filter((i) => i.camera?.id === id).length;
+    return alerts
+      ? `This camera has ${alerts} alert(s) in the incident history. Turn its detection off instead of deleting it.`
+      : null;
+  },
+
+  deleteCamera(id: string) {
+    seed.cameras = seed.cameras.filter((c) => c.id !== id);
+    cameraSetup.delete(id);
+  },
+
+  /**
+   * "Test connection" in the fake API: a stream link or device number works, except the
+   * link of a camera that is offline right now (so the failure message can be tried out).
+   */
+  testCameraSource(source: string): { width: number; height: number } | null {
+    const looksValid = /^(rtsp|https?):\/\/\S+$/i.test(source) || /^\d+$/.test(source);
+    const offline = seed.cameras.some(
+      (c) => (c.status === 'offline' || c.status === 'error') && setupOf(c.id).source === source,
+    );
+    return looksValid && !offline ? { width: 1920, height: 1080 } : null;
   },
 
   // ---------- staff accounts (USR) ----------

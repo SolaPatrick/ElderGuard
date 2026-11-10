@@ -6,6 +6,7 @@ import {
   addNoteRequestSchema,
   classifyRequestSchema,
   createStaffRequestSchema,
+  cameraRequestSchema,
   roomRequestSchema,
   updateStaffRequestSchema,
   loginRequestSchema,
@@ -117,6 +118,75 @@ export const handlers = [
     const user = authenticate(request);
     if (user instanceof Response) return user;
     return HttpResponse.json(db.listCameras(user));
+  }),
+
+  http.post(url('/cameras/test'), async ({ request }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const body = (await readJson(request)) as { source?: unknown } | null;
+    const source = typeof body?.source === 'string' ? body.source.trim() : '';
+    if (!source) return error(400, 'validation_error', 'Enter the stream link or device number.');
+    await latency();
+    const result = db.testCameraSource(source);
+    if (!result) {
+      return error(
+        400,
+        'camera_unreachable',
+        "Can't read from this camera. Check the link, cable or file path. A camera that is already streaming may be busy.",
+      );
+    }
+    return HttpResponse.json(result);
+  }),
+
+  http.get(url('/cameras/:id/settings'), ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const camera = db.findCamera(String(params.id));
+    if (!camera) return error(404, 'not_found', 'This camera does not exist.');
+    return HttpResponse.json(db.cameraSettings(camera));
+  }),
+
+  http.post(url('/cameras'), async ({ request }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const parsed = cameraRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    await latency();
+    const problem = db.cameraProblem(parsed.data);
+    if (problem) return error(409, 'conflict', problem);
+    const saved = db.saveCamera(parsed.data);
+    db.addActivity(admin, `${admin.fullName} registered ${saved.code}`);
+    return HttpResponse.json(saved, { status: 201 });
+  }),
+
+  http.patch(url('/cameras/:id'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const parsed = cameraRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    await latency();
+    const id = String(params.id);
+    if (!db.findCamera(id)) return error(404, 'not_found', 'This camera does not exist.');
+    const problem = db.cameraProblem(parsed.data, id);
+    if (problem) return error(409, 'conflict', problem);
+    const saved = db.saveCamera(parsed.data, id);
+    db.addActivity(admin, `${admin.fullName} changed the settings of ${saved.code}`);
+    return HttpResponse.json(saved);
+  }),
+
+  http.delete(url('/cameras/:id'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    await latency();
+    const camera = db.findCamera(String(params.id));
+    if (!camera) return error(404, 'not_found', 'This camera does not exist.');
+    const blocker = db.cameraDeleteBlocker(camera.id);
+    if (blocker) return error(409, 'camera_in_use', blocker);
+    db.deleteCamera(camera.id);
+    db.addActivity(admin, `${admin.fullName} removed ${camera.code}`);
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.get(url('/incidents'), async ({ request }) => {

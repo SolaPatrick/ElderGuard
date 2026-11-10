@@ -142,6 +142,25 @@ For SOS: `type: "sos"`, `camera: null`, `confidence: null`, and `sentBy: { id, f
 `incidentDetail` = `incident` + `events: [{ id, action, occurredAt, user, detail }]` + `notes: [{ id, body, author, createdAt }]`.
 `action` is one of `detected | acknowledged | classified | resolved | escalated`.
 
+## Cameras & Devices (setup, Admin/Head only)
+
+| Method | Path                     | Body                                                             | Response                    |
+| ------ | ------------------------ | ---------------------------------------------------------------- | --------------------------- |
+| GET    | `/cameras/{id}/settings` | none                                                             | `cameraSettings`            |
+| POST   | `/cameras`               | `{ code, source, roomId, place, privacyBlur, detectionEnabled }` | `cameraSettings`, 201       |
+| PATCH  | `/cameras/{id}`          | same as POST                                                     | `cameraSettings`            |
+| DELETE | `/cameras/{id}`          | none                                                             | 204, no body                |
+| POST   | `/cameras/test`          | `{ source }`                                                     | `{ width, height }`, or 400 |
+
+`cameraSettings` = `{ id, code, source, roomId, place: "room" | "bathroom", privacyBlur: "off" | "person" | "whole", detectionEnabled }`
+
+- `source` is an `rtsp://` or `http(s)://` link, or a device number such as `"0"`. It can contain a password, so only
+  the Admin/Head ever receives it.
+- A bathroom camera always uses `privacyBlur: "whole"`, whatever is sent.
+- `code` must be unique (any case): it is used in links such as `/monitoring/CAM-01`. **409** otherwise.
+- DELETE returns **409** when the camera has alerts in the incident history (turn detection off instead).
+- `/cameras/test` reads one picture from the source and returns its size, or **400** with a message.
+
 ## Rooms & Areas
 
 | Method | Path          | Body             | Response                                         |

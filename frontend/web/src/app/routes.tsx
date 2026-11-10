@@ -17,6 +17,9 @@ import { UserDetailPage } from '../features/users/UserDetailPage';
 import { EditUserPage } from '../features/users/EditUserPage';
 import { RoomsPage } from '../features/rooms/RoomsPage';
 import { RoomDetailPage } from '../features/rooms/RoomDetailPage';
+import { CamerasPage } from '../features/cameras/CamerasPage';
+import { CameraDetailPage } from '../features/cameras/CameraDetailPage';
+import { EditCameraPage, RegisterCameraPage } from '../features/cameras/CameraPages';
 import { ComingSoonPage } from '../features/system/ComingSoonPage';
 import { NotFoundPage } from '../features/system/NotFoundPage';
 import { RouteErrorPage } from '../features/system/RouteErrorPage';
@@ -55,7 +58,10 @@ export const routes: RouteObject[] = [
                 children: [
                   { path: 'rooms', element: <RoomsPage /> },
                   { path: 'rooms/:id', element: <RoomDetailPage /> },
-                  soon('cameras', 'Cameras & devices'),
+                  { path: 'cameras', element: <CamerasPage /> },
+                  { path: 'cameras/new', element: <RegisterCameraPage /> },
+                  { path: 'cameras/:id', element: <CameraDetailPage /> },
+                  { path: 'cameras/:id/edit', element: <EditCameraPage /> },
                   { path: 'users', element: <UsersPage /> },
                   { path: 'users/new', element: <CreateUserPage /> },
                   { path: 'users/:id', element: <UserDetailPage /> },

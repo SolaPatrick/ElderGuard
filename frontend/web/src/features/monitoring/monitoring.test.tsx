@@ -127,7 +127,10 @@ describe('Single camera view (MON-02)', () => {
 
   it('explains an offline camera', async () => {
     signInAs('u-teresa');
-    renderApp('/monitoring/CAM-07');
+    const { user } = renderApp('/monitoring/CAM-07');
+    // The fall alarm popup hides the page from screen readers (and from getByRole) until it is closed.
+    // Without this the test only passed when the camera list happened to load before the alarm.
+    await closeAlertPopup(user);
     expect(await screen.findByRole('heading', { level: 1, name: 'CAM-07 · Hallway B' })).toBeInTheDocument();
     expect(screen.getByText(/Camera is offline · last seen/)).toBeInTheDocument();
     expect(screen.queryByText('LIVE')).not.toBeInTheDocument();
