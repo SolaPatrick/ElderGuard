@@ -36,6 +36,7 @@ import { StatusChip } from '../components/StatusChip';
 import { USE_MOCKS } from '../api/config';
 import { simulateFall } from '../mocks/devTools';
 import { errorMessage } from '../components/errorMessage';
+import { SosDialog } from '../features/sos/SosDialog';
 
 export function TopBar({
   user,
@@ -57,6 +58,7 @@ export function TopBar({
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [sosOpen, setSosOpen] = useState(false);
   const isDark = (mode === 'system' ? systemMode : mode) === 'dark';
 
   const runSimulateFall = async () => {
@@ -105,18 +107,20 @@ export function TopBar({
           </Badge>
         </IconButton>
       </Tooltip>
-      <Tooltip describeChild title="Sending SOS from the web console is coming soon">
-        <span>
-          <Button
-            variant="contained"
-            disabled
-            startIcon={<Sos />}
-            sx={{ bgcolor: 'eg.comp.sosFill', color: 'eg.comp.sosLabel' }}
-          >
-            SOS
-          </Button>
-        </span>
-      </Tooltip>
+      <Button
+        variant="contained"
+        startIcon={<Sos />}
+        onClick={() => setSosOpen(true)}
+        aria-haspopup="dialog"
+        sx={{
+          bgcolor: 'eg.comp.sosFill',
+          color: 'eg.comp.sosLabel',
+          '&:hover': { bgcolor: 'eg.comp.sosFill' },
+        }}
+      >
+        SOS
+      </Button>
+      <SosDialog open={sosOpen} onClose={() => setSosOpen(false)} />
       <Button
         onClick={(e) => setMenuAnchor(e.currentTarget)}
         color="inherit"

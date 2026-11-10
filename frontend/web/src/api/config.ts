@@ -13,3 +13,6 @@ export const ALERT_POLL_MS = 5_000;
  */
 export const BACKEND: 'contract' | 'fastapi' =
   !USE_MOCKS && import.meta.env.VITE_BACKEND === 'fastapi' ? 'fastapi' : 'contract';
+
+/** How long SOS must be held before it sends (SOS-01). Shorter in tests so they run fast. */
+export const SOS_HOLD_MS = import.meta.env.MODE === 'test' ? 300 : 3_000;

@@ -1,8 +1,12 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import { server } from '../mocks/node';
 import { resetDb } from '../mocks/db';
+
+// Screen tests render the whole app (router, login check, MUI). On a busy machine the first
+// screen can take over a second in jsdom, which is the default wait, so allow up to 3 seconds.
+configure({ asyncUtilTimeout: 3000 });
 
 // jsdom does not implement matchMedia; MUI uses it for night mode and breakpoints.
 if (!window.matchMedia) {

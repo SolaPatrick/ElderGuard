@@ -7,6 +7,7 @@ import {
   classifyRequestSchema,
   loginRequestSchema,
   resolveRequestSchema,
+  sosRequestSchema,
 } from '@elderguard/shared';
 import type { SeedUser } from '@elderguard/shared/fixtures';
 import { delay, http, HttpResponse } from 'msw';
@@ -201,6 +202,24 @@ export const handlers = [
     if (!incident) return error(404, 'not_found', 'This incident does not exist.');
     db.addNote(incident, user, parsed.data.body);
     return HttpResponse.json(incident);
+  }),
+
+  http.post(url('/incidents/sos'), async ({ request }) => {
+    const user = authenticate(request);
+    if (user instanceof Response) return user;
+    await latency();
+    const parsed = sosRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    const incident = db.sendSos(user, parsed.data);
+    if (!incident) return error(403, 'forbidden', 'You can only send an SOS from your own areas.');
+    return HttpResponse.json(incident, { status: 201 });
+  }),
+
+  http.get(url('/rooms'), ({ request }) => {
+    const user = authenticate(request);
+    if (user instanceof Response) return user;
+    return HttpResponse.json(db.listRooms(user));
   }),
 
   http.get(url('/residents'), ({ request }) => {

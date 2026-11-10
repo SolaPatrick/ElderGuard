@@ -15,7 +15,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import Sos from '@mui/icons-material/Sos';
@@ -40,6 +39,7 @@ import { CameraTile } from '../../components/CameraTile';
 import { PageHeader } from '../../components/PageHeader';
 import { ErrorState, SkeletonRows } from '../../components/QueryStates';
 import { StatusChip } from '../../components/StatusChip';
+import { SosDialog } from '../sos/SosDialog';
 import { ActiveAlertsCard, SectionCard } from './DashboardCards';
 
 function greeting(date: Date) {
@@ -207,6 +207,7 @@ export function CaregiverDashboard() {
   const cameras = useCameras();
   const incidents = useIncidents();
   const [now] = useState(() => new Date());
+  const [sosOpen, setSosOpen] = useState(false);
   const firstName = user.fullName.split(' ').filter((w) => !w.endsWith('.'))[0] ?? user.fullName;
   const activeIncidents = active.data ?? [];
   const handled = (incidents.data ?? [])
@@ -220,21 +221,24 @@ export function CaregiverDashboard() {
         title={`${greeting(now)}, ${firstName}`}
         subtitle={describeAreas(user.areas)}
         actions={
-          <Tooltip describeChild title="Sending SOS from the web console is coming soon">
-            <span>
-              <Button
-                variant="contained"
-                size="large"
-                disabled
-                startIcon={<Sos />}
-                sx={{ bgcolor: 'eg.comp.sosFill', color: 'eg.comp.sosLabel', minHeight: 56 }}
-              >
-                Send SOS
-              </Button>
-            </span>
-          </Tooltip>
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<Sos />}
+            onClick={() => setSosOpen(true)}
+            aria-haspopup="dialog"
+            sx={{
+              bgcolor: 'eg.comp.sosFill',
+              color: 'eg.comp.sosLabel',
+              minHeight: 56,
+              '&:hover': { bgcolor: 'eg.comp.sosFill' },
+            }}
+          >
+            Send SOS
+          </Button>
         }
       />
+      <SosDialog open={sosOpen} onClose={() => setSosOpen(false)} />
 
       <Box sx={{ mb: 4 }}>
         {active.isPending ? (

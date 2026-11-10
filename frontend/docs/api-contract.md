@@ -102,6 +102,12 @@ new → acknowledged → confirmed → resolved
 | POST   | `/incidents/{code}/resolve`     | `{ outcome, responseSummary? }`                                     | `incidentDetail` |
 | POST   | `/incidents/{code}/notes`       | `{ body }`                                                          | `incidentDetail` |
 
+### SOS
+
+`POST /incidents/sos` with `{ roomId, residentId?, note? }` creates an incident with `type: "sos"`, `status: "new"`, `sentBy` = the caller, `camera: null`, `confidence: null`, and returns `incidentDetail` (status 201). The note, if any, becomes the first response note. A caregiver can only send from a room in their `areas` (otherwise **403**). Every other on-duty staff member then sees it through the usual active-incidents poll.
+
+`GET /rooms` returns `[{ id, name, wing }]`: every room and area for the Admin/Head, the assigned ones for a caregiver. The SOS form uses it for the location list.
+
 - `acknowledge` on an alert someone else already acknowledged must return **409** `already_acknowledged`, with a message naming who did it. Two caregivers can press the button at the same moment, and this is how the second one finds out.
 - `classify` is only allowed from `acknowledged`; `resolve` only from `confirmed` (otherwise 409 `invalid_state`).
 - `false_alarm` closes the incident (set `resolvedAt`/`resolvedBy`).
