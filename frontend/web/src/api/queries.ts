@@ -13,7 +13,7 @@ import type {
   ResolveRequest,
   SosRequest,
 } from '@elderguard/shared';
-import { ALERT_POLL_MS } from './config';
+import { ALERT_POLL_MS, HISTORY_LIMIT } from './config';
 import { api } from './endpoints';
 
 export const queryKeys = {
@@ -43,6 +43,15 @@ export function useActiveIncidents() {
 
 export function useIncidents() {
   return useQuery({ queryKey: queryKeys.incidents, queryFn: () => api.incidents() });
+}
+
+/** INC-01: the latest HISTORY_LIMIT incidents; the page filters them. */
+export function useIncidentHistory() {
+  return useQuery({
+    queryKey: [...queryKeys.incidents, 'history'] as const,
+    queryFn: () => api.incidents(HISTORY_LIMIT),
+    refetchInterval: 30_000,
+  });
 }
 
 export function useIncident(code: string) {

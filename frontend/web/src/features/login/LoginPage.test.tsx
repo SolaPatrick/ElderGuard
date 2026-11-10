@@ -36,7 +36,7 @@ describe('Login (AUTH-01)', () => {
     await user.type(await screen.findByRole('textbox', { name: /username or email/i }), 'teresa.reyes');
     await user.type(screen.getByLabelText(/^password/i, { selector: 'input' }), 'elderguard123');
     await user.click(screen.getByRole('button', { name: 'Log in' }));
-    expect(await screen.findByRole('heading', { name: 'Incident history' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Incidents' })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/incidents');
   });
 });
