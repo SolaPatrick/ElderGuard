@@ -7,6 +7,9 @@ import {
   classifyRequestSchema,
   createStaffRequestSchema,
   cameraRequestSchema,
+  cancelSosRequestSchema,
+  CANCEL_SOS_REASON_LABEL,
+  isActiveStatus,
   roomRequestSchema,
   updateStaffRequestSchema,
   loginRequestSchema,
@@ -276,6 +279,34 @@ export const handlers = [
     });
     db.addActivity(user, `${user.fullName} resolved ${incident.code}`);
     return HttpResponse.json(incident);
+  }),
+
+  http.post(url('/incidents/:code/cancel-sos'), async ({ request, params }) => {
+    const user = authenticate(request);
+    if (user instanceof Response) return user;
+    const parsed = cancelSosRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    if (parsed.data.reason === 'other' && !parsed.data.note)
+      return error(400, 'validation_error', 'Explain why');
+    await latency();
+    const incident = db.getIncident(user, String(params.code));
+    if (!incident) return error(404, 'not_found', 'This incident does not exist.');
+    if (incident.type !== 'sos') return error(409, 'invalid_state', 'Only an SOS can be cancelled.');
+    if (!isActiveStatus(incident.status)) return error(409, 'invalid_state', 'This SOS is already closed.');
+    if (incident.sentBy?.id !== user.id && user.role !== 'admin')
+      return error(403, 'forbidden', 'Only the person who sent the SOS or the Admin/Head can cancel it.');
+    const label = CANCEL_SOS_REASON_LABEL[parsed.data.reason];
+    db.updateIncident(incident.code, (i) => {
+      i.status = 'resolved';
+      i.outcome = `SOS cancelled · ${label}`;
+      i.resolvedAt = new Date().toISOString();
+      i.resolvedBy = { id: user.id, fullName: user.fullName };
+      if (parsed.data.note) db.addNote(i, user, parsed.data.note);
+      db.addEvent(i, 'resolved', user, `SOS cancelled · ${label}`);
+    });
+    db.addActivity(user, `${user.fullName} cancelled ${incident.code}`);
+    return HttpResponse.json(db.getIncident(user, incident.code));
   }),
 
   http.post(url('/incidents/:code/notes'), async ({ request, params }) => {

@@ -27,6 +27,7 @@ import {
   type LoginRequest,
   type ResolveRequest,
   type SosRequest,
+  type CancelSosRequest,
 } from '@elderguard/shared';
 import { z } from 'zod';
 import { apiRequest } from './client';
@@ -56,6 +57,9 @@ const contractApi = {
   incidents: (limit = 50) => apiRequest(`/incidents?scope=all&limit=${limit}`, z.array(incidentSchema)),
   incident: (code: string) => apiRequest(`/incidents/${enc(code)}`, incidentDetailSchema),
   sendSos: (body: SosRequest) => apiRequest('/incidents/sos', incidentDetailSchema, { method: 'POST', body }),
+  /** SOS-03. Only the sender or the Admin/Head, while the SOS is open. */
+  cancelSos: (code: string, body: CancelSosRequest) =>
+    apiRequest(`/incidents/${enc(code)}/cancel-sos`, incidentDetailSchema, { method: 'POST', body }),
 
   acknowledge: (code: string) =>
     apiRequest(`/incidents/${enc(code)}/acknowledge`, incidentDetailSchema, { method: 'POST' }),

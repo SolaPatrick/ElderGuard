@@ -31,7 +31,10 @@ the ERD). The backend shows everyone everything. Needed:
 The SOS button is ready in the app, but the backend has no SOS. Suggested:
 `POST /api/alerts/sos` with `{ room_id, resident_id?, note? }`. It would create an alert with
 `fall_type: "SOS"`, no camera, `sent_by` = the caller, and broadcast it like a fall alert. Until then,
-the app says "Sending an SOS is not available on the server yet".
+the app says "Sending an SOS is not available on the server yet". Cancelling an SOS (SOS-03) would be
+`POST /api/alerts/{id}/cancel-sos` with `{ reason, note }`, allowed for the sender or an admin. The SOS status
+design (SOS-02) also lists who was notified and who is responding; that needs a record of each person notified,
+which the app leaves out until the server has it.
 
 ## 4. Snapshot pictures
 

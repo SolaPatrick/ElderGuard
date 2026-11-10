@@ -25,6 +25,8 @@ import { NotFoundPage } from '../system/NotFoundPage';
 import { ClassifyDialog } from './ClassifyDialog';
 import { ResolveDialog } from './ResolveDialog';
 import { AddNoteDialog } from './AddNoteDialog';
+import { useCurrentUser } from '../../auth/authContext';
+import { CancelSosDialog, SosStatusCard } from '../sos/SosStatus';
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
@@ -111,7 +113,8 @@ export function AlertDetailPage() {
   const query = useIncident(code);
   const acknowledge = useAcknowledge();
   const now = useNow();
-  const [dialog, setDialog] = useState<'classify' | 'resolve' | 'note' | null>(null);
+  const user = useCurrentUser();
+  const [dialog, setDialog] = useState<'classify' | 'resolve' | 'note' | 'cancel-sos' | null>(null);
 
   if (query.isPending) return <LoadingBlock label="Loading alert" />;
   if (query.isError) {
@@ -123,6 +126,9 @@ export function AlertDetailPage() {
   const open = isActiveStatus(incident.status);
   const elapsedEnd = incident.resolvedAt ? Date.parse(incident.resolvedAt) : now;
   const where = [incident.room.name, incident.room.wing].filter(Boolean).join(' · ');
+  const isSos = incident.type === 'sos';
+  const mySos = isSos && open && incident.sentBy?.id === user.id;
+  const canCancelSos = isSos && open && (incident.sentBy?.id === user.id || user.role === 'admin');
 
   return (
     <>
@@ -156,6 +162,7 @@ export function AlertDetailPage() {
         </Grid>
         <Grid size={{ xs: 12, lg: 4 }}>
           <Stack spacing={4}>
+            {mySos && <SosStatusCard incident={incident} onCancel={() => setDialog('cancel-sos')} />}
             <Card>
               <CardContent sx={{ p: 5 }}>
                 <Typography variant="h6" component="h2" sx={{ mb: 3 }}>
@@ -257,6 +264,11 @@ export function AlertDetailPage() {
                 <Button variant="outlined" onClick={() => setDialog('note')}>
                   Add note
                 </Button>
+                {canCancelSos && !mySos && (
+                  <Button variant="outlined" color="error" onClick={() => setDialog('cancel-sos')}>
+                    Cancel SOS
+                  </Button>
+                )}
                 {incident.camera && (
                   <Button variant="outlined" component={RouterLink} to="/monitoring">
                     View live camera
@@ -271,6 +283,9 @@ export function AlertDetailPage() {
       <ClassifyDialog open={dialog === 'classify'} incident={incident} onClose={() => setDialog(null)} />
       <ResolveDialog open={dialog === 'resolve'} incident={incident} onClose={() => setDialog(null)} />
       <AddNoteDialog open={dialog === 'note'} incident={incident} onClose={() => setDialog(null)} />
+      {canCancelSos && (
+        <CancelSosDialog open={dialog === 'cancel-sos'} incident={incident} onClose={() => setDialog(null)} />
+      )}
     </>
   );
 }

@@ -9,6 +9,7 @@ import type {
   IncidentDetail,
   ResolveRequest,
   SosRequest,
+  CancelSosRequest,
 } from '@elderguard/shared';
 import { ALERT_POLL_MS } from './config';
 import { api } from './endpoints';
@@ -117,6 +118,14 @@ export function useResolve(code: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: ResolveRequest) => api.resolve(code, body),
+    onSuccess: (data) => applyIncidentUpdate(qc, data),
+  });
+}
+
+export function useCancelSos(code: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CancelSosRequest) => api.cancelSos(code, body),
     onSuccess: (data) => applyIncidentUpdate(qc, data),
   });
 }

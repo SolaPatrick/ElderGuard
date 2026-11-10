@@ -106,6 +106,11 @@ new → acknowledged → confirmed → resolved
 
 `POST /incidents/sos` with `{ roomId, residentId?, note? }` creates an incident with `type: "sos"`, `status: "new"`, `sentBy` = the caller, `camera: null`, `confidence: null`, and returns `incidentDetail` (status 201). The note, if any, becomes the first response note. A caregiver can only send from a room in their `areas` (otherwise **403**). Every other on-duty staff member then sees it through the usual active-incidents poll.
 
+`POST /incidents/{code}/cancel-sos` with `{ reason: "mistake"|"handled"|"other", note }` (SOS-03) closes an open SOS:
+`status: "resolved"`, `outcome: "SOS cancelled · Pressed by mistake"` (or `Situation handled`, `Other`), `resolvedBy` = the
+caller, a `resolved` event, and the note (required for `other`) as a response note. Only the sender or the Admin/Head
+may cancel (otherwise **403**); a fall alert or a closed SOS returns **409** `invalid_state`.
+
 `GET /rooms` returns `[{ id, name, wing }]`: every room and area for the Admin/Head, the assigned ones for a caregiver. The SOS form uses it for the location list.
 
 - `acknowledge` on an alert someone else already acknowledged must return **409** `already_acknowledged`, with a message naming who did it. Two caregivers can press the button at the same moment, and this is how the second one finds out.

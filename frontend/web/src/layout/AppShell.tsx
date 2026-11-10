@@ -62,7 +62,7 @@ export function AppShell() {
               Retrying…
             </Alert>
           )}
-          <ActiveAlertBanner incidents={incidents} />
+          <ActiveAlertBanner incidents={incidents} userId={user.id} />
         </Box>
         <Box
           component="main"
