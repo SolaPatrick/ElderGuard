@@ -165,6 +165,17 @@ export function TopBar({
           </ListItemIcon>
           {isDark ? 'Day mode' : 'Night mode'}
         </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setMenuAnchor(null);
+            void navigate('/notifications');
+          }}
+        >
+          <ListItemIcon>
+            <NotificationsOutlined fontSize="small" />
+          </ListItemIcon>
+          Notifications
+        </MenuItem>
         {USE_MOCKS && (
           <MenuItem onClick={runSimulateFall}>
             <ListItemIcon>

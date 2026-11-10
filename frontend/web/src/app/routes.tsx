@@ -20,6 +20,8 @@ import { RoomDetailPage } from '../features/rooms/RoomDetailPage';
 import { CamerasPage } from '../features/cameras/CamerasPage';
 import { CameraDetailPage } from '../features/cameras/CameraDetailPage';
 import { EditCameraPage, RegisterCameraPage } from '../features/cameras/CameraPages';
+import { NotificationsPage } from '../features/notifications/NotificationsPage';
+import { HelpPage } from '../features/help/HelpPage';
 import { ComingSoonPage } from '../features/system/ComingSoonPage';
 import { NotFoundPage } from '../features/system/NotFoundPage';
 import { RouteErrorPage } from '../features/system/RouteErrorPage';
@@ -51,8 +53,8 @@ export const routes: RouteObject[] = [
               { path: 'monitoring/:code', element: <CameraPage /> },
               { path: 'residents', element: <ResidentsPage /> },
               { path: 'residents/:id', element: <ResidentProfilePage /> },
-              soon('notifications', 'Notifications'),
-              soon('help', 'Help & About'),
+              { path: 'notifications', element: <NotificationsPage /> },
+              { path: 'help', element: <HelpPage /> },
               {
                 element: <RequireAuth roles={['admin']} />,
                 children: [

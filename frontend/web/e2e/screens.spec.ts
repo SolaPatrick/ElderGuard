@@ -45,3 +45,12 @@ test('the Admin/Head creates a staff account and gets its temporary password', a
   await expect(page.getByRole('heading', { level: 1, name: 'Rosa Villanueva' })).toBeVisible();
   await expect(page.getByLabel('Assigned rooms').getByText('Lobby')).toBeVisible();
 });
+
+test('notifications and help open from the user menu and the sidebar', async ({ page }) => {
+  await page.getByRole('button', { name: /Ma\. Teresa Reyes/ }).click();
+  await page.getByRole('menuitem', { name: 'Notifications' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Notifications' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'CAM-07 Hallway B is offline' })).toBeVisible();
+  await page.getByRole('link', { name: /Help & About/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Help & About' })).toBeVisible();
+});

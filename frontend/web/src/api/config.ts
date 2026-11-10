@@ -16,3 +16,6 @@ export const BACKEND: 'contract' | 'fastapi' =
 
 /** How long SOS must be held before it sends (SOS-01). Shorter in tests so they run fast. */
 export const SOS_HOLD_MS = import.meta.env.MODE === 'test' ? 300 : 3_000;
+
+/** The incident history loads this many of the latest incidents and filters them in the browser. */
+export const HISTORY_LIMIT = 500;
