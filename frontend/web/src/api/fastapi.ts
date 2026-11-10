@@ -17,6 +17,7 @@ import {
   type ChangePasswordRequest,
   type ClassifyRequest,
   type CreateStaffRequest,
+  type RoomRequest,
   type StaffMember,
   type StaffWithPassword,
   type UpdateStaffRequest,
@@ -180,13 +181,6 @@ const toStaffWithPassword = (r: z.infer<typeof rawStaffWithPassword>): StaffWith
   user: toStaff(r.user),
   temporaryPassword: r.temporary_password,
 });
-
-/** Staff ids in links are numbers on this backend. */
-function staffId(id: string): number {
-  const n = Number(id);
-  if (!Number.isInteger(n) || n <= 0) throw new ApiError(404, 'not_found', 'This user does not exist.');
-  return n;
-}
 
 /** The screens hide area assignment for this backend; refuse rather than silently drop it. */
 function noAreas(areaIds: string[]) {
@@ -518,6 +512,23 @@ export const fastApi = {
     };
   },
   rooms: async (): Promise<RoomRef[]> => (await rooms()).map(toRoom),
+  createRoom: async (body: RoomRequest): Promise<RoomRef> =>
+    toRoom(
+      await apiRequest('/rooms', rawRoom, {
+        method: 'POST',
+        body: { name: body.name, area: body.wing ?? '' },
+      }),
+    ),
+  updateRoom: async (id: string, body: RoomRequest): Promise<RoomRef> =>
+    toRoom(
+      await apiRequest(`/rooms/${numericId(id, 'room')}`, rawRoom, {
+        method: 'PATCH',
+        body: { name: body.name, area: body.wing ?? '' },
+      }),
+    ),
+  deleteRoom: async (id: string) => {
+    await apiRequest(`/rooms/${numericId(id, 'room')}`, z.null(), { method: 'DELETE' });
+  },
 
   activeIncidents: () => incidentsFrom('active=true&limit=200', true),
   incidents: (limit = 50) => incidentsFrom(`limit=${limit}`, false),
@@ -548,7 +559,7 @@ export const fastApi = {
 
   staff: async (): Promise<StaffMember[]> => (await get('/users', z.array(rawStaff))).map(toStaff),
   staffMember: async (id: string): Promise<StaffMember> =>
-    toStaff(await get(`/users/${staffId(id)}`, rawStaff)),
+    toStaff(await get(`/users/${numericId(id, 'user')}`, rawStaff)),
   async createStaff(body: CreateStaffRequest): Promise<StaffWithPassword> {
     noAreas(body.areaIds);
     const res = await apiRequest('/users', rawStaffWithPassword, {
@@ -560,7 +571,7 @@ export const fastApi = {
   },
   async updateStaff(id: string, body: UpdateStaffRequest): Promise<StaffMember> {
     noAreas(body.areaIds);
-    const res = await apiRequest(`/users/${staffId(id)}`, rawStaff, {
+    const res = await apiRequest(`/users/${numericId(id, 'user')}`, rawStaff, {
       method: 'PATCH',
       body: { full_name: body.fullName, email: body.email, role: body.role },
     });
@@ -568,11 +579,13 @@ export const fastApi = {
     return toStaff(res);
   },
   deactivateStaff: async (id: string): Promise<StaffMember> =>
-    toStaff(await apiRequest(`/users/${staffId(id)}/deactivate`, rawStaff, { method: 'POST' })),
+    toStaff(await apiRequest(`/users/${numericId(id, 'user')}/deactivate`, rawStaff, { method: 'POST' })),
   reactivateStaff: async (id: string): Promise<StaffMember> =>
-    toStaff(await apiRequest(`/users/${staffId(id)}/reactivate`, rawStaff, { method: 'POST' })),
+    toStaff(await apiRequest(`/users/${numericId(id, 'user')}/reactivate`, rawStaff, { method: 'POST' })),
   resetStaffPassword: async (id: string): Promise<StaffWithPassword> =>
     toStaffWithPassword(
-      await apiRequest(`/users/${staffId(id)}/reset-password`, rawStaffWithPassword, { method: 'POST' }),
+      await apiRequest(`/users/${numericId(id, 'user')}/reset-password`, rawStaffWithPassword, {
+        method: 'POST',
+      }),
     ),
 };

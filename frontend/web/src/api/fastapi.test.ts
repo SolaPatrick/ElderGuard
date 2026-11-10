@@ -347,3 +347,39 @@ describe('FastAPI adapter: staff accounts', () => {
     await expect(fastApi.staffMember('u-joel')).rejects.toMatchObject({ status: 404 });
   });
 });
+
+describe('FastAPI adapter: rooms', () => {
+  it('sends the wing as "area" (empty for none) and deletes with no response body', async () => {
+    const calls: { method: string; path: string; body: unknown }[] = [];
+    server.use(
+      http.post('/api/rooms', async ({ request }) => {
+        calls.push({ method: 'POST', path: '/rooms', body: await request.json() });
+        return HttpResponse.json({ id: 9, name: 'Lobby', area: '' }, { status: 201 });
+      }),
+      http.patch('/api/rooms/:id', async ({ request, params }) => {
+        calls.push({ method: 'PATCH', path: `/rooms/${String(params.id)}`, body: await request.json() });
+        return HttpResponse.json({ id: 9, name: 'Room 107', area: 'West Wing' });
+      }),
+      http.delete('/api/rooms/:id', ({ params }) => {
+        calls.push({ method: 'DELETE', path: `/rooms/${String(params.id)}`, body: null });
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    expect(await fastApi.createRoom({ name: 'Lobby', wing: null })).toEqual({
+      id: '9',
+      name: 'Lobby',
+      wing: null,
+    });
+    expect(await fastApi.updateRoom('9', { name: 'Room 107', wing: 'West Wing' })).toEqual({
+      id: '9',
+      name: 'Room 107',
+      wing: 'West Wing',
+    });
+    await fastApi.deleteRoom('9');
+    expect(calls).toEqual([
+      { method: 'POST', path: '/rooms', body: { name: 'Lobby', area: '' } },
+      { method: 'PATCH', path: '/rooms/9', body: { name: 'Room 107', area: 'West Wing' } },
+      { method: 'DELETE', path: '/rooms/9', body: null },
+    ]);
+  });
+});
