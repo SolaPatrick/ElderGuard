@@ -29,7 +29,7 @@ describe('Change password', () => {
     await user.type(screen.getByLabelText(/^Confirm new password/), 'a-better-pass');
     await user.click(screen.getByRole('button', { name: 'Save password' }));
 
-    expect(await screen.findByRole('heading', { name: 'Incident history' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Incidents' })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/incidents');
   });
 
