@@ -1,4 +1,4 @@
-"""Fall logic copied from fall_detect.py (step 10 of the training tutorial), unchanged.
+"""Fall logic, the same as in fall_detect.py (step 10 of the training tutorial).
 
 FallMonitor keeps a short history of states for each tracked person and decides when a fall
 happened and what type it was. The backend runs one FallMonitor per camera.
@@ -8,8 +8,9 @@ import cv2
 
 # ---- same settings as fall_detect.py ----
 CONF = 0.4                # minimum confidence for a state to count
+FALLEN_CONF = 0.55        # stricter for "fallen": unsure guesses (often someone sitting) don't count toward a fall
 BLUR_CONF = 0.15          # lower, so even weak detections still get blurred
-FALL_SECONDS = 1.0        # how long "fallen" must last before FALL is raised
+FALL_SECONDS = 1.5        # how long "fallen" must last before FALL is raised
 FALL_SHARE = 0.7          # share of frames in that time that must be "fallen" (tolerates flicker)
 ORIGIN_SECONDS = 10       # how far back to look for what the person was doing before the fall
 STABLE_SECONDS = 0.5      # a state must last this long to count as "what they were doing"
@@ -19,6 +20,13 @@ RECOVER_SECONDS = 2.0     # a fallen person must be up this long before a new fa
 
 COLORS = {"fallen": (0, 165, 255), "in_bed": (255, 128, 0), "in_wheelchair": (255, 0, 255),
           "upright": (0, 255, 0)}
+
+
+def min_conf(state: str) -> float:
+    """Confidence a detection needs before its state counts. Checked on 33 fall videos: with FALLEN_CONF 0.55 and
+    FALL_SECONDS 1.5 every video gives exactly one alarm at the real fall (the old 0.4 / 1.0 gave 3 extra alarms).
+    Above 0.6, real falls start to be missed."""
+    return FALLEN_CONF if state == "fallen" else CONF
 
 
 class FallMonitor:

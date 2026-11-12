@@ -19,7 +19,7 @@ from sqlmodel import Session, select
 
 from . import config
 from .database import engine
-from .fall_logic import BLUR_CONF, COLORS, CONF, FallMonitor, blur_people, iou, pixelate
+from .fall_logic import BLUR_CONF, COLORS, CONF, FallMonitor, blur_people, iou, min_conf, pixelate
 from .models import Blur, Camera, required_blur
 from .models import now as now_utc
 from .routers.alerts import create_alert
@@ -147,10 +147,10 @@ class CameraWorker(threading.Thread):
         if r.boxes is not None and r.boxes.id is not None:
             for tid, box, cls, c in zip(r.boxes.id.int().tolist(), all_boxes,
                                         r.boxes.cls.int().tolist(), r.boxes.conf.tolist()):
-                if c < CONF:
+                state = r.names[cls]
+                if c < min_conf(state):
                     monitor.touch(tid, box)
                     continue
-                state = r.names[cls]
                 fall = monitor.update(tid, state, box)
                 if fall:
                     falls.append((fall, c, box))

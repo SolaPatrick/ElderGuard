@@ -24,8 +24,9 @@ SHOW = True
 CAMERA_PLACE = "room"     # "room" or "bathroom"
 PRIVACY_BLUR = "off"      # "off", "person" (blur each person) or "whole" (blur the whole picture)
 CONF = 0.4                # minimum confidence for a state to count
+FALLEN_CONF = 0.55        # stricter for "fallen": unsure guesses (often someone sitting) don't count toward a fall
 BLUR_CONF = 0.15          # lower, so even weak detections still get blurred
-FALL_SECONDS = 1.0        # how long "fallen" must last before FALL is raised
+FALL_SECONDS = 1.5        # how long "fallen" must last before FALL is raised
 FALL_SHARE = 0.7          # share of frames in that time that must be "fallen" (tolerates flicker)
 ORIGIN_SECONDS = 10       # how far back to look for what the person was doing before the fall
 STABLE_SECONDS = 0.5      # a state must last this long to count as "what they were doing"
@@ -185,10 +186,10 @@ def main():
         if r.boxes is not None and r.boxes.id is not None:
             for tid, box, cls, c in zip(r.boxes.id.int().tolist(), all_boxes,
                                         r.boxes.cls.int().tolist(), r.boxes.conf.tolist()):
-                if c < CONF:
+                state = r.names[cls]
+                if c < (FALLEN_CONF if state == "fallen" else CONF):
                     monitor.touch(tid, box)   # too unsure to judge the state, but it is still blurred below
                     continue
-                state = r.names[cls]
                 fall = monitor.update(tid, state, box)
                 if fall:
                     print(f"[frame {frame_no}, {frame_no / fps:.1f} s] {fall} - person {tid}")
