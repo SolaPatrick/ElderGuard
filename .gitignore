@@ -16,3 +16,6 @@ elderguard/cvat_export/
 elderguard/*.zip
 elderguard/runs/**/train_batch*.jpg
 elderguard/runs/**/val_batch*.jpg
+
+# Backups made by backend/delete_cameras.py (contain alert pictures)
+backend/backups/
