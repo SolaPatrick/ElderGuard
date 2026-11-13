@@ -24,6 +24,10 @@ import { db } from './db';
 const url = (path: string) => `${API_BASE_URL}${path}`;
 const TOKEN_PREFIX = 'mock-token:';
 
+/** Like Den's backend, a login lasts one 8-hour shift. */
+const SESSION_MS = 8 * 3600_000;
+const mockToken = (userId: string) => `${TOKEN_PREFIX}${userId}:${Date.now() + SESSION_MS}`;
+
 const error = (status: number, code: string, message: string) =>
   HttpResponse.json({ code, message }, { status });
 
@@ -31,7 +35,12 @@ const error = (status: number, code: string, message: string) =>
 function authenticate(request: Request): SeedUser | Response {
   const header = request.headers.get('Authorization') ?? '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-  const user = token.startsWith(TOKEN_PREFIX) ? db.findUserById(token.slice(TOKEN_PREFIX.length)) : undefined;
+  // "mock-token:<userId>" or "mock-token:<userId>:<expiresAtMs>"
+  const [userId, expiresAt] = token.startsWith(TOKEN_PREFIX)
+    ? token.slice(TOKEN_PREFIX.length).split(':')
+    : [];
+  const expired = expiresAt !== undefined && Number(expiresAt) <= Date.now();
+  const user = userId && !expired ? db.findUserById(userId) : undefined;
   if (!user || user.status !== 'active')
     return error(401, 'unauthorized', 'Your session has expired. Log in again.');
   return user;
@@ -74,7 +83,7 @@ export const handlers = [
     }
     db.recordLogin(user);
     db.addActivity(user, `${user.fullName} logged in`);
-    return HttpResponse.json({ token: `${TOKEN_PREFIX}${user.id}`, user: db.toPublicUser(user) });
+    return HttpResponse.json({ token: mockToken(user.id), user: db.toPublicUser(user) });
   }),
 
   http.post(url('/auth/change-password'), async ({ request }) => {
@@ -88,7 +97,7 @@ export const handlers = [
     if (next.length < 8) return error(400, 'weak_password', 'Use at least 8 characters.');
     if (next === current) return error(400, 'same_password', 'Choose a different password.');
     db.changePassword(user, next);
-    return HttpResponse.json({ token: `${TOKEN_PREFIX}${user.id}`, user: db.toPublicUser(user) });
+    return HttpResponse.json({ token: mockToken(user.id), user: db.toPublicUser(user) });
   }),
 
   http.get(url('/auth/me'), ({ request }) => {

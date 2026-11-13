@@ -8,6 +8,7 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { ActiveAlertBanner } from './ActiveAlertBanner';
 import { FallAlertOverlay } from './FallAlertOverlay';
+import { SessionTimeoutDialog } from './SessionTimeoutDialog';
 import { useDesktopAlertNotifications } from '../features/alertSetup/useDesktopAlertNotifications';
 
 const FACILITY_NAME = 'Demo Home for the Aged'; // TODO: load from GET /facility once the backend has it
@@ -75,6 +76,7 @@ export function AppShell() {
       </Box>
 
       <FallAlertOverlay incidents={incidents} />
+      <SessionTimeoutDialog />
     </Box>
   );
 }

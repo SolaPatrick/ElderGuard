@@ -3,7 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { LoginRequest, User } from '@elderguard/shared';
 import { AuthContext, type AuthState } from './authContext';
 import { api } from '../api/endpoints';
-import { onUnauthorized } from '../api/client';
+import { ApiError, onUnauthorized } from '../api/client';
+import { tokenExpiresAt } from './sessionExpiry';
 import { tokenStorage } from './tokenStorage';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -20,7 +21,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .me(controller.signal)
       .then((user) => setState({ status: 'authenticated', user }))
       .catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === 'AbortError') return;
+        if (err instanceof Error && err.name === 'AbortError') return;
+        // Only the server saying "not valid" ends the session. A server that is down or
+        // unreachable must not log anyone out: they would stop getting alerts once it is back.
+        if (err instanceof ApiError && (err.status === 0 || err.status >= 500)) {
+          const message =
+            err.status === 0 ? err.message : `The ElderGuard server is not answering (error ${err.status}).`;
+          setState({ status: 'unreachable', user: null, message });
+          return;
+        }
         tokenStorage.clear();
         setState({ status: 'anonymous', user: null, reason: 'expired' });
       });
@@ -67,9 +76,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const retry = useCallback(() => {
+    setState((s) => (s.status === 'unreachable' ? { status: 'loading', user: null } : s));
+  }, []);
+
+  // Read again whenever the session changes (login, password change).
+  const expiresAt = useMemo(
+    () => (state.status === 'authenticated' ? tokenExpiresAt(tokenStorage.get()) : null),
+    [state],
+  );
+
   const value = useMemo(
-    () => ({ state, login, logout, replaceSession, updateCurrentUser }),
-    [state, login, logout, replaceSession, updateCurrentUser],
+    () => ({ state, login, logout, replaceSession, updateCurrentUser, retry, expiresAt }),
+    [state, login, logout, replaceSession, updateCurrentUser, retry, expiresAt],
   );
   return <AuthContext value={value}>{children}</AuthContext>;
 }
