@@ -44,29 +44,56 @@ def residents_in_room(session: Session, room_id: int | None) -> list[str]:
         .order_by(Resident.full_name)).all())
 
 
-def alert_out(session: Session, alert: Alert) -> AlertOut:
-    camera = session.get(Camera, alert.camera_id) if alert.camera_id else None
-    room = session.get(Room, alert.room_id) if alert.room_id else None
-    # Alerts older than residents_at_alert have no record, so the best available is who is in the room now.
-    residents = alert.residents_at_alert if alert.residents_at_alert is not None \
-        else residents_in_room(session, alert.room_id)
-    notes = []
+def alert_outs(session: Session, alerts: list[Alert]) -> list[AlertOut]:
+    """Many alerts with their names, in a few queries in total instead of a few per alert.
+    With the database on a remote server every query costs a round trip, so this keeps the list fast."""
+    if not alerts:
+        return []
+    ids = [a.id for a in alerts]
+    camera_ids = {a.camera_id for a in alerts if a.camera_id is not None}
+    room_ids = {a.room_id for a in alerts if a.room_id is not None}
+    cameras = {c.id: c for c in session.exec(select(Camera).where(col(Camera.id).in_(camera_ids)))} \
+        if camera_ids else {}
+    rooms = {r.id: r for r in session.exec(select(Room).where(col(Room.id).in_(room_ids)))} if room_ids else {}
+    notes: dict[int, list[NoteOut]] = {}
     for note, author in session.exec(select(AlertNote, User.full_name).join(User)
-                                     .where(AlertNote.alert_id == alert.id).order_by(AlertNote.created_at)):
-        notes.append(NoteOut(id=note.id, text=note.text, author=author, created_at=note.created_at))
-    return AlertOut.model_validate(alert, update={
-        "camera_name": camera.name if camera else "",
-        "room_name": room.name if room else "",
-        "area": room.area if room else "",
-        "residents": list(residents),
-        "snapshot_url": f"/api/alerts/{alert.id}/snapshot" if alert.snapshot else None,
-        "notes": notes,
-    })
+                                     .where(col(AlertNote.alert_id).in_(ids))
+                                     .order_by(AlertNote.created_at, AlertNote.id)):
+        notes.setdefault(note.alert_id, []).append(
+            NoteOut(id=note.id, text=note.text, author=author, created_at=note.created_at))
+    # Alerts older than residents_at_alert have no record, so the best available is who is in the room now.
+    rooms_now = {a.room_id for a in alerts if a.residents_at_alert is None and a.room_id is not None}
+    residents_now: dict[int, list[str]] = {}
+    if rooms_now:
+        for room_id, name in session.exec(select(Resident.room_id, Resident.full_name).where(
+                col(Resident.room_id).in_(rooms_now), Resident.is_archived == False)  # noqa: E712
+                .order_by(Resident.full_name)):
+            residents_now.setdefault(room_id, []).append(name)
+    out = []
+    for alert in alerts:
+        camera, room = cameras.get(alert.camera_id), rooms.get(alert.room_id)
+        residents = alert.residents_at_alert if alert.residents_at_alert is not None \
+            else residents_now.get(alert.room_id, [])
+        out.append(AlertOut.model_validate(alert, update={
+            "camera_name": camera.name if camera else "",
+            "room_name": room.name if room else "",
+            "area": room.area if room else "",
+            "residents": list(residents),
+            "snapshot_url": f"/api/alerts/{alert.id}/snapshot" if alert.snapshot else None,
+            "notes": notes.get(alert.id, []),
+        }))
+    return out
 
 
-def announce(kind: str, session: Session, alert: Alert):
-    """Tells every open dashboard about the alert, through the hub from step 5."""
-    hub.publish({"type": kind, "alert": alert_out(session, alert).model_dump(mode="json")})
+def alert_out(session: Session, alert: Alert) -> AlertOut:
+    return alert_outs(session, [alert])[0]
+
+
+def announce(kind: str, session: Session, alert: Alert) -> AlertOut:
+    """Tells every open dashboard about the alert, through the hub from step 5. Returns what it sent."""
+    out = alert_out(session, alert)
+    hub.publish({"type": kind, "alert": out.model_dump(mode="json")})
+    return out
 
 
 def create_alert(session: Session, camera: Camera, fall_type: str, confidence: float,
@@ -107,8 +134,7 @@ def save(session, alert: Alert) -> AlertOut:
     session.add(alert)
     session.commit()
     session.refresh(alert)
-    announce("alert_updated", session, alert)
-    return alert_out(session, alert)
+    return announce("alert_updated", session, alert)
 
 
 @router.get("", response_model=list[AlertOut])
@@ -133,7 +159,7 @@ def list_alerts(session: SessionDep, user: CurrentUser, status: AlertStatus | No
     if date_to:
         query = query.where(Alert.detected_at <= date_to)
     alerts = session.exec(query.offset(offset).limit(min(limit, 500))).all()
-    return [alert_out(session, a) for a in alerts]
+    return alert_outs(session, list(alerts))
 
 
 @router.get("/summary")
