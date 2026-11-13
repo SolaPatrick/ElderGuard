@@ -219,6 +219,8 @@ export const cameraSchema = z.object({
   status: cameraStatusSchema,
   detectionEnabled: z.boolean(),
   lastSeenAt: isoDateTime.nullable(),
+  /** What the server says is wrong, e.g. "Cannot open the video source". Null when nothing is. */
+  statusDetail: z.string().nullable(),
 });
 export type Camera = z.infer<typeof cameraSchema>;
 

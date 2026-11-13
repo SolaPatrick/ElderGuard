@@ -621,6 +621,7 @@ export const fastApi = {
         status,
         detectionEnabled: c.detection_enabled,
         lastSeenAt: null,
+        statusDetail: c.detection_enabled ? s?.error || null : null,
       };
     });
   },

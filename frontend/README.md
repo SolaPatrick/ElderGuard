@@ -97,6 +97,7 @@ Web app screens. Every "Done" screen works with the built-in fake server. The la
 | RPT-02 Generate report (7 types, date range, room), RPT-03 A4 preview, print or save as PDF, CSV download                  | Done   | Yes, without camera uptime; reports aren't saved (no history on the server)                                                   |
 | LOG-01 Activity log (filters by user, action, module and date; CSV export), LOG-02 entry details                           | Done   | Partly: only alert actions (acknowledge, classify, resolve), since the server logs nothing else; no before/after values or IP |
 | SET-01 to SET-04 Settings (general, detection, notifications, security)                                                    | Done   | No: the server keeps its settings in config.py, so the page says they can't be changed from the app yet                       |
+| CAM-06 Device health (server check, fall detection, every camera with FPS and the server's error text)                     | Done   | Partly: no CPU/GPU load, detection delay, notification service or storage (the server doesn't report them)                    |
 | SYS-01 404, SYS-02 403, SYS-03 crash page                                                                                  | Done   | n/a                                                                                                                           |
 
 Still to do (each is a "coming soon" page or not started):
@@ -106,6 +107,6 @@ Still to do (each is a "coming soon" page or not started):
 | RPT-04 Report history (saved reports)                              | Den's backend        |
 | LOG-01/02 Activity log                                             | Den's backend        |
 | AUTH-02 to AUTH-05 Forgot password                                 | Den's backend        |
-| USR-09 Permissions, USR-10 assign areas, CAM-06 device health      | Den's backend        |
+| USR-09 Permissions, USR-10 assign areas                            | Den's backend        |
 | Resident photos, room capacity, camera uptime, incident PDF export | Den's backend        |
 | Mobile app (M-01 to M-34)                                          | Frontend (`mobile/`) |
