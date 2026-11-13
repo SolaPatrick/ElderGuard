@@ -544,13 +544,27 @@ export function createSeed(now: Date = new Date()): Seed {
       user: person('u-mark'),
       summary: 'Mark Dizon resolved INC-2026-0140',
       createdAt: t(39 * MIN),
+      module: 'alerts',
+      action: 'resolved',
+      record: 'INC-2026-0140',
     },
-    { id: 'act-2', user: person('u-joel'), summary: 'Joel Ramos logged in', createdAt: t(46 * MIN) },
+    {
+      id: 'act-2',
+      user: person('u-joel'),
+      summary: 'Joel Ramos logged in',
+      createdAt: t(46 * MIN),
+      module: 'auth',
+      action: 'logged_in',
+      record: null,
+    },
     {
       id: 'act-1',
       user: person('u-teresa'),
       summary: 'Ma. Teresa Reyes paused CAM-09',
       createdAt: t(3 * HOUR + 36 * MIN),
+      module: 'cameras',
+      action: 'paused',
+      record: 'CAM-09',
     },
   ];
 

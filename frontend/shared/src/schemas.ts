@@ -438,11 +438,37 @@ export const dashboardSummarySchema = z.object({
 });
 export type DashboardSummary = z.infer<typeof dashboardSummarySchema>;
 
+export const activityModuleSchema = z.enum(['auth', 'alerts', 'cameras', 'rooms', 'residents', 'users']);
+export type ActivityModule = z.infer<typeof activityModuleSchema>;
+
+export const activityActionSchema = z.enum([
+  'logged_in',
+  'acknowledged',
+  'classified',
+  'resolved',
+  'cancelled',
+  'created',
+  'updated',
+  'deleted',
+  'archived',
+  'restored',
+  'deactivated',
+  'reactivated',
+  'password_reset',
+  'paused',
+  'sent_sos',
+]);
+export type ActivityAction = z.infer<typeof activityActionSchema>;
+
+/** LOG-01: one thing a staff member did. `record` names what it was done to, e.g. "INC-2026-0142". */
 export const activityEntrySchema = z.object({
   id: z.string(),
   user: personRefSchema,
   summary: z.string(),
   createdAt: isoDateTime,
+  module: activityModuleSchema,
+  action: activityActionSchema,
+  record: z.string().nullable(),
 });
 export type ActivityEntry = z.infer<typeof activityEntrySchema>;
 
