@@ -87,6 +87,7 @@ Web app screens. Every "Done" screen works with the built-in fake server. The la
 | ROOM-01 to ROOM-04 Rooms & areas: list, add/edit, detail, delete                                                           | Done   | Yes, no capacity                                                                                                              |
 | CAM-01 to CAM-05, CAM-07 Cameras: list, register, detail, edit, move, remove                                               | Done   | Yes                                                                                                                           |
 | USR-01 to USR-08 Users & access: list, create, detail, edit, deactivate, reset password                                    | Done   | Yes, without room assignment                                                                                                  |
+| USR-09 Roles & permissions (read-only matrix of the rules the app and server enforce, per role)                            | Done   | Yes; changing rules or per-user overrides needs Den's backend                                                                 |
 | USR-10 Assign residents and areas to an employee (dialog on the user page; warns about residents outside their rooms)      | Done   | No: the server has no room assignments or resident caregivers, so the page says it isn't available yet                        |
 | NTF-01 Notification center, PRF-04 Help & About                                                                            | Done   | Yes                                                                                                                           |
 | AUTH-07 Enable alerts and sound check, PRF-03 alert preferences (desktop notifications, alarm volume)                      | Done   | Kept on each computer, not on the server                                                                                      |
@@ -108,6 +109,5 @@ Still to do (each is a "coming soon" page or not started):
 | RPT-04 Report history (saved reports)                              | Den's backend        |
 | LOG-01/02 Activity log                                             | Den's backend        |
 | AUTH-02 to AUTH-05 Forgot password                                 | Den's backend        |
-| USR-09 Permissions                                                 | Den's backend        |
 | Resident photos, room capacity, camera uptime, incident PDF export | Den's backend        |
 | Mobile app (M-01 to M-34)                                          | Frontend (`mobile/`) |
