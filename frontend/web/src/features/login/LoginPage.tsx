@@ -17,9 +17,9 @@ import {
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Navigate, useLocation } from 'react-router';
+import { Link as RouterLink, Navigate, useLocation } from 'react-router';
 import { loginRequestSchema, type LoginRequest } from '@elderguard/shared';
 import { isAlertSetupDone } from '../alertSetup/alertPrefs';
 import { SessionExpiredCard } from './SessionExpiredCard';
@@ -47,11 +47,14 @@ export function LoginPage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<LoginRequest>({
     resolver: zodResolver(loginRequestSchema),
     defaultValues: { username: '', password: '' },
   });
+  // Carried to the forgot-password page so the person doesn't type it twice.
+  const typedLogin = useWatch({ control, name: 'username' });
 
   if (state.status === 'authenticated') {
     // Leaving the login page happens here, once the session is set, so there is only one redirect.
@@ -143,11 +146,15 @@ export function LoginPage() {
                   control={<Checkbox checked={remember} onChange={(e) => setRemember(e.target.checked)} />}
                   label="Remember me"
                 />
-                <Tooltip describeChild title="Password reset is coming soon. Ask your Admin/Head for now.">
-                  <Link component="button" type="button" variant="body2" sx={{ fontWeight: 600 }}>
-                    Forgot password?
-                  </Link>
-                </Tooltip>
+                <Link
+                  component={RouterLink}
+                  to="/forgot-password"
+                  state={{ login: typedLogin }}
+                  variant="body2"
+                  sx={{ fontWeight: 600 }}
+                >
+                  Forgot password?
+                </Link>
               </Stack>
               <Button type="submit" variant="contained" size="large" loading={isSubmitting} fullWidth>
                 Log in

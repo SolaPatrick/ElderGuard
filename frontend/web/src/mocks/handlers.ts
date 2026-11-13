@@ -12,6 +12,9 @@ import {
   roomRequestSchema,
   updateStaffRequestSchema,
   staffAssignmentsRequestSchema,
+  forgotPasswordRequestSchema,
+  verifyResetCodeRequestSchema,
+  resetPasswordRequestSchema,
   loginRequestSchema,
   resolveRequestSchema,
   sosRequestSchema,
@@ -21,7 +24,7 @@ import { facilitySettingsSchema, type SettingsSection } from '@elderguard/shared
 import type { SeedUser } from '@elderguard/shared/fixtures';
 import { delay, http, HttpResponse } from 'msw';
 import { API_BASE_URL } from '../api/config';
-import { db } from './db';
+import { db, maskEmail, RESET_RESEND_SECONDS } from './db';
 
 const url = (path: string) => `${API_BASE_URL}${path}`;
 const TOKEN_PREFIX = 'mock-token:';
@@ -100,6 +103,53 @@ export const handlers = [
     if (next === current) return error(400, 'same_password', 'Choose a different password.');
     db.changePassword(user, next);
     return HttpResponse.json({ token: mockToken(user.id), user: db.toPublicUser(user) });
+  }),
+
+  http.post(url('/auth/forgot-password'), async ({ request }) => {
+    await latency();
+    const parsed = forgotPasswordRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success) return error(400, 'validation_error', 'Enter your username or email.');
+    const user = db.findUserByLogin(parsed.data.login);
+    const sent = user ? db.sendResetCode(user) : null;
+    if (user && sent?.code) {
+      // Stands in for the email. Shown in the browser console so the demo can be followed.
+      console.info(`[ElderGuard demo] Password reset code for ${user.username}: ${sent.code}`);
+      db.addActivity(
+        user,
+        `${user.fullName} asked for a password reset code`,
+        'auth',
+        'password_reset',
+        null,
+      );
+    }
+    return HttpResponse.json({
+      sentTo: user && sent ? maskEmail(user.email!) : null,
+      resendAfterSeconds: sent?.waitSeconds ?? RESET_RESEND_SECONDS,
+    });
+  }),
+
+  http.post(url('/auth/verify-reset-code'), async ({ request }) => {
+    await latency();
+    const parsed = verifyResetCodeRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success) return error(400, 'invalid_code', 'Enter the 6-digit code from the email.');
+    const user = db.findUserByLogin(parsed.data.login);
+    const result = user ? db.checkResetCode(user, parsed.data.code) : 'invalid';
+    if (result === 'expired')
+      return error(410, 'code_expired', 'This code has expired. Send a new code and try again.');
+    if (result === 'invalid')
+      return error(400, 'invalid_code', "That code isn't right. Check the email and try again.");
+    return HttpResponse.json({ resetToken: result.token });
+  }),
+
+  http.post(url('/auth/reset-password'), async ({ request }) => {
+    await latency();
+    const parsed = resetPasswordRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success) return error(400, 'weak_password', 'Use at least 8 characters.');
+    const user = db.useResetToken(parsed.data.resetToken, parsed.data.newPassword);
+    if (!user)
+      return error(410, 'reset_expired', 'This reset link has expired. Start again from the login page.');
+    db.addActivity(user, `${user.fullName} reset their password`, 'auth', 'password_reset', null);
+    return HttpResponse.json({ ok: true });
   }),
 
   http.get(url('/auth/me'), ({ request }) => {
