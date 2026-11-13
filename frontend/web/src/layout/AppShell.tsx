@@ -6,7 +6,7 @@ import { useCurrentUser } from '../auth/authContext';
 import { useActiveIncidents } from '../api/queries';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
-import { FACILITY_NAME } from './facility';
+import { useFacilityName } from './facility';
 import { ActiveAlertBanner } from './ActiveAlertBanner';
 import { FallAlertOverlay } from './FallAlertOverlay';
 import { isMaintenance } from '../components/errorMessage';
@@ -16,6 +16,7 @@ import { useDesktopAlertNotifications } from '../features/alertSetup/useDesktopA
 /** SH-01 / SH-02: sidebar + top bar + alert banner around every signed-in page. */
 export function AppShell() {
   const user = useCurrentUser();
+  const facilityName = useFacilityName();
   const [navOpen, setNavOpen] = useState(false);
   const active = useActiveIncidents();
   const incidents = active.data ?? [];
@@ -54,7 +55,7 @@ export function AppShell() {
         <Box sx={{ position: 'sticky', top: 0, zIndex: (t) => t.zIndex.appBar }}>
           <TopBar
             user={user}
-            facilityName={FACILITY_NAME}
+            facilityName={facilityName}
             connectionLost={connectionLost}
             onOpenNav={() => setNavOpen(true)}
           />

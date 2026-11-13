@@ -438,7 +438,15 @@ export const dashboardSummarySchema = z.object({
 });
 export type DashboardSummary = z.infer<typeof dashboardSummarySchema>;
 
-export const activityModuleSchema = z.enum(['auth', 'alerts', 'cameras', 'rooms', 'residents', 'users']);
+export const activityModuleSchema = z.enum([
+  'auth',
+  'alerts',
+  'cameras',
+  'rooms',
+  'residents',
+  'users',
+  'settings',
+]);
 export type ActivityModule = z.infer<typeof activityModuleSchema>;
 
 export const activityActionSchema = z.enum([
@@ -635,3 +643,68 @@ export const apiErrorSchema = z.object({
   message: z.string(),
 });
 export type ApiErrorBody = z.infer<typeof apiErrorSchema>;
+
+// ---------- facility settings (SET-01 to SET-04, Admin/Head edits, everyone reads) ----------
+
+const whole = (min: number, max: number, unit: string) =>
+  z.coerce
+    .number<number>({ error: 'Enter a number' })
+    .int('Use a whole number')
+    .min(min, `Use at least ${min} ${unit}`)
+    .max(max, `Use at most ${max} ${unit}`);
+
+/** SET-01 */
+export const generalSettingsSchema = z.object({
+  facilityName: z.string().trim().min(1, 'Enter the facility name').max(120, 'Use at most 120 characters'),
+  address: z.string().trim().max(300, 'Use at most 300 characters'),
+  contactNumber: z.string().trim().max(40, 'Use at most 40 characters'),
+  /** IANA time zone, e.g. "Asia/Manila". */
+  timeZone: z.string().min(1, 'Choose a time zone'),
+  dateFormat: z.enum(['d MMM yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd']),
+  timeFormat: z.enum(['12h', '24h']),
+});
+export type GeneralSettings = z.infer<typeof generalSettingsSchema>;
+
+/** SET-02. The defaults match the values Den's backend has in config.py and fall_logic.py. */
+export const detectionSettingsSchema = z.object({
+  /** 0.2 to 0.95: how sure the model must be before a pose counts. */
+  confidenceThreshold: z.coerce.number<number>().min(0.2).max(0.95),
+  /** How long a person must stay down before the alert is raised. */
+  confirmationSeconds: z.coerce
+    .number<number>({ error: 'Enter a number' })
+    .min(0.5, 'Use at least 0.5 seconds')
+    .max(10, 'Use at most 10 seconds'),
+  duplicateCooldownSeconds: whole(10, 600, 'seconds'),
+  /** How long snapshots are kept; null keeps them until deleted by hand (what Den's backend does today). */
+  retentionDays: whole(7, 365, 'days').nullable(),
+});
+export type DetectionSettings = z.infer<typeof detectionSettingsSchema>;
+
+/** SET-03. In-app alerts can't be turned off. */
+export const notificationSettingsSchema = z.object({
+  push: z.boolean(),
+  sms: z.boolean(),
+  email: z.boolean(),
+  repeatUntilAcknowledged: z.boolean(),
+  escalate: z.boolean(),
+  escalateAfterMinutes: whole(1, 30, 'minutes'),
+});
+export type NotificationSettings = z.infer<typeof notificationSettingsSchema>;
+
+/** SET-04 */
+export const securitySettingsSchema = z.object({
+  minPasswordLength: whole(8, 32, 'characters'),
+  sessionHours: whole(1, 12, 'hours'),
+  maxFailedLogins: whole(3, 10, 'attempts'),
+  lockMinutes: whole(5, 60, 'minutes'),
+});
+export type SecuritySettings = z.infer<typeof securitySettingsSchema>;
+
+export const facilitySettingsSchema = z.object({
+  general: generalSettingsSchema,
+  detection: detectionSettingsSchema,
+  notifications: notificationSettingsSchema,
+  security: securitySettingsSchema,
+});
+export type FacilitySettings = z.infer<typeof facilitySettingsSchema>;
+export type SettingsSection = keyof FacilitySettings;

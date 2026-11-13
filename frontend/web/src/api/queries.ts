@@ -15,6 +15,8 @@ import type {
   SosRequest,
   CancelSosRequest,
   ReportRange,
+  FacilitySettings,
+  SettingsSection,
 } from '@elderguard/shared';
 import { rangeBounds } from '@elderguard/shared';
 import { ALERT_POLL_MS, CAMERA_PICTURE_MS, HISTORY_LIMIT } from './config';
@@ -32,6 +34,7 @@ export const queryKeys = {
   incidents: ['incidents', 'all'] as const,
   incident: (code: string) => ['incidents', 'detail', code] as const,
   staff: ['staff'] as const,
+  settings: ['settings'] as const,
   staffMember: (id: string) => ['staff', id] as const,
 };
 
@@ -382,4 +385,25 @@ export function useDeleteCamera(id: string) {
 
 export function useTestCameraSource() {
   return useMutation({ mutationFn: (source: string) => api.testCameraSource(source) });
+}
+
+/** SET-01 to SET-04. Not retried: on a server without settings the 501 answer will not change. */
+export function useSettings() {
+  return useQuery({
+    queryKey: queryKeys.settings,
+    queryFn: api.settings,
+    retry: false,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useSaveSettings<S extends SettingsSection>(section: S) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: FacilitySettings[S]) => api.saveSettings(section, body),
+    onSuccess: (data) => {
+      qc.setQueryData(queryKeys.settings, data);
+      void qc.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
 }

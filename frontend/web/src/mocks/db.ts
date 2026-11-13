@@ -6,6 +6,8 @@
 import {
   isActiveStatus,
   type ActivityAction,
+  type FacilitySettings,
+  type SettingsSection,
   type ActivityModule,
   type Camera,
   type Resident,
@@ -455,6 +457,16 @@ export const db = {
       action,
       record,
     });
+  },
+
+  settings(): FacilitySettings {
+    return structuredClone(seed.settings);
+  },
+
+  saveSettings<S extends SettingsSection>(section: S, value: FacilitySettings[S]): FacilitySettings {
+    seed.settings = { ...seed.settings, [section]: value };
+    if (section === 'general') seed.facilityName = seed.settings.general.facilityName;
+    return db.settings();
   },
 
   listActivity(limit: number) {

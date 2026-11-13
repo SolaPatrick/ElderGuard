@@ -28,16 +28,11 @@ import { AlertPreferencesPage } from '../features/alertSetup/AlertPreferencesPag
 import { ProfilePage } from '../features/profile/ProfilePage';
 import { ReportsPage } from '../features/reports/ReportsPage';
 import { ActivityLogPage } from '../features/activity/ActivityLogPage';
+import { SettingsPage } from '../features/settings/SettingsPage';
 import { GenerateReportPage } from '../features/reports/GenerateReportPage';
 import { ReportPreviewPage } from '../features/reports/ReportPreviewPage';
-import { ComingSoonPage } from '../features/system/ComingSoonPage';
 import { NotFoundPage } from '../features/system/NotFoundPage';
 import { RouteErrorPage } from '../features/system/RouteErrorPage';
-
-const soon = (path: string, title: string): RouteObject => ({
-  path,
-  element: <ComingSoonPage title={title} />,
-});
 
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage />, errorElement: <RouteErrorPage /> },
@@ -85,7 +80,8 @@ export const routes: RouteObject[] = [
                   { path: 'reports/new', element: <GenerateReportPage /> },
                   { path: 'reports/preview', element: <ReportPreviewPage /> },
                   { path: 'activity', element: <ActivityLogPage /> },
-                  soon('settings', 'Settings'),
+                  { path: 'settings', element: <SettingsPage /> },
+                  { path: 'settings/:section', element: <SettingsPage /> },
                 ],
               },
               { path: '*', element: <NotFoundPage /> },

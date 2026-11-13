@@ -7,6 +7,7 @@
  */
 import type {
   ActivityEntry,
+  FacilitySettings,
   ArchiveReason,
   Camera,
   EmergencyContact,
@@ -53,6 +54,7 @@ export interface SeedRoom {
 
 export interface Seed {
   facilityName: string;
+  settings: FacilitySettings;
   users: SeedUser[];
   rooms: SeedRoom[];
   residents: SeedResident[];
@@ -570,6 +572,32 @@ export function createSeed(now: Date = new Date()): Seed {
 
   return {
     facilityName: 'Demo Home for the Aged',
+    settings: {
+      general: {
+        facilityName: 'Demo Home for the Aged',
+        address: '',
+        contactNumber: '',
+        timeZone: 'Asia/Manila',
+        dateFormat: 'd MMM yyyy',
+        timeFormat: '12h',
+      },
+      // Same values as Den's backend (config.py and fall_logic.py).
+      detection: {
+        confidenceThreshold: 0.4,
+        confirmationSeconds: 1,
+        duplicateCooldownSeconds: 60,
+        retentionDays: null,
+      },
+      notifications: {
+        push: false,
+        sms: false,
+        email: false,
+        repeatUntilAcknowledged: true,
+        escalate: true,
+        escalateAfterMinutes: 3,
+      },
+      security: { minPasswordLength: 8, sessionHours: 8, maxFailedLogins: 5, lockMinutes: 15 },
+    },
     users,
     rooms,
     residents,

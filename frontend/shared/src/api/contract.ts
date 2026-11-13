@@ -30,6 +30,9 @@ import {
   type ResolveRequest,
   type SosRequest,
   type CancelSosRequest,
+  facilitySettingsSchema,
+  type FacilitySettings,
+  type SettingsSection,
 } from '../schemas';
 import { z } from 'zod';
 import { apiBlob, apiRequest } from './client';
@@ -116,6 +119,10 @@ export const contractApi = {
     apiRequest(`/residents/${enc(id)}/restore`, residentDetailSchema, { method: 'POST' }),
 
   // Users & Access (Admin/Head only)
+  /** SET-01 to SET-04: everyone signed in may read; only the Admin/Head may save. */
+  settings: () => apiRequest('/settings', facilitySettingsSchema),
+  saveSettings: <S extends SettingsSection>(section: S, body: FacilitySettings[S]) =>
+    apiRequest(`/settings/${section}`, facilitySettingsSchema, { method: 'PUT', body }),
   staff: () => apiRequest('/users', z.array(staffMemberSchema)),
   staffMember: (id: string) => apiRequest(`/users/${enc(id)}`, staffMemberSchema),
   createStaff: (body: CreateStaffRequest) =>

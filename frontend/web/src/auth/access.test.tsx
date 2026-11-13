@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
-import { renderApp, signInAs } from '../test/renderApp';
+import { closeAlertPopup, renderApp, signInAs } from '../test/renderApp';
 
 describe('Role-based access', () => {
   it('hides admin pages from caregivers in the sidebar', async () => {
@@ -21,7 +21,9 @@ describe('Role-based access', () => {
 
   it('lets the Admin/Head open admin pages', async () => {
     signInAs('u-teresa');
-    renderApp('/settings');
+    const { user } = renderApp('/settings');
+    // The sample fall alert's popup covers the page until it is closed.
+    await closeAlertPopup(user);
     expect(await screen.findByRole('heading', { name: 'Settings' })).toBeInTheDocument();
   });
 

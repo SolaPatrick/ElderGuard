@@ -28,7 +28,9 @@ import {
   type UpdateStaffRequest,
   type DashboardSummary,
   type Incident,
+  type FacilitySettings,
   type IncidentDetail,
+  type SettingsSection,
   type IncidentEvent,
   type IncidentStatus,
   type LoginRequest,
@@ -706,6 +708,13 @@ export const fastApi = {
   incidents: (limit = 50) => incidentsFrom(`limit=${limit}`, false),
   incidentsBetween,
   incident: (code: string) => incidentDetail(alertIdFromCode(code)),
+  // Den's backend keeps its settings in config.py, with no route to read or change them.
+  settings: async (): Promise<FacilitySettings> => {
+    throw notYet('Settings');
+  },
+  saveSettings: async (_section: SettingsSection, _body: unknown): Promise<FacilitySettings> => {
+    throw notYet('Saving settings');
+  },
   sendSos: async (_body: unknown): Promise<IncidentDetail> => {
     throw notYet('Sending an SOS');
   },
