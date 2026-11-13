@@ -21,6 +21,7 @@ import {
 } from '@mui/material';
 import { useColorScheme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
+import VolumeUpOutlined from '@mui/icons-material/VolumeUpOutlined';
 import NotificationsOutlined from '@mui/icons-material/NotificationsOutlined';
 import Sos from '@mui/icons-material/Sos';
 import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
@@ -175,6 +176,17 @@ export function TopBar({
             <NotificationsOutlined fontSize="small" />
           </ListItemIcon>
           Notifications
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setMenuAnchor(null);
+            void navigate('/profile/alerts');
+          }}
+        >
+          <ListItemIcon>
+            <VolumeUpOutlined fontSize="small" />
+          </ListItemIcon>
+          Alert preferences
         </MenuItem>
         {USE_MOCKS && (
           <MenuItem onClick={runSimulateFall}>

@@ -19,8 +19,9 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Navigate, useLocation, useNavigate } from 'react-router';
+import { Navigate, useLocation } from 'react-router';
 import { loginRequestSchema, type LoginRequest } from '@elderguard/shared';
+import { isAlertSetupDone } from '../alertSetup/alertPrefs';
 import { useAuth } from '../../auth/authContext';
 import { BrandMark } from '../../components/BrandMark';
 import { errorMessage } from '../../components/errorMessage';
@@ -34,7 +35,6 @@ interface LocationState {
 /** AUTH-01 */
 export function LoginPage() {
   const { state, login } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const { from, reason } = (location.state ?? {}) as LocationState;
   const [showPassword, setShowPassword] = useState(false);
@@ -50,13 +50,20 @@ export function LoginPage() {
     defaultValues: { username: '', password: '' },
   });
 
-  if (state.status === 'authenticated') return <Navigate to={from ?? '/'} replace />;
+  if (state.status === 'authenticated') {
+    // Leaving the login page happens here, once the session is set, so there is only one redirect.
+    const next = from && from !== '/login' ? from : '/';
+    // AUTH-07: check notifications and the alarm sound once on each computer.
+    if (!isAlertSetupDone(state.user.id)) {
+      return <Navigate to="/setup-alerts" replace state={{ from: next }} />;
+    }
+    return <Navigate to={next} replace />;
+  }
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
     try {
       await login(values, remember);
-      void navigate(from && from !== '/login' ? from : '/', { replace: true });
     } catch (err) {
       setSubmitError(errorMessage(err));
     }

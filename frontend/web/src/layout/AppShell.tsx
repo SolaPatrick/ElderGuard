@@ -8,6 +8,7 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { ActiveAlertBanner } from './ActiveAlertBanner';
 import { FallAlertOverlay } from './FallAlertOverlay';
+import { useDesktopAlertNotifications } from '../features/alertSetup/useDesktopAlertNotifications';
 
 const FACILITY_NAME = 'Demo Home for the Aged'; // TODO: load from GET /facility once the backend has it
 
@@ -19,6 +20,7 @@ export function AppShell() {
   const incidents = active.data ?? [];
   // Keep showing the last known alerts if a refresh fails, and say the connection is down.
   const connectionLost = active.isError && active.failureCount > 0;
+  useDesktopAlertNotifications(active.data, user.id);
 
   const sidebar = <Sidebar user={user} alertCount={incidents.length} onNavigate={() => setNavOpen(false)} />;
 

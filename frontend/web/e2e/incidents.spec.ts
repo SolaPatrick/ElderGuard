@@ -5,6 +5,7 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole('textbox', { name: /username or email/i }).fill('teresa.reyes');
   await page.getByRole('textbox', { name: 'Password' }).fill('elderguard123');
   await page.getByRole('button', { name: 'Log in' }).click();
+  await page.getByRole('button', { name: 'Start monitoring' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Close alert popup' }).click();
 });
 
