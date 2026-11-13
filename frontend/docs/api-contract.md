@@ -132,21 +132,24 @@ new → acknowledged → confirmed → resolved
                    ↘ false_alarm (closed)
 ```
 
-| Method | Path                            | Body                                                                | Response         |
-| ------ | ------------------------------- | ------------------------------------------------------------------- | ---------------- |
-| GET    | `/incidents?scope=active`       | none                                                                | `incident[]`     |
-| GET    | `/incidents?scope=all&limit=50` | none                                                                | `incident[]`     |
-| GET    | `/incidents/{code}`             | none                                                                | `incidentDetail` |
-| POST   | `/incidents/{code}/acknowledge` | none                                                                | `incidentDetail` |
-| POST   | `/incidents/{code}/classify`    | `{ classification: "confirmed"\|"false_alarm", falseAlarmReason? }` | `incidentDetail` |
-| POST   | `/incidents/{code}/resolve`     | `{ outcome, responseSummary? }`                                     | `incidentDetail` |
-| POST   | `/incidents/{code}/notes`       | `{ body }`                                                          | `incidentDetail` |
+| Method | Path                               | Body                                                                | Response         |
+| ------ | ---------------------------------- | ------------------------------------------------------------------- | ---------------- |
+| GET    | `/incidents?scope=active`          | none                                                                | `incident[]`     |
+| GET    | `/incidents?scope=all&limit=50`    | none                                                                | `incident[]`     |
+| GET    | `/incidents?scope=all&from=…&to=…` | none                                                                | `incident[]`     |
+| GET    | `/incidents/{code}`                | none                                                                | `incidentDetail` |
+| POST   | `/incidents/{code}/acknowledge`    | none                                                                | `incidentDetail` |
+| POST   | `/incidents/{code}/classify`       | `{ classification: "confirmed"\|"false_alarm", falseAlarmReason? }` | `incidentDetail` |
+| POST   | `/incidents/{code}/resolve`        | `{ outcome, responseSummary? }`                                     | `incidentDetail` |
+| POST   | `/incidents/{code}/notes`          | `{ body }`                                                          | `incidentDetail` |
 
 The Incidents page (INC-01/02) asks for `scope=all&limit=500`, newest first, and filters and pages in the browser
 (search, date, status, type, resident, room, who handled it, classification). `limit` must allow at least 500. If
 histories grow past that, the same filters can move to the server as query parameters.
 
 ### SOS
+
+`GET /incidents?scope=all&from=…&to=…` (Reports, RPT-01) returns every incident the caller can see with `from <= detectedAt < to` (ISO date-times), newest first, with no `limit`. Test alarms are left out.
 
 `POST /incidents/sos` with `{ roomId, residentId?, note? }` creates an incident with `type: "sos"`, `status: "new"`, `sentBy` = the caller, `camera: null`, `confidence: null`, and returns `incidentDetail` (status 201). The note, if any, becomes the first response note. A caregiver can only send from a room in their `areas` (otherwise **403**). Every other on-duty staff member then sees it through the usual active-incidents poll.
 

@@ -215,9 +215,14 @@ export const handlers = [
     if (user instanceof Response) return user;
     const params = new URL(request.url).searchParams;
     const scope = params.get('scope') === 'active' ? 'active' : 'all';
-    const limit = Number(params.get('limit') ?? 50);
+    const from = Date.parse(params.get('from') ?? '');
+    const to = Date.parse(params.get('to') ?? '');
+    const between = Number.isFinite(from) && Number.isFinite(to) ? { from, to } : undefined;
+    const limit = between ? Infinity : Number(params.get('limit') ?? 50);
     await latency();
-    return HttpResponse.json(db.listIncidents(user, scope, Number.isFinite(limit) ? limit : 50));
+    return HttpResponse.json(
+      db.listIncidents(user, scope, Number.isFinite(limit) || between ? limit : 50, between),
+    );
   }),
 
   http.get(url('/incidents/:code'), async ({ request, params }) => {

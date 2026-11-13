@@ -26,6 +26,7 @@ import { HelpPage } from '../features/help/HelpPage';
 import { SetupAlertsPage } from '../features/alertSetup/SetupAlertsPage';
 import { AlertPreferencesPage } from '../features/alertSetup/AlertPreferencesPage';
 import { ProfilePage } from '../features/profile/ProfilePage';
+import { ReportsPage } from '../features/reports/ReportsPage';
 import { ComingSoonPage } from '../features/system/ComingSoonPage';
 import { NotFoundPage } from '../features/system/NotFoundPage';
 import { RouteErrorPage } from '../features/system/RouteErrorPage';
@@ -77,7 +78,7 @@ export const routes: RouteObject[] = [
                   { path: 'users/new', element: <CreateUserPage /> },
                   { path: 'users/:id', element: <UserDetailPage /> },
                   { path: 'users/:id/edit', element: <EditUserPage /> },
-                  soon('reports', 'Reports & analytics'),
+                  { path: 'reports', element: <ReportsPage /> },
                   soon('activity', 'Activity log'),
                   soon('settings', 'Settings'),
                 ],
