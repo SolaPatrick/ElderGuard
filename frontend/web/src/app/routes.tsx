@@ -27,6 +27,7 @@ import { SetupAlertsPage } from '../features/alertSetup/SetupAlertsPage';
 import { AlertPreferencesPage } from '../features/alertSetup/AlertPreferencesPage';
 import { ProfilePage } from '../features/profile/ProfilePage';
 import { ReportsPage } from '../features/reports/ReportsPage';
+import { ActivityLogPage } from '../features/activity/ActivityLogPage';
 import { GenerateReportPage } from '../features/reports/GenerateReportPage';
 import { ReportPreviewPage } from '../features/reports/ReportPreviewPage';
 import { ComingSoonPage } from '../features/system/ComingSoonPage';
@@ -83,7 +84,7 @@ export const routes: RouteObject[] = [
                   { path: 'reports', element: <ReportsPage /> },
                   { path: 'reports/new', element: <GenerateReportPage /> },
                   { path: 'reports/preview', element: <ReportPreviewPage /> },
-                  soon('activity', 'Activity log'),
+                  { path: 'activity', element: <ActivityLogPage /> },
                   soon('settings', 'Settings'),
                 ],
               },

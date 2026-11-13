@@ -82,7 +82,7 @@ export const handlers = [
       return error(403, 'account_deactivated', 'This account has been deactivated. Contact your Admin/Head.');
     }
     db.recordLogin(user);
-    db.addActivity(user, `${user.fullName} logged in`);
+    db.addActivity(user, `${user.fullName} logged in`, 'auth', 'logged_in', null);
     return HttpResponse.json({ token: mockToken(user.id), user: db.toPublicUser(user) });
   }),
 
@@ -177,7 +177,7 @@ export const handlers = [
     const problem = db.cameraProblem(parsed.data);
     if (problem) return error(409, 'conflict', problem);
     const saved = db.saveCamera(parsed.data);
-    db.addActivity(admin, `${admin.fullName} registered ${saved.code}`);
+    db.addActivity(admin, `${admin.fullName} registered ${saved.code}`, 'cameras', 'created', saved.code);
     return HttpResponse.json(saved, { status: 201 });
   }),
 
@@ -193,7 +193,13 @@ export const handlers = [
     const problem = db.cameraProblem(parsed.data, id);
     if (problem) return error(409, 'conflict', problem);
     const saved = db.saveCamera(parsed.data, id);
-    db.addActivity(admin, `${admin.fullName} changed the settings of ${saved.code}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} changed the settings of ${saved.code}`,
+      'cameras',
+      'updated',
+      saved.code,
+    );
     return HttpResponse.json(saved);
   }),
 
@@ -206,7 +212,7 @@ export const handlers = [
     const blocker = db.cameraDeleteBlocker(camera.id);
     if (blocker) return error(409, 'camera_in_use', blocker);
     db.deleteCamera(camera.id);
-    db.addActivity(admin, `${admin.fullName} removed ${camera.code}`);
+    db.addActivity(admin, `${admin.fullName} removed ${camera.code}`, 'cameras', 'deleted', camera.code);
     return new HttpResponse(null, { status: 204 });
   }),
 
@@ -250,7 +256,13 @@ export const handlers = [
       i.acknowledgedBy = { id: user.id, fullName: user.fullName };
       db.addEvent(i, 'acknowledged', user);
     });
-    db.addActivity(user, `${user.fullName} acknowledged ${incident.code}`);
+    db.addActivity(
+      user,
+      `${user.fullName} acknowledged ${incident.code}`,
+      'alerts',
+      'acknowledged',
+      incident.code,
+    );
     return HttpResponse.json(incident);
   }),
 
@@ -276,7 +288,13 @@ export const handlers = [
       }
       db.addEvent(i, 'classified', user, classification === 'false_alarm' ? 'False alarm' : 'Confirmed fall');
     });
-    db.addActivity(user, `${user.fullName} classified ${incident.code}`);
+    db.addActivity(
+      user,
+      `${user.fullName} classified ${incident.code}`,
+      'alerts',
+      'classified',
+      incident.code,
+    );
     return HttpResponse.json(incident);
   }),
 
@@ -300,7 +318,7 @@ export const handlers = [
       if (parsed.data.responseSummary) db.addNote(i, user, parsed.data.responseSummary);
       db.addEvent(i, 'resolved', user, parsed.data.outcome);
     });
-    db.addActivity(user, `${user.fullName} resolved ${incident.code}`);
+    db.addActivity(user, `${user.fullName} resolved ${incident.code}`, 'alerts', 'resolved', incident.code);
     return HttpResponse.json(incident);
   }),
 
@@ -328,7 +346,7 @@ export const handlers = [
       if (parsed.data.note) db.addNote(i, user, parsed.data.note);
       db.addEvent(i, 'resolved', user, `SOS cancelled · ${label}`);
     });
-    db.addActivity(user, `${user.fullName} cancelled ${incident.code}`);
+    db.addActivity(user, `${user.fullName} cancelled ${incident.code}`, 'alerts', 'cancelled', incident.code);
     return HttpResponse.json(db.getIncident(user, incident.code));
   }),
 
@@ -372,7 +390,7 @@ export const handlers = [
     const conflict = db.roomConflict(parsed.data);
     if (conflict) return error(409, 'conflict', conflict);
     const room = db.createRoom(parsed.data);
-    db.addActivity(admin, `${admin.fullName} added ${room.name}`);
+    db.addActivity(admin, `${admin.fullName} added ${room.name}`, 'rooms', 'created', room.name);
     return HttpResponse.json(room, { status: 201 });
   }),
 
@@ -388,7 +406,7 @@ export const handlers = [
     const conflict = db.roomConflict(parsed.data, id);
     if (conflict) return error(409, 'conflict', conflict);
     const room = db.updateRoom(id, parsed.data)!;
-    db.addActivity(admin, `${admin.fullName} updated ${room.name}`);
+    db.addActivity(admin, `${admin.fullName} updated ${room.name}`, 'rooms', 'updated', room.name);
     return HttpResponse.json(room);
   }),
 
@@ -401,7 +419,7 @@ export const handlers = [
     const blocker = db.roomDeleteBlocker(room.id);
     if (blocker) return error(409, 'room_in_use', blocker);
     db.deleteRoom(room.id);
-    db.addActivity(admin, `${admin.fullName} deleted ${room.name}`);
+    db.addActivity(admin, `${admin.fullName} deleted ${room.name}`, 'rooms', 'deleted', room.name);
     return new HttpResponse(null, { status: 204 });
   }),
 
@@ -424,7 +442,13 @@ export const handlers = [
     const problem = db.residentProblem(parsed.data);
     if (problem) return error(400, 'validation_error', problem);
     const saved = db.saveResident(parsed.data);
-    db.addActivity(admin, `${admin.fullName} added resident ${saved.fullName}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} added resident ${saved.fullName}`,
+      'residents',
+      'created',
+      saved.fullName,
+    );
     return HttpResponse.json(db.getResident(admin, saved.id), { status: 201 });
   }),
 
@@ -441,7 +465,13 @@ export const handlers = [
     const problem = db.residentProblem(parsed.data, current);
     if (problem) return error(400, 'validation_error', problem);
     const saved = db.saveResident(parsed.data, id);
-    db.addActivity(admin, `${admin.fullName} updated resident ${saved.fullName}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} updated resident ${saved.fullName}`,
+      'residents',
+      'updated',
+      saved.fullName,
+    );
     return HttpResponse.json(db.getResident(admin, saved.id));
   }),
 
@@ -457,7 +487,13 @@ export const handlers = [
     const r = db.findResident(String(params.id));
     if (!r) return error(404, 'not_found', 'This resident does not exist.');
     db.setArchived(r, { reason: parsed.data.reason, note: parsed.data.note?.trim() || null });
-    db.addActivity(admin, `${admin.fullName} archived resident ${r.fullName}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} archived resident ${r.fullName}`,
+      'residents',
+      'archived',
+      r.fullName,
+    );
     return HttpResponse.json(db.getResident(admin, r.id));
   }),
 
@@ -468,7 +504,13 @@ export const handlers = [
     const r = db.findResident(String(params.id));
     if (!r) return error(404, 'not_found', 'This resident does not exist.');
     db.setArchived(r, null);
-    db.addActivity(admin, `${admin.fullName} restored resident ${r.fullName}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} restored resident ${r.fullName}`,
+      'residents',
+      'restored',
+      r.fullName,
+    );
     return HttpResponse.json(db.getResident(admin, r.id));
   }),
 
@@ -506,7 +548,13 @@ export const handlers = [
     const conflict = db.staffConflict(parsed.data.username, parsed.data.email);
     if (conflict) return error(409, 'conflict', conflict);
     const created = db.createStaff(parsed.data);
-    db.addActivity(admin, `${admin.fullName} created an account for ${created.user.fullName}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} created an account for ${created.user.fullName}`,
+      'users',
+      'created',
+      created.user.fullName,
+    );
     return HttpResponse.json(created, { status: 201 });
   }),
 
@@ -529,7 +577,13 @@ export const handlers = [
       );
     }
     const updated = db.updateStaff(staff, parsed.data);
-    db.addActivity(admin, `${admin.fullName} updated ${updated.fullName}'s account`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} updated ${updated.fullName}'s account`,
+      'users',
+      'updated',
+      updated.fullName,
+    );
     return HttpResponse.json(updated);
   }),
 
@@ -541,7 +595,13 @@ export const handlers = [
     if (staff.id === admin.id) return error(400, 'self', "You can't deactivate your own account.");
     await latency();
     const updated = db.setStaffActive(staff, false);
-    db.addActivity(admin, `${admin.fullName} deactivated ${updated.fullName}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} deactivated ${updated.fullName}`,
+      'users',
+      'deactivated',
+      updated.fullName,
+    );
     return HttpResponse.json(updated);
   }),
 
@@ -552,7 +612,13 @@ export const handlers = [
     if (staff instanceof Response) return staff;
     await latency();
     const updated = db.setStaffActive(staff, true);
-    db.addActivity(admin, `${admin.fullName} reactivated ${updated.fullName}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} reactivated ${updated.fullName}`,
+      'users',
+      'reactivated',
+      updated.fullName,
+    );
     return HttpResponse.json(updated);
   }),
 
@@ -563,7 +629,13 @@ export const handlers = [
     if (staff instanceof Response) return staff;
     await latency();
     const result = db.resetStaffPassword(staff);
-    db.addActivity(admin, `${admin.fullName} reset ${staff.fullName}'s password`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} reset ${staff.fullName}'s password`,
+      'users',
+      'password_reset',
+      staff.fullName,
+    );
     return HttpResponse.json(result);
   }),
 

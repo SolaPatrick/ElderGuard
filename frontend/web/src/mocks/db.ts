@@ -5,6 +5,8 @@
  */
 import {
   isActiveStatus,
+  type ActivityAction,
+  type ActivityModule,
   type Camera,
   type Resident,
   type RoomRef,
@@ -437,12 +439,21 @@ export const db = {
     });
   },
 
-  addActivity(user: SeedUser, summary: string) {
+  addActivity(
+    user: SeedUser,
+    summary: string,
+    module: ActivityModule,
+    action: ActivityAction,
+    record: string | null,
+  ) {
     seed.activity.unshift({
       id: nextId('act'),
       user: { id: user.id, fullName: user.fullName },
       summary,
       createdAt: new Date().toISOString(),
+      module,
+      action,
+      record,
     });
   },
 
@@ -638,7 +649,13 @@ export const db = {
       notes: req.note ? [{ id: nextId('note'), body: req.note, author: by, createdAt: now }] : [],
     };
     seed.incidents.push(incident);
-    db.addActivity(user, `${user.fullName} sent an SOS from ${room.name}`);
+    db.addActivity(
+      user,
+      `${user.fullName} sent an SOS from ${room.name}`,
+      'alerts',
+      'sent_sos',
+      incident.code,
+    );
     return incident;
   },
 

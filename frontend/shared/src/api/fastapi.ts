@@ -548,8 +548,47 @@ export const fastApi = {
       }),
     };
   },
-  // No activity log on the backend yet.
-  activity: async (_limit: number): Promise<ActivityEntry[]> => [],
+  // The backend has no activity log yet, but each alert records who acknowledged, classified and
+  // resolved it, and when. Those are real staff actions, so the log is built from them.
+  // Logins and changes to rooms, cameras, residents and users are not recorded anywhere yet.
+  async activity(limit: number): Promise<ActivityEntry[]> {
+    const [alerts, staff] = await Promise.all([alertsRaw(`limit=${ALERT_PAGE}`), people()]);
+    const entries: ActivityEntry[] = [];
+    for (const a of alerts) {
+      const code = alertCode(a);
+      const test = a.is_test ? ' (test alarm)' : '';
+      const add = (
+        id: string,
+        by: number | null,
+        at: string | null,
+        action: ActivityEntry['action'],
+        text: string,
+      ) => {
+        const user = person(staff, by);
+        if (user && at)
+          entries.push({
+            id: `${a.id}-${id}`,
+            user,
+            summary: `${user.fullName} ${text.replace('#', code)}${test}`,
+            createdAt: isoUtc(at),
+            module: 'alerts',
+            action,
+            record: code,
+          });
+      };
+      add('ack', a.acknowledged_by, a.acknowledged_at, 'acknowledged', 'acknowledged #');
+      add(
+        'classified',
+        a.classified_by,
+        a.classified_at,
+        'classified',
+        a.classification === 'false_alarm' ? 'marked # as a false alarm' : 'confirmed # as a fall',
+      );
+      if (a.classification !== 'false_alarm')
+        add('resolved', a.resolved_by, a.resolved_at, 'resolved', 'resolved #');
+    }
+    return entries.toSorted((x, y) => Date.parse(y.createdAt) - Date.parse(x.createdAt)).slice(0, limit);
+  },
 
   async cameras(): Promise<Camera[]> {
     const [cams, statuses, roomList] = await Promise.all([

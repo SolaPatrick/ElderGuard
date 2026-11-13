@@ -56,7 +56,7 @@ Login errors the UI expects: `401 invalid_credentials`, `403 account_deactivated
 }
 ```
 
-`GET /activity?limit=3` returns `[{ id, user: { id, fullName }, summary, createdAt }]`, newest first.
+`GET /activity?limit=500` returns `[{ id, user: { id, fullName }, summary, createdAt, module, action, record }]`, newest first. `module` is one of `auth`, `alerts`, `cameras`, `rooms`, `residents`, `users`. `action` is one of `logged_in`, `acknowledged`, `classified`, `resolved`, `cancelled`, `sent_sos`, `created`, `updated`, `deleted`, `archived`, `restored`, `deactivated`, `reactivated`, `password_reset`, `paused`. `record` names what the action was done to (an incident code, camera code, room, resident or staff name), or `null`. The dashboard shows the latest 3; the activity log (LOG-01) loads the latest 500.
 
 `GET /cameras` returns `[{ id, code, roomId, roomName, roomWing, resolutionFps, liveUrl, status: "online"|"offline"|"error"|"paused"|"connecting", detectionEnabled, lastSeenAt }]`. Caregivers only get the cameras in their areas.
 
