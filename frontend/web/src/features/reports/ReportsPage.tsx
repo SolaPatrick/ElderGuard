@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import {
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
   Grid,
@@ -11,6 +12,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
+import { Link as RouterLink } from 'react-router';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
   formatDate,
@@ -361,7 +363,15 @@ export function ReportsPage() {
 
   return (
     <>
-      <PageHeader title="Reports & analytics" subtitle="Alerts and falls over the dates you choose" />
+      <PageHeader
+        title="Reports & analytics"
+        subtitle="Alerts and falls over the dates you choose"
+        actions={
+          <Button variant="contained" component={RouterLink} to="/reports/new">
+            Generate report
+          </Button>
+        }
+      />
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} sx={{ mb: 6, alignItems: { md: 'center' } }}>
         <ToggleButtonGroup
           exclusive
