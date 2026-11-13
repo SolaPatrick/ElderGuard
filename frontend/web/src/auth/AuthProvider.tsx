@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (err instanceof ApiError && (err.status === 0 || err.status >= 500)) {
           const message =
             err.status === 0 ? err.message : `The ElderGuard server is not answering (error ${err.status}).`;
-          setState({ status: 'unreachable', user: null, message });
+          setState({ status: 'unreachable', user: null, message, maintenance: err.status === 503 });
           return;
         }
         tokenStorage.clear();

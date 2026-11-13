@@ -92,6 +92,7 @@ Web app screens. Every "Done" screen works with the built-in fake server. The la
 | AUTH-09 Session expired, AUTH-10 timeout warning (password to stay signed in), SYS-04 server unreachable page             | Done   | Yes, the login end time comes from the server's token                     |
 | PRF-01 My profile (read-only; the Admin/Head edits their own details in Users & access), change password from the profile | Done   | Partly: no photo or mobile number, and staff can't edit their own details |
 | SH-03 Notification bell dropdown, SH-08 toasts (acknowledge, classify, resolve, note, snapshot)                           | Done   | Yes                                                                       |
+| SYS-05 Scheduled maintenance page and banner (any HTTP 503 from the server or the proxy in front of it)                   | Done   | Den's backend never sends 503 yet, so a proxy must send it                |
 | SYS-01 404, SYS-02 403, SYS-03 crash page                                                                                 | Done   | n/a                                                                       |
 
 Still to do (each is a "coming soon" page or not started):
@@ -102,7 +103,6 @@ Still to do (each is a "coming soon" page or not started):
 | LOG-01/02 Activity log                                             | Den's backend          |
 | SET-01 to SET-04 Settings                                          | Den's backend          |
 | AUTH-02 to AUTH-05 Forgot password                                 | Den's backend          |
-| SYS-05 maintenance page                                            | Frontend               |
 | USR-09 Permissions, USR-10 assign areas, CAM-06 device health      | Den's backend          |
 | Resident photos, room capacity, camera uptime, incident PDF export | Den's backend          |
 | Mobile app (M-01 to M-34)                                          | Frontend (`mobile/`)   |
