@@ -11,6 +11,7 @@ import {
   archiveBodySchema,
   roomRequestSchema,
   updateStaffRequestSchema,
+  staffAssignmentsRequestSchema,
   loginRequestSchema,
   resolveRequestSchema,
   sosRequestSchema,
@@ -610,6 +611,28 @@ export const handlers = [
     db.addActivity(
       admin,
       `${admin.fullName} updated ${updated.fullName}'s account`,
+      'users',
+      'updated',
+      updated.fullName,
+    );
+    return HttpResponse.json(updated);
+  }),
+
+  http.put(url('/users/:id/assignments'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const staff = staffFrom(params);
+    if (staff instanceof Response) return staff;
+    const parsed = staffAssignmentsRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    const problem = db.assignmentProblem(staff, parsed.data);
+    if (problem) return error(409, 'conflict', problem);
+    await latency();
+    const updated = db.assignStaff(staff, parsed.data);
+    db.addActivity(
+      admin,
+      `${admin.fullName} changed the residents and areas assigned to ${updated.fullName}`,
       'users',
       'updated',
       updated.fullName,

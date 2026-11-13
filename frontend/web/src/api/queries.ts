@@ -10,6 +10,7 @@ import type {
   ResidentDetail,
   ResidentRequest,
   UpdateStaffRequest,
+  StaffAssignmentsRequest,
   IncidentDetail,
   ResolveRequest,
   SosRequest,
@@ -255,6 +256,19 @@ export function useUpdateStaff(id: string) {
     onSuccess: (updated) => {
       qc.setQueryData(queryKeys.staffMember(id), updated);
       refreshStaff(qc);
+    },
+  });
+}
+
+/** USR-10. Rooms change what the employee sees, so their alerts, residents and cameras refresh too. */
+export function useAssignStaff(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: StaffAssignmentsRequest) => api.assignStaff(id, body),
+    onSuccess: (updated) => {
+      qc.setQueryData(queryKeys.staffMember(id), updated);
+      refreshStaff(qc);
+      void qc.invalidateQueries({ queryKey: queryKeys.residents });
     },
   });
 }

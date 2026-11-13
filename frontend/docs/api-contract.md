@@ -240,8 +240,10 @@ Every route here returns **403** for employees.
 | POST   | `/users/{id}/deactivate`     | none                                           | `staffMember`                      |
 | POST   | `/users/{id}/reactivate`     | none                                           | `staffMember`                      |
 | POST   | `/users/{id}/reset-password` | none                                           | `{ user, temporaryPassword }`      |
+| PUT    | `/users/{id}/assignments`    | `{ areaIds, residentIds }`                     | `staffMember`                      |
 
-`staffMember` = `user` plus `isActive`, `lastLoginAt` (null if they never logged in) and `createdAt`.
+`staffMember` = `user` plus `isActive`, `residents` (`{ id, fullName }[]`, the current residents they are a named
+caregiver for; empty for the Admin/Head), `lastLoginAt` (null if they never logged in) and `createdAt`.
 
 - `email` is optional (`null`). Usernames are lowercase letters, numbers, `.`, `-` and `_`, and can't be changed.
 - `areaIds` are room ids. They are ignored for the Admin/Head, who sees everything.
@@ -250,6 +252,9 @@ Every route here returns **403** for employees.
 - **409** when the username or email is already used, or when the change would leave no active Admin/Head.
   **400** when the Admin/Head tries to deactivate their own account.
 - A deactivated account can't log in, and its open sessions get **401**.
+- `PUT /users/{id}/assignments` (USR-10) replaces the employee's rooms and the current residents they are a caregiver
+  for (the same link as a resident's `caregiverIds`; residents who moved out keep theirs). **409** for the Admin/Head,
+  an unknown room, or a resident who doesn't exist or moved out.
 
 ## Live updates
 

@@ -577,6 +577,8 @@ export const staffMemberSchema = z.object({
   mustChangePassword: z.boolean(),
   /** Rooms and areas a caregiver monitors. Always empty for the Admin/Head (sees everything). */
   areas: z.array(roomRefSchema),
+  /** Residents this person is a named caregiver for (USR-10). Always empty for the Admin/Head. */
+  residents: z.array(personRefSchema),
   /** Null when the person has never logged in (or the server does not record it). */
   lastLoginAt: isoDateTime.nullable(),
   createdAt: isoDateTime,
@@ -639,6 +641,16 @@ export const createStaffRequestSchema = z.object({
 export type CreateStaffRequest = z.infer<typeof createStaffRequestSchema>;
 export const updateStaffRequestSchema = z.object(staffRequestFields);
 export type UpdateStaffRequest = z.infer<typeof updateStaffRequestSchema>;
+
+/**
+ * USR-10: what PUT /users/{id}/assignments receives. Rooms decide what the employee sees;
+ * residents make them a named caregiver (the same link as the resident form's caregivers).
+ */
+export const staffAssignmentsRequestSchema = z.object({
+  areaIds: z.array(z.string()),
+  residentIds: z.array(z.string()),
+});
+export type StaffAssignmentsRequest = z.infer<typeof staffAssignmentsRequestSchema>;
 
 export const apiErrorSchema = z.object({
   code: z.string(),

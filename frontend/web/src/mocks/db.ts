@@ -24,6 +24,7 @@ import {
   type StaffWithPassword,
   type CreateStaffRequest,
   type UpdateStaffRequest,
+  type StaffAssignmentsRequest,
   type DashboardSummary,
   type Incident,
   type IncidentDetail,
@@ -117,6 +118,12 @@ function toStaff(u: SeedUser): StaffMember {
     isActive: u.status === 'active',
     mustChangePassword: u.mustChangePassword,
     areas: roomRefs(u.areaIds),
+    residents:
+      u.role === 'admin'
+        ? []
+        : seed.residents
+            .filter((r) => r.archived === null && r.caregiverIds.includes(u.id))
+            .map((r) => ({ id: r.id, fullName: r.fullName })),
     lastLoginAt: u.lastLoginAt,
     createdAt: u.createdAt,
   };
@@ -363,6 +370,27 @@ export const db = {
     user.role = req.role;
     user.title = titleFor(req.role);
     user.areaIds = db.cleanAreaIds(req.role, req.areaIds);
+    return toStaff(user);
+  },
+
+  /** Returns an error message when the assignment can't be saved (USR-10). */
+  assignmentProblem(user: SeedUser, req: StaffAssignmentsRequest): string | null {
+    if (user.role === 'admin') return 'The Admin/Head already sees every room and resident.';
+    if (!req.areaIds.every((id) => seed.rooms.some((r) => r.id === id))) return 'That room does not exist.';
+    if (!req.residentIds.every((id) => seed.residents.some((r) => r.id === id && r.archived === null)))
+      return 'That resident does not exist or has moved out.';
+    return null;
+  },
+
+  /** Replaces the rooms and the current residents an employee looks after. Call assignmentProblem first. */
+  assignStaff(user: SeedUser, req: StaffAssignmentsRequest): StaffMember {
+    user.areaIds = db.cleanAreaIds(user.role, req.areaIds);
+    const chosen = new Set(req.residentIds);
+    for (const r of seed.residents) {
+      if (r.archived !== null) continue;
+      const others = r.caregiverIds.filter((id) => id !== user.id);
+      r.caregiverIds = chosen.has(r.id) ? [...others, user.id] : others;
+    }
     return toStaff(user);
   },
 

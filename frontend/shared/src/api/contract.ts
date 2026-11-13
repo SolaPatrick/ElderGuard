@@ -26,6 +26,7 @@ import {
   type ArchiveRequest,
   type CameraRequest,
   type UpdateStaffRequest,
+  type StaffAssignmentsRequest,
   type LoginRequest,
   type ResolveRequest,
   type SosRequest,
@@ -129,6 +130,9 @@ export const contractApi = {
     apiRequest('/users', staffWithPasswordSchema, { method: 'POST', body }),
   updateStaff: (id: string, body: UpdateStaffRequest) =>
     apiRequest(`/users/${enc(id)}`, staffMemberSchema, { method: 'PATCH', body }),
+  /** USR-10: replaces the employee's rooms and the residents they are a caregiver for. */
+  assignStaff: (id: string, body: StaffAssignmentsRequest) =>
+    apiRequest(`/users/${enc(id)}/assignments`, staffMemberSchema, { method: 'PUT', body }),
   deactivateStaff: (id: string) =>
     apiRequest(`/users/${enc(id)}/deactivate`, staffMemberSchema, { method: 'POST' }),
   reactivateStaff: (id: string) =>
