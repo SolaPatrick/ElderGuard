@@ -4,16 +4,24 @@ import { radius, size, space, useColors } from '../theme';
 
 interface Props extends Pick<
   TextInputProps,
-  'value' | 'onChangeText' | 'autoComplete' | 'textContentType' | 'returnKeyType' | 'onSubmitEditing'
+  | 'value'
+  | 'onChangeText'
+  | 'autoComplete'
+  | 'textContentType'
+  | 'returnKeyType'
+  | 'onSubmitEditing'
+  | 'maxLength'
 > {
   label: string;
   error?: string | undefined;
   helper?: string;
   /** Hides the text and adds a Show / Hide button. */
   password?: boolean;
+  /** Several lines of text, with normal capitalization (notes). */
+  multiline?: boolean;
 }
 
-export function TextField({ label, error, helper, password = false, ...input }: Props) {
+export function TextField({ label, error, helper, password = false, multiline = false, ...input }: Props) {
   const c = useColors();
   const id = useId();
   const [focused, setFocused] = useState(false);
@@ -30,12 +38,14 @@ export function TextField({ label, error, helper, password = false, ...input }: 
           {...input}
           accessibilityLabel={label}
           aria-labelledby={id}
-          autoCapitalize="none"
-          autoCorrect={false}
+          autoCapitalize={multiline ? 'sentences' : 'none'}
+          autoCorrect={multiline}
+          multiline={multiline}
+          textAlignVertical={multiline ? 'top' : 'center'}
           secureTextEntry={password && !visible}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          style={[styles.input, { color: c.sys.onSurface }]}
+          style={[styles.input, multiline && styles.multiline, { color: c.sys.onSurface }]}
           placeholderTextColor={c.sys.onSurfaceVariant}
         />
         {password && (
@@ -68,6 +78,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   input: { flex: 1, fontSize: 16, paddingHorizontal: space.space16, paddingVertical: space.space12 },
+  multiline: { minHeight: 112 },
   toggle: { minHeight: size.targetMobile, justifyContent: 'center', paddingHorizontal: space.space16 },
   note: { fontSize: 12 },
 });

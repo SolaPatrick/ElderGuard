@@ -12,7 +12,7 @@ const tabIcon =
     <MaterialIcons name={name} size={24} color={typeof color === 'string' ? color : undefined} />
   );
 
-/** Bottom navigation. Cameras, SOS and Alerts join as their screens are built. */
+/** Bottom navigation. Cameras and SOS join as their screens are built. */
 export default function TabsLayout() {
   const c = useColors();
   const active = useActiveIncidents().data?.length ?? 0;
@@ -30,9 +30,16 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
+          tabBarIcon: tabIcon('home'),
+        }}
+      />
+      <Tabs.Screen
+        name="alerts"
+        options={{
+          title: 'Alerts',
           tabBarBadge: active > 0 ? active : undefined,
           tabBarBadgeStyle: { backgroundColor: c.sys.critical, color: c.sys.onCritical },
-          tabBarIcon: tabIcon('home'),
+          tabBarIcon: tabIcon('notifications-active'),
         }}
       />
       <Tabs.Screen

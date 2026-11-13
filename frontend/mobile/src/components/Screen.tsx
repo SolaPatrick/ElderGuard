@@ -1,14 +1,31 @@
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { numbers } from '@elderguard/shared';
 import { space, useColors } from '../theme';
 
-/** A scrolling page with the safe-area insets and room for the keyboard. */
-export function Screen({ children, centered = false }: { children: ReactNode; centered?: boolean }) {
+const ALL_EDGES: Edge[] = ['top', 'right', 'bottom', 'left'];
+const SIDE_EDGES: Edge[] = ['left', 'right'];
+
+/**
+ * A scrolling page with the safe-area insets and room for the keyboard. Screens under a header or
+ * above the tab bar set `underHeader`, because those already leave room at the top and bottom.
+ */
+export function Screen({
+  children,
+  centered = false,
+  underHeader = false,
+}: {
+  children: ReactNode;
+  centered?: boolean;
+  underHeader?: boolean;
+}) {
   const c = useColors();
   return (
-    <SafeAreaView style={[styles.fill, { backgroundColor: c.sys.surface }]}>
+    <SafeAreaView
+      edges={underHeader ? SIDE_EDGES : ALL_EDGES}
+      style={[styles.fill, { backgroundColor: c.sys.surface }]}
+    >
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           contentContainerStyle={[styles.content, centered && styles.centered]}
