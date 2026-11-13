@@ -6,13 +6,12 @@ import { useCurrentUser } from '../auth/authContext';
 import { useActiveIncidents } from '../api/queries';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
+import { FACILITY_NAME } from './facility';
 import { ActiveAlertBanner } from './ActiveAlertBanner';
 import { FallAlertOverlay } from './FallAlertOverlay';
 import { isMaintenance } from '../components/errorMessage';
 import { SessionTimeoutDialog } from './SessionTimeoutDialog';
 import { useDesktopAlertNotifications } from '../features/alertSetup/useDesktopAlertNotifications';
-
-const FACILITY_NAME = 'Demo Home for the Aged'; // TODO: load from GET /facility once the backend has it
 
 /** SH-01 / SH-02: sidebar + top bar + alert banner around every signed-in page. */
 export function AppShell() {

@@ -4,6 +4,7 @@ export * from './alertOptions';
 export * from './notifications';
 export * from './helpContent';
 export * from './reports';
+export * from './reportDocuments';
 export { lightColors, darkColors, numbers } from './tokens/tokens.generated';
 
 import type { lightColors } from './tokens/tokens.generated';
