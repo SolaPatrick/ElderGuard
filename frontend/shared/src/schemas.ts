@@ -67,6 +67,55 @@ export const changePasswordFormSchema = z
 export type ChangePasswordForm = z.infer<typeof changePasswordFormSchema>;
 export type ChangePasswordRequest = Pick<ChangePasswordForm, 'currentPassword' | 'newPassword'>;
 
+// ---------- forgot password (AUTH-02 to AUTH-05, no sign-in needed) ----------
+
+/** AUTH-02: POST /auth/forgot-password. `login` is the username or email, as on the login page. */
+export const forgotPasswordRequestSchema = z.object({
+  login: z.string().trim().min(1, 'Enter your username or email'),
+});
+export type ForgotPasswordRequest = z.infer<typeof forgotPasswordRequestSchema>;
+
+/**
+ * Always 200, so the answer doesn't confirm whether an account exists. `sentTo` is the masked
+ * email the code went to ("j***@demohome.example"), or null when no code was sent (unknown,
+ * deactivated or no email on the account).
+ */
+export const forgotPasswordResponseSchema = z.object({
+  sentTo: z.string().nullable(),
+  /** How long before another code can be sent. */
+  resendAfterSeconds: z.number().int().min(0),
+});
+export type ForgotPasswordResponse = z.infer<typeof forgotPasswordResponseSchema>;
+
+export const RESET_CODE_PATTERN = /^\d{6}$/;
+
+/** AUTH-03: POST /auth/verify-reset-code. 400 invalid_code, 410 code_expired. */
+export const verifyResetCodeRequestSchema = z.object({
+  login: z.string().min(1),
+  code: z.string().regex(RESET_CODE_PATTERN, 'Enter the 6-digit code'),
+});
+export type VerifyResetCodeRequest = z.infer<typeof verifyResetCodeRequestSchema>;
+export const verifyResetCodeResponseSchema = z.object({ resetToken: z.string().min(1) });
+
+/** AUTH-04: POST /auth/reset-password. 410 reset_expired when the token is used or too old. */
+export const resetPasswordRequestSchema = z.object({
+  resetToken: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+export type ResetPasswordRequest = z.infer<typeof resetPasswordRequestSchema>;
+
+/** AUTH-04 form. The server's only rule today is the length. */
+export const resetPasswordFormSchema = z
+  .object({
+    newPassword: z.string().min(8, 'Use at least 8 characters'),
+    confirmPassword: z.string(),
+  })
+  .refine((v) => v.newPassword === v.confirmPassword, {
+    message: 'The two passwords are different',
+    path: ['confirmPassword'],
+  });
+export type ResetPasswordForm = z.infer<typeof resetPasswordFormSchema>;
+
 export const incidentTypeSchema = z.enum(['fall', 'sos']);
 export type IncidentType = z.infer<typeof incidentTypeSchema>;
 

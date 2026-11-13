@@ -31,6 +31,24 @@ If the backend team prefers other paths or field names, that's fine. Change `web
 
 `areas` lists the rooms and areas a caregiver monitors (AREA_ASSIGNMENT). It is empty for the Admin/Head.
 
+### Forgot password (AUTH-02 to AUTH-05, no sign-in)
+
+| Method | Path                      | Body                          | Response                         |
+| ------ | ------------------------- | ----------------------------- | -------------------------------- |
+| POST   | `/auth/forgot-password`   | `{ login }`                   | `{ sentTo, resendAfterSeconds }` |
+| POST   | `/auth/verify-reset-code` | `{ login, code }`             | `{ resetToken }`                 |
+| POST   | `/auth/reset-password`    | `{ resetToken, newPassword }` | `{ ok: true }`                   |
+
+- `login` is the username or email, as on the login page. The server emails a 6-digit code that works for
+  10 minutes. `forgot-password` always answers 200: `sentTo` is the masked email (`j***@demohome.example`), or null
+  when no code was sent (unknown or deactivated account, or no email), so the answer doesn't confirm an account.
+  A new code can be sent after `resendAfterSeconds` (60).
+- `verify-reset-code`: **400** `invalid_code`; **410** `code_expired` after 10 minutes or 5 wrong tries. A correct
+  code works once and returns a one-time `resetToken` (15 minutes).
+- `reset-password`: **400** when the password is under 8 characters; **410** `reset_expired` when the token was used
+  or is too old. Afterwards the person logs in with the new password.
+- Staff without an email ask the Admin/Head for a temporary password (`POST /users/{id}/reset-password`).
+
 ## Who sees what
 
 - **Admin/Head:** everything.

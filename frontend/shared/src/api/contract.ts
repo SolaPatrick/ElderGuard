@@ -26,6 +26,11 @@ import {
   type ArchiveRequest,
   type CameraRequest,
   type UpdateStaffRequest,
+  forgotPasswordResponseSchema,
+  verifyResetCodeResponseSchema,
+  type ForgotPasswordRequest,
+  type VerifyResetCodeRequest,
+  type ResetPasswordRequest,
   type StaffAssignmentsRequest,
   type LoginRequest,
   type ResolveRequest,
@@ -49,6 +54,13 @@ export const contractApi = {
   logout: () => apiRequest('/auth/logout', ok, { method: 'POST', skipAuthRedirect: true }),
   changePassword: (body: ChangePasswordRequest) =>
     apiRequest('/auth/change-password', loginResponseSchema, { method: 'POST', body }),
+  /** AUTH-02 to AUTH-04: reset a forgotten password with a code sent by email. No sign-in needed. */
+  forgotPassword: (body: ForgotPasswordRequest) =>
+    apiRequest('/auth/forgot-password', forgotPasswordResponseSchema, { method: 'POST', body }),
+  verifyResetCode: (body: VerifyResetCodeRequest) =>
+    apiRequest('/auth/verify-reset-code', verifyResetCodeResponseSchema, { method: 'POST', body }),
+  resetPassword: (body: ResetPasswordRequest) =>
+    apiRequest('/auth/reset-password', z.object({ ok: z.literal(true) }), { method: 'POST', body }),
 
   dashboardSummary: () => apiRequest('/dashboard/summary', dashboardSummarySchema),
   activity: (limit: number) => apiRequest(`/activity?limit=${limit}`, z.array(activityEntrySchema)),

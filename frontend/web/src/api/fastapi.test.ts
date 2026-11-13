@@ -304,6 +304,15 @@ describe('FastAPI adapter: requests', () => {
   it('says clearly that SOS is not on the server yet', async () => {
     await expect(fastApi.sendSos({})).rejects.toMatchObject({ status: 501 });
   });
+
+  it('says clearly that password reset by email and staff assignments are not on the server yet', async () => {
+    await expect(fastApi.forgotPassword({ login: 'joel' })).rejects.toMatchObject({ status: 501 });
+    await expect(fastApi.verifyResetCode({})).rejects.toMatchObject({ status: 501 });
+    await expect(fastApi.resetPassword({})).rejects.toMatchObject({ status: 501 });
+    await expect(fastApi.assignStaff('7', { areaIds: [], residentIds: [] })).rejects.toMatchObject({
+      status: 501,
+    });
+  });
 });
 
 describe('FastAPI adapter: activity log', () => {
