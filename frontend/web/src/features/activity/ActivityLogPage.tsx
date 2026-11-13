@@ -66,6 +66,7 @@ const MODULE_LABEL: Record<ActivityModule, string> = {
   rooms: 'Rooms & areas',
   residents: 'Residents',
   users: 'Users & access',
+  settings: 'Settings',
 };
 
 /** Where a log entry's record can be opened, when it is something with its own page. */

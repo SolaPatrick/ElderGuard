@@ -56,7 +56,7 @@ Login errors the UI expects: `401 invalid_credentials`, `403 account_deactivated
 }
 ```
 
-`GET /activity?limit=500` returns `[{ id, user: { id, fullName }, summary, createdAt, module, action, record }]`, newest first. `module` is one of `auth`, `alerts`, `cameras`, `rooms`, `residents`, `users`. `action` is one of `logged_in`, `acknowledged`, `classified`, `resolved`, `cancelled`, `sent_sos`, `created`, `updated`, `deleted`, `archived`, `restored`, `deactivated`, `reactivated`, `password_reset`, `paused`. `record` names what the action was done to (an incident code, camera code, room, resident or staff name), or `null`. The dashboard shows the latest 3; the activity log (LOG-01) loads the latest 500.
+`GET /activity?limit=500` returns `[{ id, user: { id, fullName }, summary, createdAt, module, action, record }]`, newest first. `module` is one of `auth`, `alerts`, `cameras`, `rooms`, `residents`, `users`, `settings`. `action` is one of `logged_in`, `acknowledged`, `classified`, `resolved`, `cancelled`, `sent_sos`, `created`, `updated`, `deleted`, `archived`, `restored`, `deactivated`, `reactivated`, `password_reset`, `paused`. `record` names what the action was done to (an incident code, camera code, room, resident or staff name), or `null`. The dashboard shows the latest 3; the activity log (LOG-01) loads the latest 500.
 
 `GET /cameras` returns `[{ id, code, roomId, roomName, roomWing, resolutionFps, liveUrl, status: "online"|"offline"|"error"|"paused"|"connecting", detectionEnabled, lastSeenAt }]`. Caregivers only get the cameras in their areas.
 
@@ -254,3 +254,42 @@ Every route here returns **403** for employees.
 ## Live updates
 
 The app currently polls `GET /incidents?scope=active` every 5 seconds (`ALERT_POLL_MS` in `web/src/api/config.ts`). This works with any backend. Later, a WebSocket or Server-Sent Events stream can replace it, and only `web/src/api/queries.ts` would change.
+
+## Settings (SET-01 to SET-04)
+
+| Method | Path                  | Body                       | Returns    |
+| ------ | --------------------- | -------------------------- | ---------- |
+| GET    | `/settings`           | none                       | `settings` |
+| PUT    | `/settings/{section}` | that section's fields only | `settings` |
+
+Everyone signed in may `GET` (the top bar shows the facility name). Only the Admin/Head may `PUT` (others get **403**); a wrong value gets **400** `validation_error`. `{section}` is `general`, `detection`, `notifications` or `security`. The exact limits are the zod schemas in `shared/src/schemas.ts`.
+
+```json
+{
+  "general": {
+    "facilityName": "Demo Home for the Aged",
+    "address": "",
+    "contactNumber": "",
+    "timeZone": "Asia/Manila",
+    "dateFormat": "d MMM yyyy",
+    "timeFormat": "12h"
+  },
+  "detection": {
+    "confidenceThreshold": 0.4,
+    "confirmationSeconds": 1,
+    "duplicateCooldownSeconds": 60,
+    "retentionDays": null
+  },
+  "notifications": {
+    "push": false,
+    "sms": false,
+    "email": false,
+    "repeatUntilAcknowledged": true,
+    "escalate": true,
+    "escalateAfterMinutes": 3
+  },
+  "security": { "minPasswordLength": 8, "sessionHours": 8, "maxFailedLogins": 5, "lockMinutes": 15 }
+}
+```
+
+`retentionDays: null` keeps alert pictures until someone deletes them. Saving a section is logged in the activity log with `module: "settings"`, `action: "updated"`.

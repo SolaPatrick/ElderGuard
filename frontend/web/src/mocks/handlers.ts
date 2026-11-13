@@ -16,6 +16,7 @@ import {
   sosRequestSchema,
 } from '@elderguard/shared';
 import { CANCEL_SOS_REASON_LABEL, cancelSosRequestSchema, isActiveStatus } from '@elderguard/shared';
+import { facilitySettingsSchema, type SettingsSection } from '@elderguard/shared';
 import type { SeedUser } from '@elderguard/shared/fixtures';
 import { delay, http, HttpResponse } from 'msw';
 import { API_BASE_URL } from '../api/config';
@@ -124,6 +125,35 @@ export const handlers = [
       return error(403, 'forbidden', 'Only the Admin/Head can see the activity log.');
     const limit = Number(new URL(request.url).searchParams.get('limit') ?? 20);
     return HttpResponse.json(db.listActivity(Number.isFinite(limit) ? limit : 20));
+  }),
+
+  http.get(url('/settings'), async ({ request }) => {
+    const user = authenticate(request);
+    if (user instanceof Response) return user;
+    await latency();
+    return HttpResponse.json(db.settings());
+  }),
+
+  http.put(url('/settings/:section'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const section = String(params.section);
+    const shape = facilitySettingsSchema.shape;
+    if (!(section in shape)) return error(404, 'not_found', 'There are no such settings.');
+    const key = section as SettingsSection;
+    const parsed = shape[key].safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    await latency();
+    const saved = db.saveSettings(key, parsed.data);
+    const name = {
+      general: 'general',
+      detection: 'detection',
+      notifications: 'notification',
+      security: 'security',
+    }[key];
+    db.addActivity(admin, `${admin.fullName} changed the ${name} settings`, 'settings', 'updated', null);
+    return HttpResponse.json(saved);
   }),
 
   http.get(url('/cameras'), ({ request }) => {
