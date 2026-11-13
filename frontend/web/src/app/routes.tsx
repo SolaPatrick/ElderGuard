@@ -23,6 +23,8 @@ import { CameraDetailPage } from '../features/cameras/CameraDetailPage';
 import { EditCameraPage, RegisterCameraPage } from '../features/cameras/CameraPages';
 import { NotificationsPage } from '../features/notifications/NotificationsPage';
 import { HelpPage } from '../features/help/HelpPage';
+import { SetupAlertsPage } from '../features/alertSetup/SetupAlertsPage';
+import { AlertPreferencesPage } from '../features/alertSetup/AlertPreferencesPage';
 import { ComingSoonPage } from '../features/system/ComingSoonPage';
 import { NotFoundPage } from '../features/system/NotFoundPage';
 import { RouteErrorPage } from '../features/system/RouteErrorPage';
@@ -39,6 +41,7 @@ export const routes: RouteObject[] = [
     errorElement: <RouteErrorPage />,
     children: [
       { path: '/change-password', element: <ChangePasswordPage /> },
+      { path: '/setup-alerts', element: <SetupAlertsPage /> },
       {
         element: <AppShell />,
         children: [
@@ -56,6 +59,7 @@ export const routes: RouteObject[] = [
               { path: 'residents/:id', element: <ResidentProfilePage /> },
               { path: 'notifications', element: <NotificationsPage /> },
               { path: 'help', element: <HelpPage /> },
+              { path: 'profile/alerts', element: <AlertPreferencesPage /> },
               {
                 element: <RequireAuth roles={['admin']} />,
                 children: [
