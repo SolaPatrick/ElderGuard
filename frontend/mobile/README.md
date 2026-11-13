@@ -13,7 +13,13 @@ through the same API code as the web app (`frontend/shared/src/api`). There is n
 | M-34 Session ended notice; "Can't reach ElderGuard" with Try again             | Done   |
 | Home: who is signed in and how many alerts are open (start of M-09 / M-10)     | Done   |
 | More: account, change password, log out (start of M-28)                        | Done   |
-| Alerts M-13 to M-18, then cameras, SOS, residents, notifications               | Next   |
+| M-13 Alerts: Active (elapsed timers, Acknowledge) and History                  | Done   |
+| M-14 Full-screen alert with sound and vibration; several alerts share one      | Done   |
+| M-15 Alert detail; M-16 classify, M-17 resolve, M-18 add note (bottom sheets)  | Done   |
+| Cameras, SOS, residents, notifications, push notifications                     | Next   |
+
+Alerts are checked every 5 seconds while the app is open, the same as the web. Alerts while the app is
+closed need push notifications (M-32), which need a backend change, so they come later.
 
 The phone stays signed in (the token is in the phone's secure storage) and is only signed out by Log out or
 when the server says the session is no longer valid. No signal does not sign anyone out.

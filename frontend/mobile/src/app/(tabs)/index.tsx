@@ -15,7 +15,7 @@ export default function HomeScreen() {
   const oldest = data?.toSorted((a, b) => Date.parse(a.detectedAt) - Date.parse(b.detectedAt))[0];
 
   return (
-    <Screen>
+    <Screen underHeader>
       <View>
         <Text role="heading" style={[styles.title, { color: c.sys.onSurface }]}>
           Hello, {user.fullName}

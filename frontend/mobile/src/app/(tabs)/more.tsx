@@ -16,7 +16,7 @@ export default function MoreScreen() {
   const [leaving, setLeaving] = useState(false);
 
   return (
-    <Screen>
+    <Screen underHeader>
       <View style={[styles.card, { backgroundColor: c.sys.surfaceContainerLow }]}>
         <Text style={[styles.name, { color: c.sys.onSurface }]}>{user.fullName}</Text>
         <Text style={{ color: c.sys.onSurfaceVariant }}>
