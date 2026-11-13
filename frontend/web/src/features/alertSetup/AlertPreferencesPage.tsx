@@ -1,4 +1,5 @@
-import { Grid, Stack, Typography } from '@mui/material';
+import { Grid, Link, Stack, Typography } from '@mui/material';
+import { Link as RouterLink } from 'react-router';
 import { PageHeader } from '../../components/PageHeader';
 import { SectionCard } from '../dashboard/DashboardCards';
 import {
@@ -14,7 +15,17 @@ export function AlertPreferencesPage() {
   const access = useNotificationAccess();
   return (
     <>
-      <PageHeader breadcrumb="My profile / Alert preferences" title="My alert preferences" />
+      <PageHeader
+        breadcrumb={
+          <>
+            <Link component={RouterLink} to="/profile" color="inherit">
+              My profile
+            </Link>{' '}
+            / Alert preferences
+          </>
+        }
+        title="My alert preferences"
+      />
       <Grid container spacing={5}>
         <Grid size={{ xs: 12, md: 6 }}>
           <SectionCard title="Desktop notifications">

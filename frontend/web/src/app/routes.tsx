@@ -25,6 +25,7 @@ import { NotificationsPage } from '../features/notifications/NotificationsPage';
 import { HelpPage } from '../features/help/HelpPage';
 import { SetupAlertsPage } from '../features/alertSetup/SetupAlertsPage';
 import { AlertPreferencesPage } from '../features/alertSetup/AlertPreferencesPage';
+import { ProfilePage } from '../features/profile/ProfilePage';
 import { ComingSoonPage } from '../features/system/ComingSoonPage';
 import { NotFoundPage } from '../features/system/NotFoundPage';
 import { RouteErrorPage } from '../features/system/RouteErrorPage';
@@ -59,6 +60,7 @@ export const routes: RouteObject[] = [
               { path: 'residents/:id', element: <ResidentProfilePage /> },
               { path: 'notifications', element: <NotificationsPage /> },
               { path: 'help', element: <HelpPage /> },
+              { path: 'profile', element: <ProfilePage /> },
               { path: 'profile/alerts', element: <AlertPreferencesPage /> },
               {
                 element: <RequireAuth roles={['admin']} />,

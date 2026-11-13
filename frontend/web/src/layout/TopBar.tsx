@@ -21,6 +21,7 @@ import {
 } from '@mui/material';
 import { useColorScheme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
+import PersonOutlined from '@mui/icons-material/PersonOutlined';
 import VolumeUpOutlined from '@mui/icons-material/VolumeUpOutlined';
 import NotificationsOutlined from '@mui/icons-material/NotificationsOutlined';
 import Sos from '@mui/icons-material/Sos';
@@ -155,6 +156,17 @@ export function TopBar({
       </Button>
 
       <Menu anchorEl={menuAnchor} open={menuAnchor !== null} onClose={() => setMenuAnchor(null)}>
+        <MenuItem
+          onClick={() => {
+            setMenuAnchor(null);
+            void navigate('/profile');
+          }}
+        >
+          <ListItemIcon>
+            <PersonOutlined fontSize="small" />
+          </ListItemIcon>
+          My profile
+        </MenuItem>
         <MenuItem
           onClick={() => {
             setMode(isDark ? 'light' : 'dark');
