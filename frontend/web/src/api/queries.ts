@@ -14,7 +14,9 @@ import type {
   ResolveRequest,
   SosRequest,
   CancelSosRequest,
+  ReportRange,
 } from '@elderguard/shared';
+import { rangeBounds } from '@elderguard/shared';
 import { ALERT_POLL_MS, CAMERA_PICTURE_MS, HISTORY_LIMIT } from './config';
 import { api } from './endpoints';
 
@@ -53,6 +55,18 @@ export function useIncidentHistory() {
     queryKey: [...queryKeys.incidents, 'history'] as const,
     queryFn: () => api.incidents(HISTORY_LIMIT),
     refetchInterval: 30_000,
+  });
+}
+
+/** RPT-01: every incident detected inside the report's whole days. */
+export function useIncidentsBetween(range: ReportRange, enabled = true) {
+  return useQuery({
+    queryKey: [...queryKeys.incidents, 'between', range.from, range.to] as const,
+    queryFn: () => {
+      const { start, end } = rangeBounds(range);
+      return api.incidentsBetween(start.toISOString(), end.toISOString());
+    },
+    enabled,
   });
 }
 

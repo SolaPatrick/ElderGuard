@@ -116,6 +116,8 @@ const rawAlert = z.object({
   room_id: z.number().nullable(),
   fall_type: z.string(),
   confidence: z.number(),
+  /** Made with the test alarm button. Older backends don't send it. */
+  is_test: z.boolean().optional(),
   status: z.enum(['new', 'acknowledged', 'classified', 'resolved']),
   detected_at: dateTime,
   acknowledged_at: dateTime.nullable(),
@@ -364,6 +366,25 @@ async function incidentsFrom(query: string, activeOnly: boolean): Promise<Incide
   return alerts
     .map((a) => summary(toIncident(a, staff, residents)))
     .filter((i) => !activeOnly || isActiveStatus(i.status));
+}
+
+/** The backend sends at most this many alerts per page. */
+const ALERT_PAGE = 500;
+
+/** Every real (not test) alert detected from `from` (inclusive) to `to` (exclusive), page by page. */
+async function incidentsBetween(from: string, to: string): Promise<Incident[]> {
+  const range = `date_from=${encodeURIComponent(from)}&date_to=${encodeURIComponent(to)}`;
+  const alerts: RawAlert[] = [];
+  for (let offset = 0; ; offset += ALERT_PAGE) {
+    const page = await alertsRaw(`${range}&limit=${ALERT_PAGE}&offset=${offset}`);
+    alerts.push(...page);
+    if (page.length < ALERT_PAGE) break;
+  }
+  const [staff, residents] = await Promise.all([people(), everyResident()]);
+  const toMs = Date.parse(to);
+  return alerts
+    .filter((a) => !a.is_test && Date.parse(isoUtc(a.detected_at)) < toMs) // the backend's date_to is inclusive
+    .map((a) => summary(toIncident(a, staff, residents)));
 }
 
 async function incidentDetail(id: number): Promise<IncidentDetail> {
@@ -644,6 +665,7 @@ export const fastApi = {
 
   activeIncidents: () => incidentsFrom('active=true&limit=200', true),
   incidents: (limit = 50) => incidentsFrom(`limit=${limit}`, false),
+  incidentsBetween,
   incident: (code: string) => incidentDetail(alertIdFromCode(code)),
   sendSos: async (_body: unknown): Promise<IncidentDetail> => {
     throw notYet('Sending an SOS');

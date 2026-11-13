@@ -392,9 +392,18 @@ export const db = {
     return visible === null || (roomId !== null && visible.has(roomId));
   },
 
-  listIncidents(user: SeedUser, scope: 'active' | 'all', limit = 50): Incident[] {
+  listIncidents(
+    user: SeedUser,
+    scope: 'active' | 'all',
+    limit = 50,
+    between?: { from: number; to: number },
+  ): Incident[] {
     return seed.incidents
       .filter((i) => db.canSeeRoom(user, i.room.id))
+      .filter(
+        (i) =>
+          !between || (Date.parse(i.detectedAt) >= between.from && Date.parse(i.detectedAt) < between.to),
+      )
       .filter((i) => scope === 'all' || isActiveStatus(i.status))
       .toSorted((a, b) => Date.parse(b.detectedAt) - Date.parse(a.detectedAt))
       .slice(0, limit)

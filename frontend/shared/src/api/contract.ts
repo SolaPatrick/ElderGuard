@@ -60,6 +60,12 @@ export const contractApi = {
 
   activeIncidents: () => apiRequest('/incidents?scope=active', z.array(incidentSchema)),
   incidents: (limit = 50) => apiRequest(`/incidents?scope=all&limit=${limit}`, z.array(incidentSchema)),
+  /** RPT-01: every incident detected from `from` (inclusive) to `to` (exclusive), ISO date-times. */
+  incidentsBetween: (from: string, to: string) =>
+    apiRequest(
+      `/incidents?scope=all&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      z.array(incidentSchema),
+    ),
   incident: (code: string) => apiRequest(`/incidents/${enc(code)}`, incidentDetailSchema),
   sendSos: (body: SosRequest) => apiRequest('/incidents/sos', incidentDetailSchema, { method: 'POST', body }),
   /** SOS-03. Only the sender or the Admin/Head, while the SOS is open. */
