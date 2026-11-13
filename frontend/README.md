@@ -70,19 +70,39 @@ React 19 · TypeScript 7 (strict) · Vite 8 · MUI 9 · React Router 8 · TanSta
 
 ## What is built so far
 
-| Screen                                                                        | Status                         |
-| ----------------------------------------------------------------------------- | ------------------------------ |
-| AUTH-01 Login (errors, deactivated, remember me)                              | Done                           |
-| SH-01/02 Layout shell (admin and caregiver sidebars)                          | Done                           |
-| SH-05/06 Incoming alert popup with alarm sound                                | Done                           |
-| SH-07 Active alert banner, SH-09 connection lost banner                       | Done                           |
-| SOS-01 Send SOS (press and hold 3 s, from the top bar or caregiver dashboard) | Done                           |
-| DASH-01 Admin dashboard                                                       | Done                           |
-| DASH-02 Caregiver dashboard (only their own alerts, residents and cameras)    | Done                           |
-| ALT-01 Alert queue, ALT-02 alert detail, ALT-03 classify, ALT-04 resolve      | Done                           |
-| INC-01 Incident history (no filters yet), INC-03/04 detail, INC-05 add note   | Done                           |
-| MON-01 Live Monitoring grid (layouts, area filter, search), MON-02 camera     | Done (placeholder until feeds) |
-| RES-01 Resident list (cards and table, filters), RES-03 resident profile      | Done (editing comes next)      |
-| SYS-01 404, SYS-02 403, SYS-03 crash page                                     | Done                           |
-| Night mode                                                                    | Done (profile menu)            |
-| Everything else in the Figma file                                             | Placeholder "coming soon" page |
+Web app screens. Every "Done" screen works with the built-in fake server. The last column says how much of it works with Den's FastAPI backend today; `docs/backend-gaps.md` has the details.
+
+| Screen                                                                                   | Status | Den's backend                                             |
+| ---------------------------------------------------------------------------------------- | ------ | --------------------------------------------------------- |
+| AUTH-01 Login (errors, deactivated, remember me), change password after a temporary one  | Done   | Yes                                                       |
+| SH-01/02 Layout shell (admin and caregiver sidebars), night mode                         | Done   | Yes                                                       |
+| SH-05/06 Incoming alert popup with alarm sound                                           | Done   | Yes                                                       |
+| SH-07 Active alert banner, SH-09 connection lost banner                                  | Done   | Yes                                                       |
+| SOS-01 Send SOS (press and hold 3 s), SOS-02 SOS status, SOS-03 cancel SOS               | Done   | No, SOS is not on the server yet                          |
+| DASH-01 Admin dashboard, DASH-02 caregiver dashboard                                     | Done   | Partly: no staff activity card, caregivers see all rooms  |
+| ALT-01 Alert queue, ALT-02 alert detail, ALT-03 classify, ALT-04 resolve                 | Done   | Yes                                                       |
+| INC-01 Incident history, INC-02 filters, INC-03/04 detail, INC-05 add note               | Done   | Yes                                                       |
+| MON-01 Live Monitoring grid (camera pictures every 2 s), MON-02 single camera live video | Done   | Yes, except cameras with detection paused                 |
+| RES-01 to RES-07 Residents: list, add, profile, edit, assign, archive and restore        | Done   | Partly: age and one contact only, no caregivers or photos |
+| ROOM-01 to ROOM-04 Rooms & areas: list, add/edit, detail, delete                         | Done   | Yes, no capacity                                          |
+| CAM-01 to CAM-05, CAM-07 Cameras: list, register, detail, edit, move, remove             | Done   | Yes                                                       |
+| USR-01 to USR-08 Users & access: list, create, detail, edit, deactivate, reset password  | Done   | Yes, without room assignment                              |
+| NTF-01 Notification center, PRF-04 Help & About                                          | Done   | Yes                                                       |
+| SYS-01 404, SYS-02 403, SYS-03 crash page                                                | Done   | n/a                                                       |
+
+Still to do (each is a "coming soon" page or not started):
+
+| Screen                                                             | Waiting on             |
+| ------------------------------------------------------------------ | ---------------------- |
+| RPT-01 to RPT-04 Reports & analytics                               | Den's backend (mostly) |
+| LOG-01/02 Activity log                                             | Den's backend          |
+| SET-01 to SET-04 Settings                                          | Den's backend          |
+| AUTH-02 to AUTH-05 Forgot password                                 | Den's backend          |
+| AUTH-07 Enable alerts and sound check, PRF-03 alert preferences    | Frontend               |
+| AUTH-09 Session expired, AUTH-10 timeout warning                   | Frontend               |
+| PRF-01 My profile                                                  | Frontend               |
+| SH-03 Bell dropdown, SH-08 toasts                                  | Frontend               |
+| SYS-04 Offline page, SYS-05 maintenance page                       | Frontend               |
+| USR-09 Permissions, USR-10 assign areas, CAM-06 device health      | Den's backend          |
+| Resident photos, room capacity, camera uptime, incident PDF export | Den's backend          |
+| Mobile app (M-01 to M-34)                                          | Frontend (`mobile/`)   |
