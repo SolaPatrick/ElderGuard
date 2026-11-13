@@ -16,7 +16,13 @@ through the same API code as the web app (`frontend/shared/src/api`). There is n
 | M-13 Alerts: Active (elapsed timers, Acknowledge) and History                  | Done   |
 | M-14 Full-screen alert with sound and vibration; several alerts share one      | Done   |
 | M-15 Alert detail; M-16 classify, M-17 resolve, M-18 add note (bottom sheets)  | Done   |
-| Cameras, SOS, residents, notifications, push notifications                     | Next   |
+| M-11 Cameras (status, latest picture, area filter), M-12 camera view           | Done   |
+| M-22 Residents (search), M-23 resident profile (read-only, contacts, history)  | Done   |
+| SOS, notifications, push notifications, profile and help                       | Next   |
+
+Camera pictures come from Den's `/cameras/{id}/snapshot`: every 10 seconds in the list and every 2 seconds
+in the camera view, and only while that screen is showing. Phones can't show the MJPEG stream reliably in an
+image, so the app uses pictures. SOS waits for Den's backend, which has no SOS route yet.
 
 Alerts are checked every 5 seconds while the app is open, the same as the web. Alerts while the app is
 closed need push notifications (M-32), which need a backend change, so they come later.
