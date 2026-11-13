@@ -314,6 +314,7 @@ export function createSeed(now: Date = new Date()): Seed {
     status,
     detectionEnabled: status !== 'paused',
     lastSeenAt: status === 'offline' ? t(25 * MIN) : t(5_000),
+    statusDetail: null,
   });
   const cameras: Camera[] = [
     cam(1, 'r-101'),

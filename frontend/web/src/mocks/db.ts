@@ -267,6 +267,7 @@ export const db = {
         status: 'connecting',
         detectionEnabled: true,
         lastSeenAt: null,
+        statusDetail: null,
       };
       seed.cameras.push(camera);
     }

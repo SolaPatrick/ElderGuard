@@ -20,6 +20,7 @@ import { RoomsPage } from '../features/rooms/RoomsPage';
 import { RoomDetailPage } from '../features/rooms/RoomDetailPage';
 import { CamerasPage } from '../features/cameras/CamerasPage';
 import { CameraDetailPage } from '../features/cameras/CameraDetailPage';
+import { DeviceHealthPage } from '../features/cameras/DeviceHealthPage';
 import { EditCameraPage, RegisterCameraPage } from '../features/cameras/CameraPages';
 import { NotificationsPage } from '../features/notifications/NotificationsPage';
 import { HelpPage } from '../features/help/HelpPage';
@@ -70,6 +71,7 @@ export const routes: RouteObject[] = [
                   { path: 'rooms/:id', element: <RoomDetailPage /> },
                   { path: 'cameras', element: <CamerasPage /> },
                   { path: 'cameras/new', element: <RegisterCameraPage /> },
+                  { path: 'cameras/health', element: <DeviceHealthPage /> },
                   { path: 'cameras/:id', element: <CameraDetailPage /> },
                   { path: 'cameras/:id/edit', element: <EditCameraPage /> },
                   { path: 'users', element: <UsersPage /> },

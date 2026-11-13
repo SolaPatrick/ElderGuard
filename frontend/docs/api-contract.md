@@ -58,7 +58,7 @@ Login errors the UI expects: `401 invalid_credentials`, `403 account_deactivated
 
 `GET /activity?limit=500` returns `[{ id, user: { id, fullName }, summary, createdAt, module, action, record }]`, newest first. `module` is one of `auth`, `alerts`, `cameras`, `rooms`, `residents`, `users`, `settings`. `action` is one of `logged_in`, `acknowledged`, `classified`, `resolved`, `cancelled`, `sent_sos`, `created`, `updated`, `deleted`, `archived`, `restored`, `deactivated`, `reactivated`, `password_reset`, `paused`. `record` names what the action was done to (an incident code, camera code, room, resident or staff name), or `null`. The dashboard shows the latest 3; the activity log (LOG-01) loads the latest 500.
 
-`GET /cameras` returns `[{ id, code, roomId, roomName, roomWing, resolutionFps, liveUrl, status: "online"|"offline"|"error"|"paused"|"connecting", detectionEnabled, lastSeenAt }]`. Caregivers only get the cameras in their areas.
+`GET /cameras` returns `[{ id, code, roomId, roomName, roomWing, resolutionFps, liveUrl, status: "online"|"offline"|"error"|"paused"|"connecting", detectionEnabled, lastSeenAt, statusDetail }]`. `statusDetail` is what is wrong, in words staff can act on (e.g. "Cannot open the video source"), or `null`. Caregivers only get the cameras in their areas.
 
 - `resolutionFps` is a display string such as `"1080p · 15 FPS"`, or `null`.
 - `liveUrl` is a URL the browser can play, and `liveFormat` says how: `"video"` for a `<video>` tag (for example an MP4 or HLS gateway in front of the RTSP camera), `"mjpeg"` for an `<img>` tag. Send `null` for both until streaming is ready; the camera page then shows a placeholder. The stream link must work without the login header (an `<img>` or `<video>` tag can't send one).

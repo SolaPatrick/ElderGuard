@@ -255,9 +255,10 @@ describe('FastAPI adapter: requests', () => {
       liveFormat: 'mjpeg',
       liveUrl: '/api/cameras/3/stream?token=jwt-abc',
     });
-    expect(cam2).toMatchObject({ status: 'error', roomName: null });
+    expect(cam1!.statusDetail).toBeNull();
+    expect(cam2).toMatchObject({ status: 'error', roomName: null, statusDetail: 'Cannot open the camera' });
     // The server only runs a camera while detection is on; otherwise its stream is a grey card.
-    expect(cam3).toMatchObject({ status: 'paused', liveUrl: null, liveFormat: null });
+    expect(cam3).toMatchObject({ status: 'paused', liveUrl: null, liveFormat: null, statusDetail: null });
   });
 
   it('downloads the newest picture with the login header, not a token in the link', async () => {

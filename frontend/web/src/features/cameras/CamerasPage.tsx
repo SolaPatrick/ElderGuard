@@ -60,9 +60,14 @@ export function CamerasPage() {
         title="Cameras & Devices"
         subtitle={cameras.data ? `${all.length} ${all.length === 1 ? 'camera' : 'cameras'}` : undefined}
         actions={
-          <Button variant="contained" startIcon={<AddOutlined />} component={RouterLink} to="/cameras/new">
-            Register camera
-          </Button>
+          <Stack direction="row" spacing={2}>
+            <Button variant="outlined" component={RouterLink} to="/cameras/health">
+              Device health
+            </Button>
+            <Button variant="contained" startIcon={<AddOutlined />} component={RouterLink} to="/cameras/new">
+              Register camera
+            </Button>
+          </Stack>
         }
       />
 
