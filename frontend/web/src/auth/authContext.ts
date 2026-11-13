@@ -4,7 +4,7 @@ import type { LoginRequest, User } from '@elderguard/shared';
 export type AuthState =
   | { status: 'loading'; user: null }
   /** A token is saved but the server could not be reached to check it (SYS-04). */
-  | { status: 'unreachable'; user: null; message: string }
+  | { status: 'unreachable'; user: null; message: string; maintenance: boolean }
   | { status: 'anonymous'; user: null; reason?: 'expired' | 'logged_out' }
   | { status: 'authenticated'; user: User };
 

@@ -17,7 +17,8 @@ export function RequireAuth({ roles }: { roles?: Role[] }) {
       </Box>
     );
   }
-  if (state.status === 'unreachable') return <ServerUnreachablePage message={state.message} />;
+  if (state.status === 'unreachable')
+    return <ServerUnreachablePage message={state.message} maintenance={state.maintenance} />;
   if (state.status === 'anonymous') {
     return (
       <Navigate
