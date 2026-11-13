@@ -21,6 +21,7 @@ import { classifyRequestSchema, type ClassifyRequest, type IncidentDetail } from
 import { useClassify } from '../../api/queries';
 import { FALSE_ALARM_REASONS } from './options';
 import { errorMessage } from '../../components/errorMessage';
+import { useToast } from '../../components/toastContext';
 
 /** ALT-03 */
 export function ClassifyDialog({
@@ -33,6 +34,7 @@ export function ClassifyDialog({
   onClose: () => void;
 }) {
   const classify = useClassify(incident.code);
+  const toast = useToast();
   const { control, handleSubmit, reset, formState } = useForm<ClassifyRequest>({
     resolver: zodResolver(classifyRequestSchema),
     defaultValues: { classification: 'confirmed', falseAlarmReason: '' },
@@ -47,7 +49,15 @@ export function ClassifyDialog({
 
   const onSubmit = handleSubmit((values) =>
     classify.mutate(values.classification === 'confirmed' ? { classification: 'confirmed' } : values, {
-      onSuccess: close,
+      onSuccess: (updated) => {
+        toast({
+          message:
+            updated.status === 'false_alarm'
+              ? `Closed as a false alarm · ${updated.code}`
+              : `Marked as a confirmed incident · ${updated.code}`,
+        });
+        close();
+      },
     }),
   );
 

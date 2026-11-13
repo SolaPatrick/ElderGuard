@@ -55,7 +55,6 @@ export function AppShell() {
           <TopBar
             user={user}
             facilityName={FACILITY_NAME}
-            alertCount={incidents.length}
             connectionLost={connectionLost}
             onOpenNav={() => setNavOpen(true)}
           />

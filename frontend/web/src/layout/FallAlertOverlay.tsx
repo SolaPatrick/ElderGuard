@@ -31,6 +31,7 @@ import { CameraSnapshot } from '../components/CameraSnapshot';
 import { errorMessage } from '../components/errorMessage';
 import { useAlarm } from '../hooks/useAlarm';
 import { useNow } from '../hooks/useNow';
+import { useToast } from '../components/toastContext';
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -57,6 +58,7 @@ export function FallAlertOverlay({ incidents }: { incidents: Incident[] }) {
   const location = useLocation();
   const now = useNow();
   const acknowledge = useAcknowledge();
+  const toast = useToast();
   const [dismissed, setDismissed] = useState<ReadonlySet<string>>(() => new Set());
   const [selected, setSelected] = useState<string | null>(null);
   const userId = useCurrentUser().id;
@@ -102,7 +104,10 @@ export function FallAlertOverlay({ incidents }: { incidents: Incident[] }) {
   const many = pending.length > 1;
   const onAcknowledge = () =>
     acknowledge.mutate(current.code, {
-      onSuccess: () => goToDetail(),
+      onSuccess: (updated) => {
+        toast({ message: `Acknowledged · ${updated.code}` });
+        goToDetail();
+      },
     });
 
   const isSos = current.type === 'sos';

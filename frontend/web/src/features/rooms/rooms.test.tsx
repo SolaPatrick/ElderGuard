@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../mocks/node';
-import { renderApp, signInAs } from '../../test/renderApp';
+import { renderApp, signInAs, closeAlertPopup as closeAlertPopupShared } from '../../test/renderApp';
 
 async function asAdmin(path: string) {
   signInAs('u-teresa');
@@ -100,7 +100,7 @@ describe('Room detail, edit and delete (ROOM-02 to ROOM-04)', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Save room' }));
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Room 101A' })).toBeInTheDocument();
-    renderApp('/monitoring/CAM-01');
+    await closeAlertPopupShared(renderApp('/monitoring/CAM-01').user);
     expect(await screen.findByRole('heading', { level: 1, name: 'CAM-01 · Room 101A' })).toBeInTheDocument();
   });
 

@@ -160,3 +160,47 @@ export function markRead(s: ReadState, id: string, read: boolean): ReadState {
 export function markAllRead(items: NotificationItem[], now = Date.now()): ReadState {
   return { readBefore: now, read: items.filter((n) => n.at === null).map((n) => n.id), unread: [] };
 }
+
+/*
+ * One read state for the whole app, so every place that shows notifications (the bell, the
+ * notification page, the phone's More tab) agrees right away. Hooks read it with
+ * React's useSyncExternalStore(subscribeReadState, () => getReadState(userId)).
+ */
+let cached: { userId: string; raw: string | null; state: ReadState } | null = null;
+const readStateListeners = new Set<() => void>();
+
+function storedRaw(userId: string): string | null {
+  try {
+    return localStorage.getItem(key(userId));
+  } catch {
+    return null;
+  }
+}
+
+/** The same object until the stored state changes, as useSyncExternalStore needs. */
+export function getReadState(userId: string): ReadState {
+  let raw = storedRaw(userId);
+  if (cached?.userId === userId && cached.raw === raw) return cached.state;
+  const state = loadReadState(userId, Date.now());
+  if (raw === null) {
+    // Save the starting point right away, so "the last 24 hours" is counted from the first
+    // visit and does not move on every page load. (Stays null if storage is blocked.)
+    saveReadState(userId, state);
+    raw = storedRaw(userId);
+  }
+  cached = { userId, raw, state };
+  return state;
+}
+
+export function setReadState(userId: string, state: ReadState) {
+  saveReadState(userId, state);
+  cached = { userId, raw: storedRaw(userId), state };
+  readStateListeners.forEach((l) => l());
+}
+
+export function subscribeReadState(listener: () => void): () => void {
+  readStateListeners.add(listener);
+  return () => {
+    readStateListeners.delete(listener);
+  };
+}

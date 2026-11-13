@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   Avatar,
-  Badge,
   Box,
   Button,
   Dialog,
@@ -14,9 +13,7 @@ import {
   ListItemIcon,
   Menu,
   MenuItem,
-  Snackbar,
   Stack,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import { useColorScheme } from '@mui/material/styles';
@@ -38,18 +35,18 @@ import { StatusChip } from '../components/StatusChip';
 import { USE_MOCKS } from '../api/config';
 import { simulateFall } from '../mocks/devTools';
 import { errorMessage } from '../components/errorMessage';
+import { useToast } from '../components/toastContext';
 import { SosDialog } from '../features/sos/SosDialog';
+import { NotificationBell } from './NotificationBell';
 
 export function TopBar({
   user,
   facilityName,
-  alertCount,
   connectionLost,
   onOpenNav,
 }: {
   user: User;
   facilityName: string;
-  alertCount: number;
   connectionLost: boolean;
   onOpenNav: () => void;
 }) {
@@ -59,7 +56,7 @@ export function TopBar({
   const { mode, systemMode, setMode } = useColorScheme();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const toast = useToast();
   const [sosOpen, setSosOpen] = useState(false);
   const isDark = (mode === 'system' ? systemMode : mode) === 'dark';
 
@@ -67,10 +64,13 @@ export function TopBar({
     setMenuAnchor(null);
     try {
       const incident = await simulateFall();
-      setToast(`Simulated ${incident.code}. The alert will appear in a few seconds.`);
+      toast({
+        severity: 'info',
+        message: `Simulated ${incident.code}. The alert will appear in a few seconds.`,
+      });
       void queryClient.invalidateQueries({ queryKey: ['incidents'] });
     } catch (err) {
-      setToast(errorMessage(err));
+      toast({ severity: 'error', message: errorMessage(err) });
     }
   };
 
@@ -102,13 +102,7 @@ export function TopBar({
         )}
       </Box>
       <Box sx={{ flex: 1 }} />
-      <Tooltip title="Alerts">
-        <IconButton onClick={() => navigate('/alerts')} aria-label={`Alerts, ${alertCount} active`}>
-          <Badge badgeContent={alertCount} color="error">
-            <NotificationsOutlined />
-          </Badge>
-        </IconButton>
-      </Tooltip>
+      <NotificationBell />
       <Button
         variant="contained"
         startIcon={<Sos />}
@@ -238,14 +232,6 @@ export function TopBar({
           </Button>
         </DialogActions>
       </Dialog>
-
-      <Snackbar
-        open={toast !== null}
-        autoHideDuration={4000}
-        onClose={() => setToast(null)}
-        message={toast}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
     </Box>
   );
 }
