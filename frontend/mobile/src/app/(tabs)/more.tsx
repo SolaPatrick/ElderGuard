@@ -5,13 +5,15 @@ import { useAuth, useCurrentUser } from '../../auth/authContext';
 import { Button } from '../../components/Button';
 import { Screen } from '../../components/Screen';
 import { API_BASE_URL } from '../../config';
+import { useNotifications } from '../../hooks/useNotifications';
 import { radius, space, useColors } from '../../theme';
 
-/** Start of M-28 More: the signed-in account, Change password (M-30) and Log out. */
+/** M-28 More: the account, Notifications, Residents, Help, Change password (M-30) and Log out. */
 export default function MoreScreen() {
   const { logout } = useAuth();
   const user = useCurrentUser();
   const c = useColors();
+  const { unreadCount } = useNotifications();
   const [confirming, setConfirming] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
@@ -23,7 +25,13 @@ export default function MoreScreen() {
           {user.title} · {user.username}
         </Text>
       </View>
+      <Button
+        label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}
+        variant="outlined"
+        onPress={() => router.push('/notifications')}
+      />
       <Button label="Residents" variant="outlined" onPress={() => router.push('/residents')} />
+      <Button label="Help & About" variant="outlined" onPress={() => router.push('/help')} />
       <Button label="Change password" variant="outlined" onPress={() => router.push('/change-password')} />
       {confirming ? (
         <View style={[styles.card, { borderColor: c.sys.outlineVariant, borderWidth: 1 }]}>
