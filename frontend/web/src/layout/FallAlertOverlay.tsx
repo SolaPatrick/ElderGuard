@@ -10,6 +10,8 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import ChevronLeft from '@mui/icons-material/ChevronLeft';
+import ChevronRight from '@mui/icons-material/ChevronRight';
 import Close from '@mui/icons-material/Close';
 import { useLocation, useNavigate } from 'react-router';
 import {
@@ -45,6 +47,10 @@ function Field({ label, value }: { label: string; value: string }) {
  * SH-05 / SH-06: takes over the screen when a new alert arrives, with a
  * repeating alarm, until someone acknowledges it or closes the popup.
  * Closing only hides it on this computer; the red banner stays until it is handled.
+ *
+ * When several alerts wait, they share one popup ("Alert 1 of 3" with
+ * previous / next), and one close hides all of them at once. An alert that
+ * arrives after that opens the popup again.
  */
 export function FallAlertOverlay({ incidents }: { incidents: Incident[] }) {
   const navigate = useNavigate();
@@ -52,6 +58,7 @@ export function FallAlertOverlay({ incidents }: { incidents: Incident[] }) {
   const now = useNow();
   const acknowledge = useAcknowledge();
   const [dismissed, setDismissed] = useState<ReadonlySet<string>>(() => new Set());
+  const [selected, setSelected] = useState<string | null>(null);
   const userId = useCurrentUser().id;
 
   const pending = useMemo(
@@ -65,19 +72,34 @@ export function FallAlertOverlay({ incidents }: { incidents: Incident[] }) {
         .toSorted((a, b) => Date.parse(a.detectedAt) - Date.parse(b.detectedAt)),
     [incidents, dismissed, location.pathname, userId],
   );
-  const current = pending[0];
+  const index = Math.max(
+    0,
+    pending.findIndex((i) => i.code === selected),
+  );
+  const current = pending.at(index);
   useAlarm(current !== undefined);
 
   if (!current) return null;
 
-  const dismiss = () => {
+  const show = (next: number) => {
     acknowledge.reset();
-    setDismissed((prev) => new Set(prev).add(current.code));
+    setSelected(pending.at(next)?.code ?? null);
   };
+  const hide = (codes: string[]) => {
+    acknowledge.reset();
+    setDismissed((prev) => new Set([...prev, ...codes]));
+  };
+  /** Hides every alert waiting in the popup on this computer. */
+  const closeAll = () => hide(pending.map((i) => i.code));
   const goToDetail = () => {
-    dismiss();
+    hide([current.code]);
     void navigate(`/alerts/${current.code}`);
   };
+  const goToQueue = () => {
+    closeAll();
+    void navigate('/alerts');
+  };
+  const many = pending.length > 1;
   const onAcknowledge = () =>
     acknowledge.mutate(current.code, {
       onSuccess: () => goToDetail(),
@@ -91,7 +113,7 @@ export function FallAlertOverlay({ incidents }: { incidents: Incident[] }) {
       open
       onClose={(_e, reason) => {
         // Clicking outside must not hide an emergency by accident.
-        if (reason !== 'backdropClick') dismiss();
+        if (reason !== 'backdropClick') closeAll();
       }}
       maxWidth="md"
       fullWidth
@@ -106,10 +128,30 @@ export function FallAlertOverlay({ incidents }: { incidents: Incident[] }) {
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Alarm sounding · repeats until someone acknowledges
-            {pending.length > 1 && ` · +${pending.length - 1} more waiting`}
           </Typography>
         </Box>
-        <IconButton onClick={dismiss} aria-label="Close alert popup">
+        {many && (
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mr: 2 }}>
+            <IconButton onClick={() => show(index - 1)} disabled={index === 0} aria-label="Previous alert">
+              <ChevronLeft />
+            </IconButton>
+            <Typography variant="body2" sx={{ fontWeight: 600 }} aria-live="polite">
+              Alert {index + 1} of {pending.length}
+            </Typography>
+            <IconButton
+              onClick={() => show(index + 1)}
+              disabled={index === pending.length - 1}
+              aria-label="Next alert"
+            >
+              <ChevronRight />
+            </IconButton>
+          </Stack>
+        )}
+        <IconButton
+          onClick={closeAll}
+          aria-label="Close alert popup"
+          title={many ? `Close all ${pending.length} alerts` : 'Close'}
+        >
           <Close />
         </IconButton>
       </Box>
@@ -180,6 +222,11 @@ export function FallAlertOverlay({ incidents }: { incidents: Incident[] }) {
         )}
       </DialogContent>
       <DialogActions sx={{ px: 6, pb: 5, flexWrap: 'wrap', gap: 2 }}>
+        {many && (
+          <Button onClick={goToQueue} sx={{ mr: 'auto' }}>
+            See all {pending.length} alerts
+          </Button>
+        )}
         <Button variant="outlined" onClick={goToDetail}>
           View details
         </Button>
