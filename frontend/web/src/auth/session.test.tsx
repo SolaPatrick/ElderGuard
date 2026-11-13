@@ -124,3 +124,37 @@ describe('Session timeout warning (AUTH-10)', () => {
     expect(tokenStorage.get()).toBeNull();
   });
 });
+
+describe('Scheduled maintenance (SYS-05)', () => {
+  it('shows the maintenance page on a 503 when the page opens, keeps the login, and checks again', async () => {
+    server.use(http.get('/api/auth/me', () => new HttpResponse(null, { status: 503 })));
+    localStorage.setItem('elderguard.token', 'mock-token:u-joel');
+    const { user } = renderApp('/');
+    expect(await screen.findByRole('heading', { name: 'Scheduled maintenance' })).toBeInTheDocument();
+    expect(screen.getByText(/Do in-person rounds/)).toBeInTheDocument();
+    expect(tokenStorage.get()).toBe('mock-token:u-joel');
+
+    server.resetHandlers(); // maintenance is over
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+  });
+
+  it('says so in the banner when the server goes into maintenance while in use', async () => {
+    localStorage.setItem('elderguard.token', 'mock-token:u-joel');
+    const { user } = renderApp('/');
+    await closeAlertPopup(user);
+    server.use(http.get('/api/incidents', () => new HttpResponse(null, { status: 503 })));
+    expect(
+      await screen.findByText(/ElderGuard is under maintenance/, {}, { timeout: 15_000 }),
+    ).toBeInTheDocument();
+  }, 20_000);
+
+  it('explains a 503 on the login page', async () => {
+    server.use(http.post('/api/auth/login', () => new HttpResponse(null, { status: 503 })));
+    const { user } = renderApp('/login');
+    await user.type(await screen.findByRole('textbox', { name: /username or email/i }), 'joel.ramos');
+    await user.type(screen.getByLabelText(/^password/i, { selector: 'input' }), 'elderguard123');
+    await user.click(screen.getByRole('button', { name: 'Log in' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/under maintenance/);
+  });
+});

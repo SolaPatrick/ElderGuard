@@ -1,4 +1,5 @@
-import { render } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import { expect } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
@@ -23,4 +24,14 @@ export function renderApp(path = '/') {
     </AppProviders>,
   );
   return { ...utils, router, user, queryClient };
+}
+
+/**
+ * Sample data has a new fall alert, so its popup covers (aria-hides) the page right after it
+ * loads. Screen tests close it first, as a user would.
+ */
+export async function closeAlertPopup(user: ReturnType<typeof userEvent.setup>) {
+  const popup = await screen.findByRole('alertdialog');
+  await user.click(within(popup).getByRole('button', { name: 'Close alert popup' }));
+  await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
 }

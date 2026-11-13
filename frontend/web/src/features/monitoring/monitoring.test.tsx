@@ -3,7 +3,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw';
 import { db } from '../../mocks/db';
 import { server } from '../../mocks/node';
-import { renderApp, signInAs } from '../../test/renderApp';
+import { renderApp, signInAs, closeAlertPopup as closeAlertPopupShared } from '../../test/renderApp';
 import { snapshotFileName } from './snapshot';
 
 async function closeAlertPopup(user: ReturnType<typeof renderApp>['user']) {
@@ -155,7 +155,8 @@ describe('Single camera view (MON-02)', () => {
 
   it('shows a 404 for a camera outside the caregiver areas', async () => {
     signInAs('u-joel');
-    renderApp('/monitoring/CAM-07');
+    const { user } = renderApp('/monitoring/CAM-07');
+    await closeAlertPopupShared(user);
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
   });
 });

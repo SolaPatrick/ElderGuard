@@ -16,21 +16,10 @@ import PersonOutlined from '@mui/icons-material/PersonOutlined';
 import Sos from '@mui/icons-material/Sos';
 import VideocamOffOutlined from '@mui/icons-material/VideocamOffOutlined';
 import { Link as RouterLink } from 'react-router';
-import { useCameras, useIncidentHistory } from '../../api/queries';
-import { useCurrentUser } from '../../auth/authContext';
 import { PageHeader } from '../../components/PageHeader';
 import { ErrorState, SkeletonRows } from '../../components/QueryStates';
-import {
-  buildNotifications,
-  isUnread,
-  loadReadState,
-  markAllRead,
-  markRead,
-  saveReadState,
-  type NotificationItem,
-  type NotificationKind,
-  type ReadState,
-} from './notificationItems';
+import type { NotificationItem, NotificationKind } from './notificationItems';
+import { useNotifications } from './useNotifications';
 
 type Tab = 'all' | 'unread' | NotificationKind;
 const KIND_TABS: { id: NotificationKind; label: string }[] = [
@@ -48,26 +37,18 @@ const ICON: Record<NotificationKind, typeof Sos> = {
 
 /** NTF-01 Notification center (Admin/Head and caregivers). */
 export function NotificationsPage() {
-  const user = useCurrentUser();
-  const incidents = useIncidentHistory();
-  const cameras = useCameras();
-  const [state, setState] = useState<ReadState>(() => loadReadState(user.id, Date.now()));
+  const n = useNotifications();
   const [tab, setTab] = useState<Tab>('all');
   const [limit, setLimit] = useState(STEP);
 
-  const change = (next: ReadState) => {
-    setState(next);
-    saveReadState(user.id, next);
-  };
-
-  const all = buildNotifications(incidents.data ?? [], cameras.data ?? []);
-  const unreadCount = all.filter((n) => isUnread(n, state)).length;
-  const shown = all.filter((n) =>
-    tab === 'all' ? true : tab === 'unread' ? isUnread(n, state) : n.kind === tab,
+  const all = n.items;
+  const unreadCount = n.unreadCount;
+  const shown = all.filter((item) =>
+    tab === 'all' ? true : tab === 'unread' ? n.unread(item) : item.kind === tab,
   );
   const page = shown.slice(0, limit);
-  const pending = incidents.isPending || cameras.isPending;
-  const failed = incidents.isError ? incidents : cameras.isError ? cameras : null;
+  const pending = n.isPending;
+  const failed = n.failed;
 
   const tabChip = (id: Tab, label: string) => (
     <Chip
@@ -89,7 +70,7 @@ export function NotificationsPage() {
         title="Notifications"
         subtitle="Falls, SOS requests and camera problems you can see."
         actions={
-          <Button variant="outlined" disabled={unreadCount === 0} onClick={() => change(markAllRead(all))}>
+          <Button variant="outlined" disabled={unreadCount === 0} onClick={n.markAllRead}>
             Mark all as read
           </Button>
         }
@@ -113,13 +94,13 @@ export function NotificationsPage() {
       ) : (
         <Card>
           <List disablePadding aria-label="Notifications">
-            {page.map((n, index) => (
+            {page.map((item, index) => (
               <Row
-                key={n.id}
-                item={n}
-                unread={isUnread(n, state)}
+                key={item.id}
+                item={item}
+                unread={n.unread(item)}
                 divider={index < page.length - 1}
-                onToggle={(read) => change(markRead(state, n.id, read))}
+                onToggle={(read) => n.setRead(item, read)}
               />
             ))}
           </List>

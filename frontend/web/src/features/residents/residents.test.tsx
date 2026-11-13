@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { screen, within } from '@testing-library/react';
-import { renderApp, signInAs } from '../../test/renderApp';
+import { renderApp, signInAs, closeAlertPopup as closeAlertPopupShared } from '../../test/renderApp';
 
 async function closeAlertPopup(user: ReturnType<typeof renderApp>['user']) {
   const popup = await screen.findByRole('alertdialog');
@@ -118,7 +118,8 @@ describe('Resident profile (RES-03)', () => {
 
   it('shows a 404 for a resident outside the caregiver areas', async () => {
     signInAs('u-joel');
-    renderApp('/residents/res-rodolfo');
+    const { user } = renderApp('/residents/res-rodolfo');
+    await closeAlertPopupShared(user);
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
   });
 });

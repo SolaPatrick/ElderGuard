@@ -8,6 +8,7 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { ActiveAlertBanner } from './ActiveAlertBanner';
 import { FallAlertOverlay } from './FallAlertOverlay';
+import { isMaintenance } from '../components/errorMessage';
 import { SessionTimeoutDialog } from './SessionTimeoutDialog';
 import { useDesktopAlertNotifications } from '../features/alertSetup/useDesktopAlertNotifications';
 
@@ -55,14 +56,14 @@ export function AppShell() {
           <TopBar
             user={user}
             facilityName={FACILITY_NAME}
-            alertCount={incidents.length}
             connectionLost={connectionLost}
             onOpenNav={() => setNavOpen(true)}
           />
           {connectionLost && (
             <Alert severity="error" square sx={{ px: { xs: 3, md: 8 } }}>
-              Cannot reach the ElderGuard server. New alerts will not appear until the connection is back.
-              Retrying…
+              {isMaintenance(active.error)
+                ? 'ElderGuard is under maintenance. New alerts will not appear until it is back, so do in-person rounds. Checking again…'
+                : 'Cannot reach the ElderGuard server. New alerts will not appear until the connection is back. Retrying…'}
             </Alert>
           )}
           <ActiveAlertBanner incidents={incidents} userId={user.id} />

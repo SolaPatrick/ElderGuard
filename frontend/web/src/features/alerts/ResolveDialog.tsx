@@ -15,6 +15,7 @@ import { resolveRequestSchema, type IncidentDetail, type ResolveRequest } from '
 import { useResolve } from '../../api/queries';
 import { OUTCOMES } from './options';
 import { errorMessage } from '../../components/errorMessage';
+import { useToast } from '../../components/toastContext';
 
 /** ALT-04 */
 export function ResolveDialog({
@@ -27,6 +28,7 @@ export function ResolveDialog({
   onClose: () => void;
 }) {
   const resolve = useResolve(incident.code);
+  const toast = useToast();
   const { control, handleSubmit, reset } = useForm<ResolveRequest>({
     resolver: zodResolver(resolveRequestSchema),
     defaultValues: { outcome: '', responseSummary: '' },
@@ -44,7 +46,12 @@ export function ResolveDialog({
         outcome: values.outcome,
         ...(values.responseSummary ? { responseSummary: values.responseSummary } : {}),
       },
-      { onSuccess: close },
+      {
+        onSuccess: (updated) => {
+          toast({ message: `Alert resolved · ${updated.code}` });
+          close();
+        },
+      },
     ),
   );
 
