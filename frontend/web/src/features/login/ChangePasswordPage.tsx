@@ -96,9 +96,15 @@ export function ChangePasswordPage() {
               <Button type="submit" variant="contained" size="large" loading={isSubmitting}>
                 Save password
               </Button>
-              <Button onClick={() => void logout()} disabled={isSubmitting}>
-                Log out
-              </Button>
+              {user.mustChangePassword ? (
+                <Button onClick={() => void logout()} disabled={isSubmitting}>
+                  Log out
+                </Button>
+              ) : (
+                <Button onClick={() => void navigate(from ?? '/', { replace: true })} disabled={isSubmitting}>
+                  Cancel
+                </Button>
+              )}
             </Stack>
           </Box>
         </CardContent>
