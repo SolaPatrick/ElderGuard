@@ -393,6 +393,7 @@ describe('FastAPI adapter: staff accounts', () => {
       isActive: true,
       mustChangePassword: false,
       areas: [],
+      residents: [],
       lastLoginAt: null,
       createdAt: '2026-11-01T08:00:00.000Z',
     });

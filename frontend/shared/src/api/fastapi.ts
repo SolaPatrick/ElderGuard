@@ -201,6 +201,7 @@ const toUser = (u: RawUser): User => ({
 const toStaff = (u: RawStaff): StaffMember => ({
   ...toUser(u),
   isActive: u.is_active,
+  residents: [], // no caregiver assignments on the backend yet
   lastLoginAt: null, // not recorded by the backend yet
   createdAt: isoUtc(u.created_at),
 });
@@ -763,6 +764,10 @@ export const fastApi = {
     });
     peopleCache = null;
     return toStaff(res);
+  },
+  // Den's backend has no area assignments and no resident caregivers.
+  assignStaff: async (_id: string, _body: unknown): Promise<StaffMember> => {
+    throw notYet('Assigning residents and areas to staff');
   },
   deactivateStaff: async (id: string): Promise<StaffMember> =>
     toStaff(await apiRequest(`/users/${numericId(id, 'user')}/deactivate`, rawStaff, { method: 'POST' })),
