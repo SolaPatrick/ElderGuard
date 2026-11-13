@@ -27,8 +27,9 @@ describe('Role-based access', () => {
 
   it('sends users back to login when their session is no longer valid', async () => {
     localStorage.setItem('elderguard.token', 'mock-token:someone-deleted');
-    renderApp('/');
+    const { user } = renderApp('/');
+    expect(await screen.findByRole('heading', { name: 'Your session has expired' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Log in again' }));
     expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument();
-    expect(screen.getByText(/your session ended/i)).toBeInTheDocument();
   });
 });

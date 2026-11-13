@@ -3,6 +3,8 @@ import type { LoginRequest, User } from '@elderguard/shared';
 
 export type AuthState =
   | { status: 'loading'; user: null }
+  /** A token is saved but the server could not be reached to check it (SYS-04). */
+  | { status: 'unreachable'; user: null; message: string }
   | { status: 'anonymous'; user: null; reason?: 'expired' | 'logged_out' }
   | { status: 'authenticated'; user: User };
 
@@ -14,6 +16,10 @@ export interface AuthContextValue {
   replaceSession: (token: string, user: User) => void;
   /** After an Admin/Head edits their own account, so the name and title update everywhere. */
   updateCurrentUser: (user: User) => void;
+  /** Check the saved session again after "unreachable". */
+  retry: () => void;
+  /** When the current login token stops working (ms), or null when unknown. */
+  expiresAt: number | null;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

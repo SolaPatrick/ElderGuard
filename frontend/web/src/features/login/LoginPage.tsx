@@ -22,6 +22,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Navigate, useLocation } from 'react-router';
 import { loginRequestSchema, type LoginRequest } from '@elderguard/shared';
 import { isAlertSetupDone } from '../alertSetup/alertPrefs';
+import { SessionExpiredCard } from './SessionExpiredCard';
 import { useAuth } from '../../auth/authContext';
 import { BrandMark } from '../../components/BrandMark';
 import { errorMessage } from '../../components/errorMessage';
@@ -40,6 +41,8 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // AUTH-09: after the server ended the session, say so first, then show the form.
+  const [showForm, setShowForm] = useState(reason !== 'expired');
 
   const {
     register,
@@ -69,6 +72,8 @@ export function LoginPage() {
     }
   });
 
+  if (!showForm) return <SessionExpiredCard onLogIn={() => setShowForm(true)} />;
+
   return (
     <Box
       sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 4, bgcolor: 'background.default' }}
@@ -90,11 +95,6 @@ export function LoginPage() {
             Log in
           </Typography>
 
-          {reason === 'expired' && !submitError && (
-            <Alert severity="info" role="status" sx={{ mb: 4 }}>
-              Your session ended. Log in again to keep receiving alerts.
-            </Alert>
-          )}
           {submitError && (
             <Alert severity="error" sx={{ mb: 4 }} role="alert">
               {submitError}

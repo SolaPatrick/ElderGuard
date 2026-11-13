@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router';
 import type { Role } from '@elderguard/shared';
 import { useAuth } from './authContext';
 import { AccessDeniedPage } from '../features/system/AccessDeniedPage';
+import { ServerUnreachablePage } from '../features/system/ServerUnreachablePage';
 
 /** Sends signed-out visitors to the login page and remembers where they were going. */
 export function RequireAuth({ roles }: { roles?: Role[] }) {
@@ -16,6 +17,7 @@ export function RequireAuth({ roles }: { roles?: Role[] }) {
       </Box>
     );
   }
+  if (state.status === 'unreachable') return <ServerUnreachablePage message={state.message} />;
   if (state.status === 'anonymous') {
     return (
       <Navigate
