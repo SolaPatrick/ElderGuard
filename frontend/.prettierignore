@@ -4,3 +4,5 @@ package-lock.json
 web/public/mockServiceWorker.js
 shared/src/tokens/tokens.generated.ts
 shared/tokens
+mobile/.expo
+mobile/expo-env.d.ts
