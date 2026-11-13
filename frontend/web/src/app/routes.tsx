@@ -13,6 +13,7 @@ import { ResidentsPage } from '../features/residents/ResidentsPage';
 import { ResidentProfilePage } from '../features/residents/ResidentProfilePage';
 import { AddResidentPage, EditResidentPage } from '../features/residents/ResidentFormPages';
 import { UsersPage } from '../features/users/UsersPage';
+import { ForgotPasswordPage } from '../features/login/ForgotPasswordPage';
 import { PermissionsPage } from '../features/users/PermissionsPage';
 import { CreateUserPage } from '../features/users/CreateUserPage';
 import { UserDetailPage } from '../features/users/UserDetailPage';
@@ -38,6 +39,7 @@ import { RouteErrorPage } from '../features/system/RouteErrorPage';
 
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage />, errorElement: <RouteErrorPage /> },
+  { path: '/forgot-password', element: <ForgotPasswordPage />, errorElement: <RouteErrorPage /> },
   {
     element: <RequireAuth />,
     errorElement: <RouteErrorPage />,

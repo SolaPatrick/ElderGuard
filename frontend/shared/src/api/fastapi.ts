@@ -29,6 +29,7 @@ import {
   type DashboardSummary,
   type Incident,
   type FacilitySettings,
+  type ForgotPasswordResponse,
   type IncidentDetail,
   type SettingsSection,
   type IncidentEvent,
@@ -482,6 +483,16 @@ export const fastApi = {
   async logout() {
     await apiRequest('/auth/logout', z.null(), { method: 'POST', skipAuthRedirect: true });
     return { ok: true as const };
+  },
+  // Den's backend can't send emails or codes; an Admin/Head resets passwords instead (USR-08).
+  forgotPassword: async (_body: unknown): Promise<ForgotPasswordResponse> => {
+    throw notYet('Resetting a password by email');
+  },
+  verifyResetCode: async (_body: unknown): Promise<{ resetToken: string }> => {
+    throw notYet('Resetting a password by email');
+  },
+  resetPassword: async (_body: unknown): Promise<{ ok: true }> => {
+    throw notYet('Resetting a password by email');
   },
   async changePassword({ currentPassword, newPassword }: ChangePasswordRequest): Promise<LoginResponse> {
     const res = await apiRequest(
