@@ -23,6 +23,7 @@ export default function MoreScreen() {
           {user.title} · {user.username}
         </Text>
       </View>
+      <Button label="Residents" variant="outlined" onPress={() => router.push('/residents')} />
       <Button label="Change password" variant="outlined" onPress={() => router.push('/change-password')} />
       {confirming ? (
         <View style={[styles.card, { borderColor: c.sys.outlineVariant, borderWidth: 1 }]}>

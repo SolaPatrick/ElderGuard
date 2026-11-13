@@ -4,6 +4,7 @@ import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { IncomingAlert } from '../alerts/IncomingAlert';
 import { AuthProvider } from '../auth/AuthProvider';
+import { useAppFocus } from '../hooks/useAppFocus';
 import { useAuth } from '../auth/authContext';
 import { useActiveIncidents } from '../queries';
 import { useColors } from '../theme';
@@ -12,6 +13,7 @@ import { useColors } from '../theme';
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  useAppFocus();
   const [queryClient] = useState(
     () => new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 2_000 } } }),
   );
@@ -37,21 +39,21 @@ function RootNavigator() {
   const signedIn = state.status === 'authenticated';
   // M-07: a temporary password must be changed before anything else.
   const mustChange = signedIn && state.user.mustChangePassword;
+  const header = {
+    headerShown: true,
+    headerStyle: { backgroundColor: c.sys.surface },
+    headerTintColor: c.sys.onSurface,
+  };
   return (
     <>
       <StatusBar style="auto" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.sys.surface } }}>
         <Stack.Protected guard={signedIn && !mustChange}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="alerts/[code]"
-            options={{
-              headerShown: true,
-              headerBackTitle: 'Alerts',
-              headerStyle: { backgroundColor: c.sys.surface },
-              headerTintColor: c.sys.onSurface,
-            }}
-          />
+          <Stack.Screen name="alerts/[code]" options={{ ...header, headerBackTitle: 'Alerts' }} />
+          <Stack.Screen name="cameras/[id]" options={{ ...header, headerBackTitle: 'Cameras' }} />
+          <Stack.Screen name="residents/index" options={{ ...header, title: 'Residents' }} />
+          <Stack.Screen name="residents/[id]" options={{ ...header, headerBackTitle: 'Residents' }} />
         </Stack.Protected>
         <Stack.Protected guard={signedIn}>
           <Stack.Screen name="change-password" />

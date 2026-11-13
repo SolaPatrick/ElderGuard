@@ -12,7 +12,7 @@ const tabIcon =
     <MaterialIcons name={name} size={24} color={typeof color === 'string' ? color : undefined} />
   );
 
-/** Bottom navigation. Cameras and SOS join as their screens are built. */
+/** Bottom navigation. SOS joins once Den's backend can receive one (it has no SOS route yet). */
 export default function TabsLayout() {
   const c = useColors();
   const active = useActiveIncidents().data?.length ?? 0;
@@ -31,6 +31,13 @@ export default function TabsLayout() {
         options={{
           title: 'Home',
           tabBarIcon: tabIcon('home'),
+        }}
+      />
+      <Tabs.Screen
+        name="cameras"
+        options={{
+          title: 'Cameras',
+          tabBarIcon: tabIcon('videocam'),
         }}
       />
       <Tabs.Screen

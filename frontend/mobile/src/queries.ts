@@ -67,3 +67,47 @@ export function useAddNote(code: string) {
     onSuccess: (data) => applyIncidentUpdate(qc, data),
   });
 }
+
+/** Camera list and status, refreshed every 10 seconds. */
+export function useCameras() {
+  return useQuery({ queryKey: ['cameras'], queryFn: () => api.cameras(), refetchInterval: 10_000 });
+}
+
+/**
+ * The camera's newest picture as a data URL, fetched every `everyMs` while `enabled`.
+ * Den's server sends it with the login header, so a plain image link cannot load it.
+ */
+export function useCameraPicture(id: string, enabled: boolean, everyMs: number) {
+  return useQuery({
+    queryKey: ['camera-picture', id],
+    queryFn: async ({ signal }) => blobToDataUrl(await api.cameraPicture(id, signal)),
+    enabled,
+    refetchInterval: enabled ? everyMs : false,
+    retry: false,
+    // Keep showing the last picture while the next one loads.
+    placeholderData: (previous) => previous,
+  });
+}
+
+/** React Native's Blob has no arrayBuffer(), but its FileReader can make a data URL (so can browsers). */
+export function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('Could not read the camera picture'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+export function useResidents() {
+  return useQuery({ queryKey: ['residents'], queryFn: () => api.residents() });
+}
+
+export function useResident(id: string) {
+  return useQuery({ queryKey: ['resident', id], queryFn: () => api.resident(id) });
+}
+
+/** Enough history to list a resident's incidents on their profile. */
+export function useRecentIncidents() {
+  return useQuery({ queryKey: ['incidents', 'recent'], queryFn: () => api.incidents(500) });
+}
