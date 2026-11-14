@@ -10,3 +10,9 @@ configureApi({ baseUrl: API_BASE_URL, getToken: tokenStore.get });
  */
 export const api = fastApi;
 export { ApiError, onUnauthorized } from '@elderguard/shared/api';
+
+/** What Den's server can do yet. Same meaning as `serverFeatures` in the web app. */
+export const serverFeatures = {
+  /** Den's users have no rooms, so employees see every room. */
+  areaAssignment: false,
+};
