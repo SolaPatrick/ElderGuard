@@ -23,7 +23,8 @@ through the same API code as the web app (`frontend/shared/src/api`). There is n
 | M-31 Help & About (same help text as the web, app version, server address)                                 | Done                   |
 | SOS shortcut on the home screen, SOS, push notifications                                                   | Waits on Den's backend |
 | M-03 to M-06 forgot password (code by email); says "not available yet" until Den adds it                   | Built, waits on Den    |
-| M-29 profile and settings, M-08 alert setup, M-33 offline                                                  | Next                   |
+| M-29 Profile & settings: account (read-only), alarm volume and vibration with a test, light or dark look   | Done                   |
+| M-08 alert setup, M-33 offline                                                                             | Next                   |
 
 Camera pictures come from Den's `/cameras/{id}/snapshot`: every 10 seconds in the list and every 2 seconds
 in the camera view, and only while that screen is showing. Phones can't show the MJPEG stream reliably in an

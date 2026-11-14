@@ -28,6 +28,7 @@ export function Choice<T extends string>({
             accessibilityRole="radio"
             accessibilityLabel={o.label}
             accessibilityState={{ checked: selected }}
+            aria-checked={selected}
             style={styles.row}
           >
             <View style={[styles.outer, { borderColor: selected ? c.sys.primary : c.sys.outline }]}>

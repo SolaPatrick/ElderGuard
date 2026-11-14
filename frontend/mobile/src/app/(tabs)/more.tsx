@@ -8,7 +8,10 @@ import { API_BASE_URL } from '../../config';
 import { useNotifications } from '../../hooks/useNotifications';
 import { radius, space, useColors } from '../../theme';
 
-/** M-28 More: the account, Notifications, Residents, Help, Change password (M-30) and Log out. */
+/**
+ * M-28 More: the account, Profile & settings (M-29), Notifications, Residents, Help, Change password
+ * (M-30) and Log out.
+ */
 export default function MoreScreen() {
   const { logout } = useAuth();
   const user = useCurrentUser();
@@ -25,6 +28,7 @@ export default function MoreScreen() {
           {user.title} · {user.username}
         </Text>
       </View>
+      <Button label="Profile & settings" variant="outlined" onPress={() => router.push('/profile')} />
       <Button
         label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}
         variant="outlined"
