@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type { AddNoteRequest, ClassifyRequest, IncidentDetail, ResolveRequest } from '@elderguard/shared';
 import { api } from './api';
-import { ALERT_POLL_MS } from './config';
+import { ALERT_POLL_MS, HISTORY_LIMIT } from './config';
 
 export const queryKeys = {
   active: ['incidents', 'active'] as const,
@@ -18,9 +18,9 @@ export function useActiveIncidents() {
   });
 }
 
-/** The latest incidents, open and closed, for the History list. */
+/** The latest HISTORY_LIMIT incidents, open and closed. History searches and filters them. */
 export function useIncidentHistory() {
-  return useQuery({ queryKey: queryKeys.history, queryFn: () => api.incidents(50) });
+  return useQuery({ queryKey: queryKeys.history, queryFn: () => api.incidents(HISTORY_LIMIT) });
 }
 
 export function useIncident(code: string) {

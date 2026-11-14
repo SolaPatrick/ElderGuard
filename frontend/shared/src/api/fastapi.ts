@@ -43,6 +43,7 @@ import {
   type User,
   isActiveStatus,
 } from '../schemas';
+import { UNKNOWN_STAFF_NAME } from '../incidentFilters';
 import { ApiError, apiBlob, apiConfig, apiRequest } from './client';
 
 // ---------- what the backend sends ----------
@@ -228,10 +229,10 @@ function noAreas(areaIds: string[]) {
 
 const toRoom = (r: RawRoom): RoomRef => ({ id: String(r.id), name: r.name, wing: r.area || null });
 
-/** Names of staff by id. Only the Admin/Head may list users; others get "A staff member". */
+/** Names of staff by id. Only the Admin/Head may list users; others get UNKNOWN_STAFF_NAME. */
 type People = ReadonlyMap<number, string>;
 const person = (people: People, id: number | null) =>
-  id === null ? null : { id: String(id), fullName: people.get(id) ?? 'A staff member' };
+  id === null ? null : { id: String(id), fullName: people.get(id) ?? UNKNOWN_STAFF_NAME };
 
 function toIncident(a: RawAlert, people: People, residents: readonly RawResident[]): IncidentDetail {
   const closedAsFalseAlarm = a.classification === 'false_alarm';

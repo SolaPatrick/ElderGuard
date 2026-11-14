@@ -17,6 +17,7 @@ through the same API code as the web app (`frontend/shared/src/api`). There is n
 | M-13 Alerts: Active (elapsed timers, Acknowledge) and History                                                              | Done                   |
 | M-14 Full-screen alert with sound and vibration; several alerts share one                                                  | Done                   |
 | M-15 Alert detail; M-16 classify, M-17 resolve, M-18 add note (bottom sheets)                                              | Done                   |
+| M-19 History search and date chips, M-20 filter sheet (outcome, room, resident, handled by), M-21 detail                   | Done                   |
 | M-11 Cameras (status, latest picture, area filter), M-12 camera view                                                       | Done                   |
 | M-22 Residents (search), M-23 resident profile (read-only, contacts, history)                                              | Done                   |
 | M-27 Notifications: All / Unread, tap opens it, Mark all as read                                                           | Done                   |

@@ -129,6 +129,12 @@ export function dateWindow(f: IncidentFilters, now: Date): [number | null, numbe
   }
 }
 
+/**
+ * The name the FastAPI adapter gives staff it can't look up: only the Admin/Head may list users,
+ * so an employee sees this for everyone. Such entries can't be told apart, so pickers leave them out.
+ */
+export const UNKNOWN_STAFF_NAME = 'A staff member';
+
 /** Who handled it: whoever resolved it, otherwise whoever acknowledged it. */
 export const handledBy = (i: Incident) => i.resolvedBy ?? i.acknowledgedBy;
 
@@ -196,7 +202,7 @@ export function pickerOptions(all: Incident[]) {
     staff: byId(
       all.flatMap((i) => {
         const h = handledBy(i);
-        return h ? [{ id: h.id, name: h.fullName }] : [];
+        return h && h.fullName !== UNKNOWN_STAFF_NAME ? [{ id: h.id, name: h.fullName }] : [];
       }),
     ).sort(byName),
   };

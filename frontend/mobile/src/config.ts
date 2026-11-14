@@ -10,3 +10,6 @@ export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhos
 
 /** How often to check for new alerts (ms), the same as the web app. */
 export const ALERT_POLL_MS = 5_000;
+
+/** How many of the latest alerts History loads and searches, the same as the web app. */
+export const HISTORY_LIMIT = 500;
