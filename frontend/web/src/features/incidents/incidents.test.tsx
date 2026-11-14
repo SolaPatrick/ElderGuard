@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw';
 import type { Incident } from '@elderguard/shared';
 import { server } from '../../mocks/node';
 import { renderApp, signInAs } from '../../test/renderApp';
-import { NO_FILTERS, filterIncidents, incidentsCsv, readFilters, writeFilters } from './incidentFilters';
+import { NO_FILTERS, filterIncidents, incidentsCsv, readFilters, writeFilters } from '@elderguard/shared';
 
 async function asAdmin(path: string) {
   signInAs('u-teresa');

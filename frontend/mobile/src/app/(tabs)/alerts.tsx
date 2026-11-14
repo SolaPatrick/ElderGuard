@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { isActiveStatus } from '@elderguard/shared';
 import { AlertCard } from '../../alerts/AlertCard';
+import { HistoryList } from '../../alerts/HistoryList';
 import { Button } from '../../components/Button';
 import { Notice } from '../../components/Notice';
 import { Screen } from '../../components/Screen';
 import { errorMessage } from '../../errorMessage';
 import { useNow } from '../../hooks/useNow';
-import { useAcknowledge, useActiveIncidents, useIncidentHistory } from '../../queries';
+import { useAcknowledge, useActiveIncidents } from '../../queries';
 import { radius, size, space, useColors } from '../../theme';
 
 type Segment = 'active' | 'history';
 
-/** M-13 Alerts: Active (oldest first, with elapsed timers) and History (closed alerts). */
+/** M-13 Alerts: Active (oldest first, with elapsed timers) and History (M-19, closed alerts). */
 export default function AlertsScreen() {
   const c = useColors();
   const [segment, setSegment] = useState<Segment>('active');
@@ -67,30 +67,6 @@ function ActiveList() {
           onAcknowledge={() => acknowledge.mutate(i.code)}
           acknowledging={acknowledge.isPending && acknowledge.variables === i.code}
         />
-      ))}
-    </>
-  );
-}
-
-function HistoryList() {
-  const c = useColors();
-  const now = useNow();
-  const query = useIncidentHistory();
-  if (query.isPending)
-    return <ActivityIndicator accessibilityLabel="Loading history" color={c.sys.primary} />;
-  if (query.isError)
-    return (
-      <>
-        <Notice tone="error">{errorMessage(query.error)}</Notice>
-        <Button label="Try again" variant="outlined" onPress={() => void query.refetch()} />
-      </>
-    );
-  const closed = query.data.filter((i) => !isActiveStatus(i.status));
-  if (closed.length === 0) return <Empty text="No closed alerts yet." />;
-  return (
-    <>
-      {closed.map((i) => (
-        <AlertCard key={i.code} incident={i} now={now} />
       ))}
     </>
   );
