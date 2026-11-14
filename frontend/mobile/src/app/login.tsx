@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { loginRequestSchema } from '@elderguard/shared';
 import { useAuth } from '../auth/authContext';
 import { BrandHeader } from '../components/BrandHeader';
@@ -102,9 +103,11 @@ export default function LoginScreen() {
         />
         <Button label="Log in" onPress={() => void submit()} loading={submitting} />
       </View>
-      <Text style={[styles.hint, { color: c.sys.onSurfaceVariant }]}>
-        Forgot your password? Ask your Admin/Head to reset it.
-      </Text>
+      <Button
+        label="Forgot password?"
+        variant="text"
+        onPress={() => router.push({ pathname: '/forgot-password', params: { login: username.trim() } })}
+      />
     </Screen>
   );
 }
@@ -112,5 +115,4 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '600' },
   form: { gap: space.space16 },
-  hint: { fontSize: 14, textAlign: 'center' },
 });

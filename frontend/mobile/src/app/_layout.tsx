@@ -64,6 +64,7 @@ function RootNavigator() {
         </Stack.Protected>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="login" />
+          <Stack.Screen name="forgot-password" />
         </Stack.Protected>
       </Stack>
       {signedIn && !mustChange && <AlertWatcher />}
