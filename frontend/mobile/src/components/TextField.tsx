@@ -11,6 +11,7 @@ interface Props extends Pick<
   | 'returnKeyType'
   | 'onSubmitEditing'
   | 'maxLength'
+  | 'keyboardType'
 > {
   label: string;
   error?: string | undefined;
