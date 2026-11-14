@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, SplashScreen, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { ConnectionArea } from '../alerts/ConnectionBanner';
 import { IncomingAlert } from '../alerts/IncomingAlert';
 import { AuthProvider } from '../auth/AuthProvider';
 import { useAppFocus } from '../hooks/useAppFocus';
@@ -64,25 +65,27 @@ function RootNavigator() {
   return (
     <ThemeProvider value={navTheme}>
       <StatusBar style={dark ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.sys.surface } }}>
-        <Stack.Protected guard={signedIn && !mustChange}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="alerts/[code]" options={{ ...header, headerBackTitle: 'Alerts' }} />
-          <Stack.Screen name="cameras/[id]" options={{ ...header, headerBackTitle: 'Cameras' }} />
-          <Stack.Screen name="residents/index" options={{ ...header, title: 'Residents' }} />
-          <Stack.Screen name="residents/[id]" options={{ ...header, headerBackTitle: 'Residents' }} />
-          <Stack.Screen name="notifications" options={{ ...header, title: 'Notifications' }} />
-          <Stack.Screen name="profile" options={{ ...header, title: 'Profile & settings' }} />
-          <Stack.Screen name="help" options={{ ...header, title: 'Help & About' }} />
-        </Stack.Protected>
-        <Stack.Protected guard={signedIn}>
-          <Stack.Screen name="change-password" />
-        </Stack.Protected>
-        <Stack.Protected guard={!signedIn}>
-          <Stack.Screen name="login" />
-          <Stack.Screen name="forgot-password" />
-        </Stack.Protected>
-      </Stack>
+      <ConnectionArea watch={signedIn && !mustChange}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.sys.surface } }}>
+          <Stack.Protected guard={signedIn && !mustChange}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="alerts/[code]" options={{ ...header, headerBackTitle: 'Alerts' }} />
+            <Stack.Screen name="cameras/[id]" options={{ ...header, headerBackTitle: 'Cameras' }} />
+            <Stack.Screen name="residents/index" options={{ ...header, title: 'Residents' }} />
+            <Stack.Screen name="residents/[id]" options={{ ...header, headerBackTitle: 'Residents' }} />
+            <Stack.Screen name="notifications" options={{ ...header, title: 'Notifications' }} />
+            <Stack.Screen name="profile" options={{ ...header, title: 'Profile & settings' }} />
+            <Stack.Screen name="help" options={{ ...header, title: 'Help & About' }} />
+          </Stack.Protected>
+          <Stack.Protected guard={signedIn}>
+            <Stack.Screen name="change-password" />
+          </Stack.Protected>
+          <Stack.Protected guard={!signedIn}>
+            <Stack.Screen name="login" />
+            <Stack.Screen name="forgot-password" />
+          </Stack.Protected>
+        </Stack>
+      </ConnectionArea>
       {signedIn && !mustChange && <AlertWatcher />}
     </ThemeProvider>
   );
