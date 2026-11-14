@@ -5,6 +5,7 @@ export * from './notifications';
 export * from './helpContent';
 export * from './reports';
 export * from './reportDocuments';
+export * from './cameraSummary';
 export { lightColors, darkColors, numbers } from './tokens/tokens.generated';
 
 import type { lightColors } from './tokens/tokens.generated';

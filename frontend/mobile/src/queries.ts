@@ -68,6 +68,16 @@ export function useAddNote(code: string) {
   });
 }
 
+/** M-10 Admin/Head home figures (alerts, cameras, incidents today), refreshed with the alerts. */
+export function useDashboardSummary(enabled: boolean) {
+  return useQuery({
+    queryKey: ['dashboard'],
+    queryFn: () => api.dashboardSummary(),
+    refetchInterval: ALERT_POLL_MS * 2,
+    enabled,
+  });
+}
+
 /** Camera list and status, refreshed every 10 seconds. */
 export function useCameras() {
   return useQuery({ queryKey: ['cameras'], queryFn: () => api.cameras(), refetchInterval: 10_000 });

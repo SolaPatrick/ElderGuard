@@ -1,6 +1,6 @@
 # ElderGuard frontend
 
-The ElderGuard web console (Admin/Head and caregivers). It is built from the Figma hi-fi design and the ElderGuard design system. A mobile app (Expo / React Native) will be added next to it later and reuse the `shared` package.
+The ElderGuard web console (Admin/Head and caregivers). It is built from the Figma hi-fi design and the ElderGuard design system. The mobile app (Expo / React Native) is in `mobile/` and reuses the `shared` package; see `mobile/README.md` for what it has.
 
 ## Quick start (Windows, macOS or Linux)
 
@@ -47,7 +47,7 @@ GitHub runs the same checks on every push and pull request (`.github/workflows/f
 
 ```
 frontend/
-  shared/            Code for both web and (later) mobile
+  shared/            Code for both web and mobile
     tokens/          Design tokens exported from Figma (DTCG JSON). Replace these files to update colors.
     scripts/         build-tokens.mjs turns the token files into TypeScript (npm run tokens)
     src/schemas.ts   The API contract as zod schemas + TypeScript types
@@ -103,11 +103,9 @@ Web app screens. Every "Done" screen works with the built-in fake server. The la
 | CAM-06 Device health (server check, fall detection, every camera with FPS and the server's error text)                     | Done   | Partly: no CPU/GPU load, detection delay, notification service or storage (the server doesn't report them)                    |
 | SYS-01 404, SYS-02 403, SYS-03 crash page                                                                                  | Done   | n/a                                                                                                                           |
 
-Still to do (each is a "coming soon" page or not started):
+Still to do on the web (each needs something Den's backend doesn't store yet):
 
-| Screen                                                             | Waiting on           |
-| ------------------------------------------------------------------ | -------------------- |
-| RPT-04 Report history (saved reports)                              | Den's backend        |
-| LOG-01/02 Activity log                                             | Den's backend        |
-| Resident photos, room capacity, camera uptime, incident PDF export | Den's backend        |
-| Mobile app (M-01 to M-34)                                          | Frontend (`mobile/`) |
+| Screen                                                             | Waiting on    |
+| ------------------------------------------------------------------ | ------------- |
+| RPT-04 Report history (saved reports)                              | Den's backend |
+| Resident photos, room capacity, camera uptime, incident PDF export | Den's backend |
