@@ -23,9 +23,6 @@ from .fall_logic import BLUR_CONF, COLORS, CONF, FallMonitor, blur_people, iou, 
 from .models import Blur, Camera, required_blur
 from .models import now as now_utc
 from .routers.alerts import create_alert
-from .pose import PoseChecker  
-
-pose = PoseChecker(device=config.DEVICE)
 
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 SAME_SPOT_IOU = 0.3   # boxes overlapping this much count as the same person lying in the same spot
