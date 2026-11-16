@@ -7,6 +7,8 @@ import {
   isActiveStatus,
   type ActivityAction,
   type FacilitySettings,
+  type RestZone,
+  type RestZoneInput,
   type SettingsSection,
   type ActivityModule,
   type Camera,
@@ -51,6 +53,8 @@ interface ResetCode {
   triesLeft: number;
 }
 let resetCodes = new Map<string, ResetCode>();
+/** Rest zones by camera id (CAM-08). No camera has any until an Admin/Head draws them. */
+let restZones = new Map<string, RestZone[]>();
 /** One-time tokens from a correct code, valid for RESET_TOKEN_MS. */
 let resetTokens = new Map<string, { userId: string; expiresAt: number }>();
 export const RESET_CODE_MS = 10 * 60_000;
@@ -64,6 +68,7 @@ export function resetDb(now: Date = new Date()) {
   seed = createSeed(now);
   passwords = new Map();
   cameraSetup = new Map();
+  restZones = new Map();
   resetCodes = new Map();
   resetTokens = new Map();
 }
@@ -361,6 +366,21 @@ export const db = {
       privacyBlur: req.place === 'bathroom' ? 'whole' : req.privacyBlur,
     });
     return db.cameraSettings(camera);
+  },
+
+  restZones(cameraId: string): RestZone[] {
+    return restZones.get(cameraId) ?? [];
+  },
+
+  /** Bathroom cameras have no rest zones: nobody lies down to rest in a bathroom. */
+  restZonesProblem(cameraId: string): string | null {
+    return setupOf(cameraId).place === 'bathroom' ? "Bathroom cameras don't use rest zones." : null;
+  },
+
+  saveRestZones(cameraId: string, zones: RestZoneInput[]): RestZone[] {
+    const saved = zones.map((z) => ({ ...z, id: nextId('zone') }));
+    restZones.set(cameraId, saved);
+    return saved;
   },
 
   /** Like the real backend: a camera with alerts in the incident history is kept (turn detection off instead). */
