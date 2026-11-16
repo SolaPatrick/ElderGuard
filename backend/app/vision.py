@@ -20,12 +20,24 @@ from sqlmodel import Session, select
 from . import config
 from .database import engine
 from .fall_logic import BLUR_CONF, COLORS, CONF, FallMonitor, blur_people, iou, min_conf, pixelate
-from .models import Blur, Camera, required_blur
+from .models import Blur, Camera, RestZone, required_blur
 from .models import now as now_utc
 from .routers.alerts import create_alert
+from .pose import PoseChecker
 
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 SAME_SPOT_IOU = 0.3   # boxes overlapping this much count as the same person lying in the same spot
+REST_ZONE_SHARE = 0.7    # this much of the person's box inside a rest zone = lying there, not on the floor
+ZONES_RELOAD_SECONDS = 10   # how often a camera re-reads its rest zones, so the admin's changes apply by themselves
+
+
+def share_inside(box, zone, w, h) -> float:
+    """How much of the person's box (0..1) lies inside the zone. Zones are stored as fractions of the picture."""
+    zx1, zy1, zx2, zy2 = zone.x1 * w, zone.y1 * h, zone.x2 * w, zone.y2 * h
+    ix = max(0, min(box[2], zx2) - max(box[0], zx1))
+    iy = max(0, min(box[3], zy2) - max(box[1], zy1))
+    area = (box[2] - box[0]) * (box[3] - box[1])
+    return ix * iy / area if area > 0 else 0.0
 
 
 def placeholder(text: str) -> bytes:
@@ -53,6 +65,9 @@ class CameraWorker(threading.Thread):
         self.recent_falls = []    # (time, box) of falls already raised, to spot duplicates
         self.pending_alerts = []  # confirmed falls not saved yet; they stay here until the database accepts them
         self.retry_at = 0.0
+        self.pose = None          # PoseChecker, loaded in run() next to the fall model
+        self._zone_list = []      # this camera's rest zones, see _zones()
+        self._zones_at = 0.0
 
     # ---- what the API reads ----
     def latest_jpeg(self) -> bytes:
@@ -78,6 +93,7 @@ class CameraWorker(threading.Thread):
                         model = YOLO(config.MODEL_PATH)  # each camera gets its own model: tracking memory is per camera
                     except Exception as e:
                         raise RuntimeError(f"Can't load the model: {e}") from e
+                    self.pose = self._load_pose()
                 self._open_and_watch(model)
             except Exception as e:            # whatever goes wrong, this thread must keep monitoring
                 traceback.print_exc()
@@ -88,6 +104,15 @@ class CameraWorker(threading.Thread):
                 self.stop_event.wait(config.WORKER_RESTART_SECONDS)
         self.retry_at = 0.0
         self._save_pending_alerts()           # last try before this worker goes away
+
+    def _load_pose(self):
+        """Each camera gets its own pose model (one model must not be used by two threads at once).
+        If it can't be loaded, falls are still raised, just without the second opinion."""
+        try:
+            return PoseChecker(config.POSE_MODEL_PATH, device=config.DEVICE)
+        except Exception as e:
+            print(f"[{self.name_}] pose check off, can't load the pose model: {e}")
+            return None
 
     def _open_and_watch(self, model):
         cap = cv2.VideoCapture(int(self.source) if self.source.isdecimal() else self.source)
@@ -153,6 +178,16 @@ class CameraWorker(threading.Thread):
                     continue
                 fall = monitor.update(tid, state, box)
                 if fall:
+                    # lying in a rest zone (bed, floor mat) without a sudden drop: resting, no alarm
+                    if self._resting(frame, box, monitor, tid):
+                        monitor.rest(tid)                  # looked at again in 1.5 s, no time limit
+                        people.append((box, f"resting {c:.2f}", COLORS.get(state, (200, 200, 200))))
+                        continue
+                    # second opinion from the body points, until the fall has been held back too long
+                    if self.pose and monitor.may_hold(tid) and self.pose.check(frame, box) == "upright":
+                        print(f"[{self.name_}] held back: model said {fall}, but the body is upright (sitting/bending)")
+                        monitor.hold(tid)                  # asked again in 1.5 s; alarms anyway after 15 s
+                        continue
                     falls.append((fall, c, box))
                 if monitor.alarm(tid):
                     people.append((box, f"{monitor.alarm(tid)}!", (0, 0, 255)))
@@ -185,6 +220,29 @@ class CameraWorker(threading.Thread):
             self.pending_alerts.append((fall_type, conf, jpeg, now_utc()))
         self._save_pending_alerts()
         return jpeg
+
+    def _zones(self) -> list:
+        """This camera's rest zones, re-read every ZONES_RELOAD_SECONDS. Bathrooms never have any.
+        If the database can't be reached, the zones from last time are kept (monitoring must not stop)."""
+        if self.place == "bathroom":
+            return []
+        if time.monotonic() - self._zones_at > ZONES_RELOAD_SECONDS:
+            self._zones_at = time.monotonic()
+            try:
+                with Session(engine) as s:
+                    self._zone_list = list(s.exec(select(RestZone).where(RestZone.camera_id == self.camera_id)))
+            except Exception as e:
+                print(f"[{self.name_}] could not read rest zones, keeping the last ones: {e}")
+        return self._zone_list
+
+    def _resting(self, frame, box, monitor, tid) -> bool:
+        """Lying mostly inside a rest zone, without a sudden drop: resting (sleeping in bed, on a floor mat)."""
+        zones = self._zones()
+        if not zones:
+            return False
+        h, w = frame.shape[:2]
+        inside = any(share_inside(box, z, w, h) >= REST_ZONE_SHARE for z in zones)
+        return inside and not monitor.dropped_fast(tid)
 
     def _is_duplicate(self, fall_type: str, box) -> bool:
         """True only if the tracker lost a person who is already down and found them again as someone new:

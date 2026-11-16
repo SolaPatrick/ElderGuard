@@ -23,6 +23,8 @@ SNAPSHOT_DIR = BASE_DIR / "snapshots"
 
 # Your trained fall model from the training tutorial (step 8)
 MODEL_PATH = os.getenv("ELDERGUARD_MODEL", r"C:\Elderguard\elderguard\runs\fall\weights\best.pt")
+# Body keypoint model for the pose check (downloaded by Ultralytics on first use if missing, ~6 MB)
+POSE_MODEL_PATH = os.getenv("ELDERGUARD_POSE_MODEL", str(BASE_DIR / "yolov8n-pose.pt"))
 
 # Login tokens. Changing this key logs everyone out.
 SECRET_KEY = required("ELDERGUARD_SECRET")

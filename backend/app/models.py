@@ -284,3 +284,24 @@ class ClassifyIn(SQLModel):
 
 class NoteIn(SQLModel):
     text: str
+
+class RestZone(SQLModel, table=True):
+    """A place on one camera's picture where lying down is normal (bed, floor mat, sofa).
+    Positions are fractions of the picture (0 = left/top, 1 = right/bottom), so they survive resolution changes."""
+    id: int | None = Field(default=None, primary_key=True)
+    camera_id: int = Field(foreign_key="camera.id", index=True)
+    name: str
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+    created_by: int = Field(foreign_key="user.id")
+    created_at: datetime = Field(default_factory=now)
+
+
+class RestZoneIn(SQLModel):
+    name: str
+    x1: float
+    y1: float
+    x2: float
+    y2: float
