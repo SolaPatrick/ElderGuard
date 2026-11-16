@@ -9,11 +9,14 @@ import {
   Grid,
   Link,
   Stack,
+  Tab,
+  Tabs,
   Typography,
 } from '@mui/material';
-import { Link as RouterLink, useNavigate, useParams } from 'react-router';
+import { Link as RouterLink, useNavigate, useParams, useSearchParams } from 'react-router';
 import { type Camera } from '@elderguard/shared';
 import { ApiError } from '../../api/client';
+import { useCurrentUser } from '../../auth/authContext';
 import { useActiveIncidents, useCameraSettings, useCameras, useDeleteCamera } from '../../api/queries';
 import { CameraTile } from '../../components/CameraTile';
 import { errorMessage } from '../../components/errorMessage';
@@ -24,6 +27,7 @@ import { SectionCard } from '../dashboard/DashboardCards';
 import { alertForCamera } from '../monitoring/cameraFilters';
 import { NotFoundPage } from '../system/NotFoundPage';
 import { lastSeenLabel } from './cameraLabels';
+import { RestZonesTab } from './RestZonesTab';
 
 const BLUR = { off: 'Off', person: 'People are blurred', whole: 'Whole picture is blurred' } as const;
 
@@ -81,9 +85,11 @@ function RemoveCameraDialog({ camera, onClose }: { camera: Camera; onClose: () =
   );
 }
 
-/** CAM-03 Camera detail (Admin/Head). */
+/** CAM-03 Camera detail (Admin/Head), with CAM-08 Rest zones as a second tab. */
 export function CameraDetailPage() {
   const { id = '' } = useParams();
+  const user = useCurrentUser();
+  const [params, setParams] = useSearchParams();
   const cameras = useCameras();
   const settings = useCameraSettings(id);
   const active = useActiveIncidents();
@@ -98,6 +104,9 @@ export function CameraDetailPage() {
   const camera = cameras.data.find((c) => c.id === id);
   if (!camera) return <NotFoundPage />;
   const s = settings.data;
+  // Nobody lies down to rest in a bathroom, and only the Admin/Head may change zones.
+  const zonesAllowed = s.place !== 'bathroom' && user.role === 'admin';
+  const tab = zonesAllowed && params.get('tab') === 'zones' ? 'zones' : 'overview';
 
   return (
     <>
@@ -124,42 +133,58 @@ export function CameraDetailPage() {
         }
       />
 
-      <Grid container spacing={5}>
-        <Grid size={{ xs: 12, lg: 7 }}>
-          <Stack spacing={3}>
-            <CameraTile
-              camera={camera}
-              alert={alertForCamera(camera, active.data ?? [])}
-              to={`/monitoring/${camera.code}`}
-              height={320}
-              showDetection
-            />
-            <Typography variant="body2" color="text.secondary">
-              Select the picture to open the full live view.
-            </Typography>
-          </Stack>
+      {zonesAllowed && (
+        <Tabs
+          value={tab}
+          onChange={(_, v: string) => setParams(v === 'zones' ? { tab: 'zones' } : {}, { replace: true })}
+          aria-label="Camera sections"
+          sx={{ mb: 5 }}
+        >
+          <Tab value="overview" label="Overview" />
+          <Tab value="zones" label="Rest zones" />
+        </Tabs>
+      )}
+
+      {tab === 'zones' ? (
+        <RestZonesTab camera={camera} />
+      ) : (
+        <Grid container spacing={5}>
+          <Grid size={{ xs: 12, lg: 7 }}>
+            <Stack spacing={3}>
+              <CameraTile
+                camera={camera}
+                alert={alertForCamera(camera, active.data ?? [])}
+                to={`/monitoring/${camera.code}`}
+                height={320}
+                showDetection
+              />
+              <Typography variant="body2" color="text.secondary">
+                Select the picture to open the full live view.
+              </Typography>
+            </Stack>
+          </Grid>
+          <Grid size={{ xs: 12, lg: 5 }}>
+            <SectionCard title="Configuration" action={<StatusChip kind="camera" status={camera.status} />}>
+              <Grid container rowSpacing={4} columnSpacing={3}>
+                <Fact label="Stream">{s.source}</Fact>
+                <Fact label="Picture">{camera.resolutionFps ?? '—'}</Fact>
+                <Fact label="Room / area">
+                  {camera.roomName ? (
+                    <Link component={RouterLink} to={`/rooms/${camera.roomId}`}>
+                      {camera.roomWing ? `${camera.roomName} · ${camera.roomWing}` : camera.roomName}
+                    </Link>
+                  ) : (
+                    'No room yet'
+                  )}
+                </Fact>
+                <Fact label="Covers">{s.place === 'bathroom' ? 'A bathroom' : 'A room or common area'}</Fact>
+                <Fact label="Privacy blur">{BLUR[s.privacyBlur]}</Fact>
+                <Fact label="Fall detection">{s.detectionEnabled ? 'On' : 'Off'}</Fact>
+              </Grid>
+            </SectionCard>
+          </Grid>
         </Grid>
-        <Grid size={{ xs: 12, lg: 5 }}>
-          <SectionCard title="Configuration" action={<StatusChip kind="camera" status={camera.status} />}>
-            <Grid container rowSpacing={4} columnSpacing={3}>
-              <Fact label="Stream">{s.source}</Fact>
-              <Fact label="Picture">{camera.resolutionFps ?? '—'}</Fact>
-              <Fact label="Room / area">
-                {camera.roomName ? (
-                  <Link component={RouterLink} to={`/rooms/${camera.roomId}`}>
-                    {camera.roomWing ? `${camera.roomName} · ${camera.roomWing}` : camera.roomName}
-                  </Link>
-                ) : (
-                  'No room yet'
-                )}
-              </Fact>
-              <Fact label="Covers">{s.place === 'bathroom' ? 'A bathroom' : 'A room or common area'}</Fact>
-              <Fact label="Privacy blur">{BLUR[s.privacyBlur]}</Fact>
-              <Fact label="Fall detection">{s.detectionEnabled ? 'On' : 'Off'}</Fact>
-            </Grid>
-          </SectionCard>
-        </Grid>
-      </Grid>
+      )}
 
       {removing && <RemoveCameraDialog camera={camera} onClose={() => setRemoving(false)} />}
     </>

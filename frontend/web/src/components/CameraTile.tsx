@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Box, ButtonBase } from '@mui/material';
 import VideocamOutlined from '@mui/icons-material/VideocamOutlined';
 import VideocamOffOutlined from '@mui/icons-material/VideocamOffOutlined';
@@ -6,6 +7,8 @@ import PersonAlertIcon from '@mui/icons-material/PersonOutlined';
 import { Link as RouterLink } from 'react-router';
 import { formatTime, incidentTitle, type Camera, type Incident } from '@elderguard/shared';
 import { useCameraPicture } from '../api/queries';
+import { useImageSize } from '../hooks/useImageSize';
+import { RestZoneOutlines } from './RestZoneOutlines';
 
 const STATE_LABEL: Record<Camera['status'], string> = {
   online: 'LIVE',
@@ -61,6 +64,7 @@ export function CameraTile({
   to,
   height = 120,
   showDetection = false,
+  showZones = false,
 }: {
   camera: Camera;
   /** The open alert in this camera's room, if any. */
@@ -68,12 +72,16 @@ export function CameraTile({
   to: string;
   height?: number | string;
   showDetection?: boolean;
+  /** Live Monitoring: the camera's rest zones as faint outlines over the picture. */
+  showZones?: boolean;
 }) {
   const working = camera.status === 'online' || camera.status === 'paused';
   const label = `${camera.code}${camera.roomName ? ` · ${camera.roomName}` : ''}`;
   const chip = detectionChip(camera, alert);
   const offline = camera.status === 'offline' || camera.status === 'error';
   const picture = useCameraPicture(camera);
+  const img = useRef<HTMLImageElement>(null);
+  const size = useImageSize(img, picture);
 
   return (
     <ButtonBase
@@ -99,6 +107,7 @@ export function CameraTile({
           component="img"
           src={picture}
           alt=""
+          ref={img}
           data-testid="camera-picture"
           sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         />
@@ -107,6 +116,7 @@ export function CameraTile({
       ) : (
         <VideocamOffOutlined sx={{ fontSize: 36, color: 'rgba(255,255,255,0.7)' }} aria-hidden />
       )}
+      {showZones && picture && <RestZoneOutlines cameraId={camera.id} size={size} fit="cover" />}
       <Box sx={{ position: 'absolute', top: 8, left: 8, display: 'grid', gap: 1.5 }} aria-hidden>
         <Box
           sx={{

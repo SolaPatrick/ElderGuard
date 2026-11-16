@@ -148,6 +148,7 @@ export function MonitoringPage() {
                   to={`/monitoring/${c.code}`}
                   height={layout === 1 ? 480 : layout === 4 ? 280 : layout === 9 ? 200 : 150}
                   showDetection
+                  showZones
                 />
               </li>
             ))}
