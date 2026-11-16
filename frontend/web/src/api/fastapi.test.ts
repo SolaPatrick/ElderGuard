@@ -313,10 +313,73 @@ describe('FastAPI adapter: requests', () => {
       status: 501,
     });
   });
+});
 
-  it('says clearly that rest zones are not on the server yet', async () => {
-    await expect(fastApi.restZones('1')).rejects.toMatchObject({ status: 501 });
-    await expect(fastApi.saveRestZones('1', { zones: [] })).rejects.toMatchObject({ status: 501 });
+describe('FastAPI adapter: rest zones (CAM-08)', () => {
+  const rawZone = {
+    id: 9,
+    camera_id: 3,
+    name: 'Bed',
+    x1: 0.5,
+    y1: 0.25,
+    x2: 0.9,
+    y2: 0.75,
+    created_by: 1,
+    created_at: '2026-11-16T08:00:00',
+  };
+
+  it('reads the corners the backend keeps as x, y, width and height', async () => {
+    server.use(http.get('/api/cameras/3/zones', () => HttpResponse.json([rawZone])));
+    const zones = await fastApi.restZones('3');
+    expect(zones).toHaveLength(1);
+    expect(zones[0]).toMatchObject({ id: '9', name: 'Bed', x: 0.5, y: 0.25 });
+    expect(zones[0]!.width).toBeCloseTo(0.4);
+    expect(zones[0]!.height).toBeCloseTo(0.5);
+  });
+
+  it('saves the whole list as corners, the way the backend wants it', async () => {
+    let sent: unknown;
+    server.use(
+      http.put('/api/cameras/3/zones', async ({ request }) => {
+        sent = await request.json();
+        return HttpResponse.json([rawZone]);
+      }),
+    );
+    const saved = await fastApi.saveRestZones('3', {
+      zones: [{ name: 'Bed', x: 0.5, y: 0.25, width: 0.4, height: 0.5 }],
+    });
+    expect(sent).toEqual([{ name: 'Bed', x1: 0.5, y1: 0.25, x2: 0.9, y2: 0.75 }]);
+    expect(saved[0]).toMatchObject({ id: '9', name: 'Bed' });
+  });
+
+  it('never sends a corner past the edge of the picture', async () => {
+    let sent: Array<{ x2: number; y2: number }> = [];
+    server.use(
+      http.put('/api/cameras/3/zones', async ({ request }) => {
+        sent = (await request.json()) as typeof sent;
+        return HttpResponse.json([]);
+      }),
+    );
+    await fastApi.saveRestZones('3', {
+      zones: [{ name: 'Mat', x: 0.7, y: 0.6, width: 0.3000001, height: 0.4000001 }],
+    });
+    expect(sent[0]).toMatchObject({ x2: 1, y2: 1 });
+  });
+
+  it('passes on the backend refusing zones for a bathroom camera', async () => {
+    server.use(
+      http.put('/api/cameras/4/zones', () =>
+        HttpResponse.json(
+          { detail: "Bathroom cameras can't have rest zones: lying down there is always checked." },
+          { status: 409 },
+        ),
+      ),
+    );
+    const bed = { name: 'Bed', x: 0.1, y: 0.1, width: 0.3, height: 0.3 };
+    await expect(fastApi.saveRestZones('4', { zones: [bed] })).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringContaining('Bathroom'),
+    });
   });
 });
 

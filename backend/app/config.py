@@ -23,6 +23,8 @@ SNAPSHOT_DIR = BASE_DIR / "snapshots"
 
 # Your trained fall model from the training tutorial (step 8)
 MODEL_PATH = os.getenv("ELDERGUARD_MODEL", r"C:\Elderguard\elderguard\runs\fall\weights\best.pt")
+# Body keypoint model for the pose check (downloaded by Ultralytics on first use if missing, ~6 MB)
+POSE_MODEL_PATH = os.getenv("ELDERGUARD_POSE_MODEL", str(BASE_DIR / "yolov8n-pose.pt"))
 
 # Login tokens. Changing this key logs everyone out.
 SECRET_KEY = required("ELDERGUARD_SECRET")
@@ -48,6 +50,9 @@ PROCESS_FPS = 10                  # frames per second the model checks on each c
 STREAM_FPS = 10                   # frames per second sent to the browser
 LIVE_CHECK_SECONDS = 2            # how often an open video stream re-checks that its login is still allowed
 JPEG_QUALITY = 70                 # 0-100, lower = smaller and faster stream
+# Boxes and labels ("upright 0.91") on the video and alert pictures. Off = a clean picture, for real use.
+# Turn on while testing with ELDERGUARD_SHOW_DETECTIONS=1 in backend/.env
+SHOW_DETECTIONS = os.getenv("ELDERGUARD_SHOW_DETECTIONS", "0") == "1"
 DUPLICATE_COOLDOWN_SECONDS = 60   # a person re-found at the same spot within this time is not a new fall
 ALERT_RETRY_SECONDS = 5           # how often to retry saving an alert while the database is down
 WORKER_RESTART_SECONDS = 5        # wait this long before restarting a camera's monitoring after an error

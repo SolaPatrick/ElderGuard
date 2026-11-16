@@ -4,10 +4,17 @@ from fastapi import APIRouter, HTTPException
 from sqlmodel import func, select
 
 from ..database import SessionDep
-from ..models import Alert, Camera, CameraCreate, CameraOut, CameraUpdate, Role, Room, User, required_blur
+from ..models import (Alert, Camera, CameraCreate, CameraOut, CameraUpdate, Place, RestZone, RestZoneIn, Role,
+                      Room, User, required_blur)
 from ..security import AdminUser, CurrentUser
 
 router = APIRouter(prefix="/api/cameras", tags=["cameras"])
+
+# Rest zones, the same rules as the web app (frontend/docs/api-contract.md, CAM-08)
+MAX_REST_ZONES = 10
+MAX_ZONE_NAME = 40
+MIN_ZONE_SIZE = 0.02      # narrower or shorter than this share of the picture = a slip of the mouse
+EPS = 1e-6                # rounding room for fractions sent by the browser
 
 
 def get_camera_or_404(session, camera_id: int) -> Camera:
@@ -93,5 +100,42 @@ def delete_camera(camera_id: int, session: SessionDep, admin: AdminUser):
     if alerts:
         raise HTTPException(409, f"This camera has {alerts} alert(s) in the incident history. "
                                  "Turn its detection off instead of deleting it.")
+    for zone in session.exec(select(RestZone).where(RestZone.camera_id == camera_id)):
+        session.delete(zone)          # a camera's rest zones go with it
+    session.flush()                   # zones first: the database refuses to delete a camera that still has zones
     session.delete(camera)
     session.commit()
+
+
+@router.get("/{camera_id}/zones", response_model=list[RestZone])
+def list_zones(camera_id: int, session: SessionDep, user: CurrentUser):
+    """The rest zones of one camera: places where lying down is normal (bed, floor mat, sofa)."""
+    get_camera_or_404(session, camera_id)
+    return session.exec(select(RestZone).where(RestZone.camera_id == camera_id)).all()
+
+
+@router.put("/{camera_id}/zones", response_model=list[RestZone])
+def replace_zones(camera_id: int, zones: list[RestZoneIn], session: SessionDep, admin: AdminUser):
+    """Saves the camera's whole list of zones at once (what the drawing screen sends)."""
+    camera = get_camera_or_404(session, camera_id)
+    if camera.place == Place.bathroom and zones:
+        raise HTTPException(409, "Bathroom cameras can't have rest zones: lying down there is always checked.")
+    if len(zones) > MAX_REST_ZONES:
+        raise HTTPException(400, f"A camera can have at most {MAX_REST_ZONES} rest zones.")
+    for z in zones:
+        z.name = z.name.strip()
+        if not 1 <= len(z.name) <= MAX_ZONE_NAME:
+            raise HTTPException(400, f"Each zone needs a name of 1 to {MAX_ZONE_NAME} characters.")
+        if not (0 <= z.x1 and 0 <= z.y1 and z.x2 <= 1 + EPS and z.y2 <= 1 + EPS
+                and z.x2 - z.x1 >= MIN_ZONE_SIZE - EPS and z.y2 - z.y1 >= MIN_ZONE_SIZE - EPS):
+            raise HTTPException(400, f"Zone '{z.name}' must lie inside the picture and be at least "
+                                     f"{MIN_ZONE_SIZE:.0%} of it wide and high.")
+    for old in session.exec(select(RestZone).where(RestZone.camera_id == camera_id)):
+        session.delete(old)
+    session.flush()
+    new = [RestZone(camera_id=camera_id, created_by=admin.id, **z.model_dump()) for z in zones]
+    session.add_all(new)
+    session.commit()
+    for z in new:
+        session.refresh(z)
+    return new

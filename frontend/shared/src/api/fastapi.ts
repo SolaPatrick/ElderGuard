@@ -40,6 +40,7 @@ import {
   type Resident,
   type ResidentDetail,
   type RestZone,
+  type SaveRestZonesRequest,
   type RoomRef,
   type User,
   isActiveStatus,
@@ -173,6 +174,35 @@ const numericId = (id: string, what: string): number => {
 
 const notYet = (what: string) =>
   new ApiError(501, 'not_implemented', `${what} is not available on the server yet.`);
+
+/** A rest zone as the backend keeps it: two corners, each a share (0 to 1) of the picture. */
+const rawRestZone = z.object({
+  id: z.number(),
+  name: z.string(),
+  x1: z.number(),
+  y1: z.number(),
+  x2: z.number(),
+  y2: z.number(),
+});
+
+const toRestZone = (r: z.infer<typeof rawRestZone>): RestZone => ({
+  id: String(r.id),
+  name: r.name,
+  x: r.x1,
+  y: r.y1,
+  width: r.x2 - r.x1,
+  height: r.y2 - r.y1,
+});
+
+/** The screens send x, y, width, height; the backend wants the two corners, as a plain list. */
+const restZonesBody = (b: SaveRestZonesRequest) =>
+  b.zones.map((zone) => ({
+    name: zone.name,
+    x1: zone.x,
+    y1: zone.y,
+    x2: Math.min(1, zone.x + zone.width),
+    y2: Math.min(1, zone.y + zone.height),
+  }));
 
 /** The classify dialog's reasons, and the backend's codes for them. */
 const REASON_TO_CODE: Record<string, string> = {
@@ -702,12 +732,16 @@ export const fastApi = {
     return { width: res.width, height: res.height };
   },
   // Den's backend has no rest zones yet (CAM-08): see backend-gaps.md.
-  restZones: async (_cameraId: string): Promise<RestZone[]> => {
-    throw notYet('Rest zones');
-  },
-  saveRestZones: async (_cameraId: string, _body: unknown): Promise<RestZone[]> => {
-    throw notYet('Rest zones');
-  },
+  // CAM-08: the backend keeps zones as corners (x1, y1, x2, y2); the screens use x, y, width, height.
+  restZones: async (cameraId: string): Promise<RestZone[]> =>
+    (await get(`/cameras/${numericId(cameraId, 'camera')}/zones`, z.array(rawRestZone))).map(toRestZone),
+  saveRestZones: async (cameraId: string, body: SaveRestZonesRequest): Promise<RestZone[]> =>
+    (
+      await apiRequest(`/cameras/${numericId(cameraId, 'camera')}/zones`, z.array(rawRestZone), {
+        method: 'PUT',
+        body: restZonesBody(body),
+      })
+    ).map(toRestZone),
   createRoom: async (body: RoomRequest): Promise<RoomRef> =>
     toRoom(
       await apiRequest('/rooms', rawRoom, {
