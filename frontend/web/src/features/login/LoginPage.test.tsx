@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderApp } from '../../test/renderApp';
+import { markAlertSetupDone } from '../alertSetup/alertPrefs';
 
 describe('Login (AUTH-01)', () => {
   it('sends signed-out visitors to the login page', async () => {
@@ -32,6 +33,7 @@ describe('Login (AUTH-01)', () => {
   });
 
   it('logs in and returns to the page the user asked for', async () => {
+    markAlertSetupDone('u-teresa'); // the setup screen after login is tested in alertSetup.test.tsx
     const { user, router } = renderApp('/incidents');
     await user.type(await screen.findByRole('textbox', { name: /username or email/i }), 'teresa.reyes');
     await user.type(screen.getByLabelText(/^password/i, { selector: 'input' }), 'elderguard123');

@@ -1,30 +1,17 @@
 import { Grid, List, ListItem, ListItemText, Stack, Typography } from '@mui/material';
-import { INCIDENT_STATUS_LABEL, type IncidentStatus } from '@elderguard/shared';
+import {
+  HELP_LIMITATIONS,
+  HELP_STEPS,
+  INCIDENT_STATUS_LABEL,
+  STATUS_MEANING,
+  type IncidentStatus,
+} from '@elderguard/shared';
 import { BACKEND, USE_MOCKS } from '../../api/config';
 import { useCurrentUser } from '../../auth/authContext';
 import { PageHeader } from '../../components/PageHeader';
 import { StatusChip } from '../../components/StatusChip';
 import { APP_VERSION } from '../../version';
 import { SectionCard } from '../dashboard/DashboardCards';
-
-const STEPS = [
-  {
-    title: 'Possible fall detected',
-    body: 'A camera sees a possible fall and the alarm sounds on every signed-in screen, with the room and camera.',
-  },
-  { title: 'Acknowledge', body: 'Tell the team you are responding. The alarm stops for everyone.' },
-  { title: 'Go to the resident', body: 'Open the live camera, or go to the room in person.' },
-  { title: 'Classify', body: 'Mark it as a confirmed incident, or as a false alarm with a reason.' },
-  { title: 'Resolve', body: 'Choose the outcome and write a short summary of what you did.' },
-];
-
-const STATUS_MEANING: Record<IncidentStatus, string> = {
-  new: 'Nobody has acknowledged it yet',
-  acknowledged: 'Someone is responding',
-  confirmed: 'A real fall or emergency',
-  false_alarm: 'No fall happened',
-  resolved: 'Closed with an outcome',
-};
 
 /** PRF-04 Help & About. */
 export function HelpPage() {
@@ -37,7 +24,7 @@ export function HelpPage() {
         <Grid size={{ xs: 12, lg: 7 }}>
           <SectionCard title="How alerts work">
             <List component="ol" disablePadding aria-label="How alerts work">
-              {STEPS.map((s, i) => (
+              {HELP_STEPS.map((s, i) => (
                 <ListItem key={s.title} disableGutters sx={{ alignItems: 'flex-start' }}>
                   <ListItemText primary={`${i + 1}. ${s.title}`} secondary={s.body} />
                 </ListItem>
@@ -61,12 +48,7 @@ export function HelpPage() {
               </List>
             </SectionCard>
             <SectionCard title="Limitations">
-              <Typography variant="body2">
-                ElderGuard is an assistive tool. It does not replace rounds and in-person checks. A camera can
-                miss a fall it cannot see clearly (outside its view, blocked, or in poor light), and it can
-                raise false alarms. Always respond to a resident who calls for help, whatever the screen
-                shows.
-              </Typography>
+              <Typography variant="body2">{HELP_LIMITATIONS}</Typography>
             </SectionCard>
             <SectionCard title="About">
               <Typography variant="body2">

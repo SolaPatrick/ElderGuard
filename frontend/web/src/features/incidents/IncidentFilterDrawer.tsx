@@ -2,15 +2,17 @@ import { useState } from 'react';
 import { Box, Button, Chip, Drawer, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import CheckOutlined from '@mui/icons-material/CheckOutlined';
 import CloseOutlined from '@mui/icons-material/CloseOutlined';
-import { INCIDENT_STATUS_LABEL, incidentStatusSchema, incidentTypeSchema } from '@elderguard/shared';
 import {
+  INCIDENT_STATUS_LABEL,
+  incidentStatusSchema,
+  incidentTypeSchema,
   CLASSIFICATION_LABEL,
   NO_FILTERS,
   TYPE_LABEL,
   type Classification,
   type IncidentFilters,
   type pickerOptions,
-} from './incidentFilters';
+} from '@elderguard/shared';
 
 type Options = ReturnType<typeof pickerOptions>;
 

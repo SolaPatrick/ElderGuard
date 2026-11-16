@@ -13,6 +13,8 @@ import { ResidentsPage } from '../features/residents/ResidentsPage';
 import { ResidentProfilePage } from '../features/residents/ResidentProfilePage';
 import { AddResidentPage, EditResidentPage } from '../features/residents/ResidentFormPages';
 import { UsersPage } from '../features/users/UsersPage';
+import { ForgotPasswordPage } from '../features/login/ForgotPasswordPage';
+import { PermissionsPage } from '../features/users/PermissionsPage';
 import { CreateUserPage } from '../features/users/CreateUserPage';
 import { UserDetailPage } from '../features/users/UserDetailPage';
 import { EditUserPage } from '../features/users/EditUserPage';
@@ -20,25 +22,30 @@ import { RoomsPage } from '../features/rooms/RoomsPage';
 import { RoomDetailPage } from '../features/rooms/RoomDetailPage';
 import { CamerasPage } from '../features/cameras/CamerasPage';
 import { CameraDetailPage } from '../features/cameras/CameraDetailPage';
+import { DeviceHealthPage } from '../features/cameras/DeviceHealthPage';
 import { EditCameraPage, RegisterCameraPage } from '../features/cameras/CameraPages';
 import { NotificationsPage } from '../features/notifications/NotificationsPage';
 import { HelpPage } from '../features/help/HelpPage';
-import { ComingSoonPage } from '../features/system/ComingSoonPage';
+import { SetupAlertsPage } from '../features/alertSetup/SetupAlertsPage';
+import { AlertPreferencesPage } from '../features/alertSetup/AlertPreferencesPage';
+import { ProfilePage } from '../features/profile/ProfilePage';
+import { ReportsPage } from '../features/reports/ReportsPage';
+import { ActivityLogPage } from '../features/activity/ActivityLogPage';
+import { SettingsPage } from '../features/settings/SettingsPage';
+import { GenerateReportPage } from '../features/reports/GenerateReportPage';
+import { ReportPreviewPage } from '../features/reports/ReportPreviewPage';
 import { NotFoundPage } from '../features/system/NotFoundPage';
 import { RouteErrorPage } from '../features/system/RouteErrorPage';
 
-const soon = (path: string, title: string): RouteObject => ({
-  path,
-  element: <ComingSoonPage title={title} />,
-});
-
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage />, errorElement: <RouteErrorPage /> },
+  { path: '/forgot-password', element: <ForgotPasswordPage />, errorElement: <RouteErrorPage /> },
   {
     element: <RequireAuth />,
     errorElement: <RouteErrorPage />,
     children: [
       { path: '/change-password', element: <ChangePasswordPage /> },
+      { path: '/setup-alerts', element: <SetupAlertsPage /> },
       {
         element: <AppShell />,
         children: [
@@ -56,6 +63,8 @@ export const routes: RouteObject[] = [
               { path: 'residents/:id', element: <ResidentProfilePage /> },
               { path: 'notifications', element: <NotificationsPage /> },
               { path: 'help', element: <HelpPage /> },
+              { path: 'profile', element: <ProfilePage /> },
+              { path: 'profile/alerts', element: <AlertPreferencesPage /> },
               {
                 element: <RequireAuth roles={['admin']} />,
                 children: [
@@ -65,15 +74,20 @@ export const routes: RouteObject[] = [
                   { path: 'rooms/:id', element: <RoomDetailPage /> },
                   { path: 'cameras', element: <CamerasPage /> },
                   { path: 'cameras/new', element: <RegisterCameraPage /> },
+                  { path: 'cameras/health', element: <DeviceHealthPage /> },
                   { path: 'cameras/:id', element: <CameraDetailPage /> },
                   { path: 'cameras/:id/edit', element: <EditCameraPage /> },
                   { path: 'users', element: <UsersPage /> },
                   { path: 'users/new', element: <CreateUserPage /> },
+                  { path: 'users/permissions', element: <PermissionsPage /> },
                   { path: 'users/:id', element: <UserDetailPage /> },
                   { path: 'users/:id/edit', element: <EditUserPage /> },
-                  soon('reports', 'Reports & analytics'),
-                  soon('activity', 'Activity log'),
-                  soon('settings', 'Settings'),
+                  { path: 'reports', element: <ReportsPage /> },
+                  { path: 'reports/new', element: <GenerateReportPage /> },
+                  { path: 'reports/preview', element: <ReportPreviewPage /> },
+                  { path: 'activity', element: <ActivityLogPage /> },
+                  { path: 'settings', element: <SettingsPage /> },
+                  { path: 'settings/:section', element: <SettingsPage /> },
                 ],
               },
               { path: '*', element: <NotFoundPage /> },

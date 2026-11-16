@@ -4,6 +4,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
 import { createQueryClient } from './queryClient';
 import { AuthProvider } from '../auth/AuthProvider';
+import { ToastProvider } from '../components/ToastProvider';
 import { theme } from '../theme/theme';
 
 export function AppProviders({ children, queryClient }: { children: ReactNode; queryClient?: QueryClient }) {
@@ -12,7 +13,9 @@ export function AppProviders({ children, queryClient }: { children: ReactNode; q
     <ThemeProvider theme={theme} defaultMode="light">
       <CssBaseline enableColorScheme />
       <QueryClientProvider client={client}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );

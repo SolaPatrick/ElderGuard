@@ -6,19 +6,23 @@ import { useCurrentUser } from '../auth/authContext';
 import { useActiveIncidents } from '../api/queries';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
+import { useFacilityName } from './facility';
 import { ActiveAlertBanner } from './ActiveAlertBanner';
 import { FallAlertOverlay } from './FallAlertOverlay';
-
-const FACILITY_NAME = 'Demo Home for the Aged'; // TODO: load from GET /facility once the backend has it
+import { isMaintenance } from '../components/errorMessage';
+import { SessionTimeoutDialog } from './SessionTimeoutDialog';
+import { useDesktopAlertNotifications } from '../features/alertSetup/useDesktopAlertNotifications';
 
 /** SH-01 / SH-02: sidebar + top bar + alert banner around every signed-in page. */
 export function AppShell() {
   const user = useCurrentUser();
+  const facilityName = useFacilityName();
   const [navOpen, setNavOpen] = useState(false);
   const active = useActiveIncidents();
   const incidents = active.data ?? [];
   // Keep showing the last known alerts if a refresh fails, and say the connection is down.
   const connectionLost = active.isError && active.failureCount > 0;
+  useDesktopAlertNotifications(active.data, user.id);
 
   const sidebar = <Sidebar user={user} alertCount={incidents.length} onNavigate={() => setNavOpen(false)} />;
 
@@ -51,15 +55,15 @@ export function AppShell() {
         <Box sx={{ position: 'sticky', top: 0, zIndex: (t) => t.zIndex.appBar }}>
           <TopBar
             user={user}
-            facilityName={FACILITY_NAME}
-            alertCount={incidents.length}
+            facilityName={facilityName}
             connectionLost={connectionLost}
             onOpenNav={() => setNavOpen(true)}
           />
           {connectionLost && (
             <Alert severity="error" square sx={{ px: { xs: 3, md: 8 } }}>
-              Cannot reach the ElderGuard server. New alerts will not appear until the connection is back.
-              Retrying…
+              {isMaintenance(active.error)
+                ? 'ElderGuard is under maintenance. New alerts will not appear until it is back, so do in-person rounds. Checking again…'
+                : 'Cannot reach the ElderGuard server. New alerts will not appear until the connection is back. Retrying…'}
             </Alert>
           )}
           <ActiveAlertBanner incidents={incidents} userId={user.id} />
@@ -73,6 +77,7 @@ export function AppShell() {
       </Box>
 
       <FallAlertOverlay incidents={incidents} />
+      <SessionTimeoutDialog />
     </Box>
   );
 }

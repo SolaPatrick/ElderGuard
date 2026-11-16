@@ -32,6 +32,7 @@ import { StatusChip } from '../../components/StatusChip';
 import { SectionCard } from '../dashboard/DashboardCards';
 import { formatDateTime } from '../residents/residentFilters';
 import { NotFoundPage } from '../system/NotFoundPage';
+import { AssignDialog } from './AssignDialog';
 import { CredentialsDialog } from './CredentialsDialog';
 import { ROLE_LABEL } from './staffLabels';
 
@@ -93,6 +94,73 @@ function ConfirmDialog({
         </Button>
       </DialogActions>
     </Dialog>
+  );
+}
+
+/** USR-10 summary on the user page, with the Assign button for employees. */
+function AssignmentsCard({ staff }: { staff: StaffMember }) {
+  const [assigning, setAssigning] = useState(false);
+  const canAssign = staff.role === 'employee' && serverFeatures.areaAssignment;
+  return (
+    <SectionCard
+      title="Assigned residents and areas"
+      action={
+        canAssign ? (
+          <Button size="small" onClick={() => setAssigning(true)}>
+            Assign
+          </Button>
+        ) : undefined
+      }
+    >
+      {staff.role === 'admin' ? (
+        <Typography variant="body2" color="text.secondary">
+          The Admin/Head sees every room, area and resident.
+        </Typography>
+      ) : !serverFeatures.areaAssignment ? (
+        <Typography variant="body2" color="text.secondary">
+          Assigning rooms and residents is not available on the server yet, so employees see every room for
+          now.
+        </Typography>
+      ) : (
+        <Stack spacing={4}>
+          {staff.areas.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              No rooms assigned. This employee won't get any alerts until you assign some.
+            </Typography>
+          ) : (
+            <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 2 }} aria-label="Assigned rooms">
+              {staff.areas.map((a) => (
+                <Chip key={a.id} variant="outlined" label={a.wing ? `${a.name} · ${a.wing}` : a.name} />
+              ))}
+            </Stack>
+          )}
+          <div>
+            <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 2 }}>
+              Caregiver for
+            </Typography>
+            {staff.residents.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                No residents
+              </Typography>
+            ) : (
+              <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 2 }} aria-label="Assigned residents">
+                {staff.residents.map((r) => (
+                  <Chip
+                    key={r.id}
+                    variant="outlined"
+                    label={r.fullName}
+                    component={RouterLink}
+                    to={`/residents/${r.id}`}
+                    clickable
+                  />
+                ))}
+              </Stack>
+            )}
+          </div>
+        </Stack>
+      )}
+      {assigning && <AssignDialog staff={staff} onClose={() => setAssigning(false)} />}
+    </SectionCard>
   );
 }
 
@@ -291,27 +359,7 @@ export function UserDetailPage() {
           </SectionCard>
         </Grid>
         <Grid size={{ xs: 12, lg: 5 }}>
-          <SectionCard title="Assigned rooms and areas">
-            {s.role === 'admin' ? (
-              <Typography variant="body2" color="text.secondary">
-                The Admin/Head sees every room and area.
-              </Typography>
-            ) : !serverFeatures.areaAssignment ? (
-              <Typography variant="body2" color="text.secondary">
-                Assigning rooms is not available on the server yet, so employees see every room for now.
-              </Typography>
-            ) : s.areas.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">
-                No rooms assigned. This employee won't get any alerts until you assign some.
-              </Typography>
-            ) : (
-              <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 2 }} aria-label="Assigned rooms">
-                {s.areas.map((a) => (
-                  <Chip key={a.id} variant="outlined" label={a.wing ? `${a.name} · ${a.wing}` : a.name} />
-                ))}
-              </Stack>
-            )}
-          </SectionCard>
+          <AssignmentsCard staff={s} />
         </Grid>
       </Grid>
     </>

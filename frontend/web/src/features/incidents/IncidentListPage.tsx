@@ -32,15 +32,6 @@ import {
   incidentStatusSchema,
   type Incident,
   type IncidentStatus,
-} from '@elderguard/shared';
-import { useIncidentHistory } from '../../api/queries';
-import { HISTORY_LIMIT } from '../../api/config';
-import { useCurrentUser } from '../../auth/authContext';
-import { PageHeader } from '../../components/PageHeader';
-import { ErrorState, SkeletonRows } from '../../components/QueryStates';
-import { StatusChip } from '../../components/StatusChip';
-import { IncidentFilterDrawer } from './IncidentFilterDrawer';
-import {
   CLASSIFICATION_LABEL,
   DATE_LABEL,
   NO_FILTERS,
@@ -55,7 +46,14 @@ import {
   writeFilters,
   type DatePreset,
   type IncidentFilters,
-} from './incidentFilters';
+} from '@elderguard/shared';
+import { useIncidentHistory } from '../../api/queries';
+import { HISTORY_LIMIT } from '../../api/config';
+import { useCurrentUser } from '../../auth/authContext';
+import { PageHeader } from '../../components/PageHeader';
+import { ErrorState, SkeletonRows } from '../../components/QueryStates';
+import { StatusChip } from '../../components/StatusChip';
+import { IncidentFilterDrawer } from './IncidentFilterDrawer';
 
 export const PAGE_SIZE = 25;
 

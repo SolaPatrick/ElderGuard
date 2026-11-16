@@ -5,6 +5,10 @@
  */
 import {
   isActiveStatus,
+  type ActivityAction,
+  type FacilitySettings,
+  type SettingsSection,
+  type ActivityModule,
   type Camera,
   type Resident,
   type RoomRef,
@@ -20,6 +24,7 @@ import {
   type StaffWithPassword,
   type CreateStaffRequest,
   type UpdateStaffRequest,
+  type StaffAssignmentsRequest,
   type DashboardSummary,
   type Incident,
   type IncidentDetail,
@@ -38,6 +43,20 @@ let seed: Seed = createSeed();
 let passwords = new Map<string, string>();
 /** Setup details of each camera (stream link, placement, blur), which the camera list doesn't include. */
 let cameraSetup = new Map<string, Omit<CameraSettings, 'id' | 'code' | 'roomId' | 'detectionEnabled'>>();
+/** Password reset codes by user id (AUTH-02 to AUTH-04). The fake API "emails" them to the console. */
+interface ResetCode {
+  code: string;
+  sentAt: number;
+  expiresAt: number;
+  triesLeft: number;
+}
+let resetCodes = new Map<string, ResetCode>();
+/** One-time tokens from a correct code, valid for RESET_TOKEN_MS. */
+let resetTokens = new Map<string, { userId: string; expiresAt: number }>();
+export const RESET_CODE_MS = 10 * 60_000;
+export const RESET_RESEND_SECONDS = 60;
+const RESET_TOKEN_MS = 15 * 60_000;
+const RESET_TRIES = 5;
 let ids = 1000;
 const nextId = (prefix: string) => `${prefix}-${++ids}`;
 
@@ -45,7 +64,18 @@ export function resetDb(now: Date = new Date()) {
   seed = createSeed(now);
   passwords = new Map();
   cameraSetup = new Map();
+  resetCodes = new Map();
+  resetTokens = new Map();
 }
+
+/** "j***@demohome.example" */
+export function maskEmail(email: string): string {
+  const [name = '', domain = ''] = email.split('@');
+  return `${name.slice(0, 1)}***@${domain}`;
+}
+
+const randomDigits = (n: number) =>
+  Array.from(crypto.getRandomValues(new Uint32Array(n)), (x) => String(x % 10)).join('');
 
 function setupOf(cameraId: string) {
   let setup = cameraSetup.get(cameraId);
@@ -113,6 +143,12 @@ function toStaff(u: SeedUser): StaffMember {
     isActive: u.status === 'active',
     mustChangePassword: u.mustChangePassword,
     areas: roomRefs(u.areaIds),
+    residents:
+      u.role === 'admin'
+        ? []
+        : seed.residents
+            .filter((r) => r.archived === null && r.caregiverIds.includes(u.id))
+            .map((r) => ({ id: r.id, fullName: r.fullName })),
     lastLoginAt: u.lastLoginAt,
     createdAt: u.createdAt,
   };
@@ -145,6 +181,50 @@ export const db = {
   },
   checkPassword(user: SeedUser, password: string): boolean {
     return password === (passwords.get(user.id) ?? DEMO_PASSWORD);
+  },
+
+  /**
+   * AUTH-02: makes a new code when the account can receive one. Returns null (no code) for
+   * deactivated accounts and accounts without an email. A new code waits RESET_RESEND_SECONDS.
+   */
+  sendResetCode(user: SeedUser, now = Date.now()): { code: string | null; waitSeconds: number } | null {
+    if (user.status !== 'active' || !user.email) return null;
+    const current = resetCodes.get(user.id);
+    const wait = current ? Math.ceil((current.sentAt + RESET_RESEND_SECONDS * 1000 - now) / 1000) : 0;
+    if (wait > 0) return { code: null, waitSeconds: wait };
+    const code = randomDigits(6);
+    resetCodes.set(user.id, { code, sentAt: now, expiresAt: now + RESET_CODE_MS, triesLeft: RESET_TRIES });
+    return { code, waitSeconds: RESET_RESEND_SECONDS };
+  },
+
+  /** For tests and the demo: the code last "emailed" to this user. */
+  lastResetCode(userId: string): string | undefined {
+    return resetCodes.get(userId)?.code;
+  },
+
+  /** AUTH-03: a one-time reset token, or why the code was refused. */
+  checkResetCode(user: SeedUser, code: string, now = Date.now()): { token: string } | 'invalid' | 'expired' {
+    const current = resetCodes.get(user.id);
+    if (!current) return 'invalid';
+    if (now >= current.expiresAt || current.triesLeft <= 0) return 'expired';
+    if (code !== current.code) {
+      current.triesLeft -= 1;
+      return current.triesLeft <= 0 ? 'expired' : 'invalid';
+    }
+    resetCodes.delete(user.id);
+    const token = `reset-${randomDigits(24)}`;
+    resetTokens.set(token, { userId: user.id, expiresAt: now + RESET_TOKEN_MS });
+    return { token };
+  },
+
+  /** AUTH-04: sets the new password once per token. Returns the user, or null if the token is no good. */
+  useResetToken(token: string, password: string, now = Date.now()): SeedUser | null {
+    const entry = resetTokens.get(token);
+    resetTokens.delete(token);
+    const user = entry && now < entry.expiresAt ? seed.users.find((u) => u.id === entry.userId) : undefined;
+    if (!user || user.status !== 'active') return null;
+    db.changePassword(user, password);
+    return user;
   },
 
   changePassword(user: SeedUser, password: string) {
@@ -263,6 +343,7 @@ export const db = {
         status: 'connecting',
         detectionEnabled: true,
         lastSeenAt: null,
+        statusDetail: null,
       };
       seed.cameras.push(camera);
     }
@@ -361,6 +442,27 @@ export const db = {
     return toStaff(user);
   },
 
+  /** Returns an error message when the assignment can't be saved (USR-10). */
+  assignmentProblem(user: SeedUser, req: StaffAssignmentsRequest): string | null {
+    if (user.role === 'admin') return 'The Admin/Head already sees every room and resident.';
+    if (!req.areaIds.every((id) => seed.rooms.some((r) => r.id === id))) return 'That room does not exist.';
+    if (!req.residentIds.every((id) => seed.residents.some((r) => r.id === id && r.archived === null)))
+      return 'That resident does not exist or has moved out.';
+    return null;
+  },
+
+  /** Replaces the rooms and the current residents an employee looks after. Call assignmentProblem first. */
+  assignStaff(user: SeedUser, req: StaffAssignmentsRequest): StaffMember {
+    user.areaIds = db.cleanAreaIds(user.role, req.areaIds);
+    const chosen = new Set(req.residentIds);
+    for (const r of seed.residents) {
+      if (r.archived !== null) continue;
+      const others = r.caregiverIds.filter((id) => id !== user.id);
+      r.caregiverIds = chosen.has(r.id) ? [...others, user.id] : others;
+    }
+    return toStaff(user);
+  },
+
   /** True when this is the only active Admin/Head, so they can't be demoted or deactivated. */
   isLastActiveAdmin(user: SeedUser): boolean {
     return (
@@ -392,9 +494,18 @@ export const db = {
     return visible === null || (roomId !== null && visible.has(roomId));
   },
 
-  listIncidents(user: SeedUser, scope: 'active' | 'all', limit = 50): Incident[] {
+  listIncidents(
+    user: SeedUser,
+    scope: 'active' | 'all',
+    limit = 50,
+    between?: { from: number; to: number },
+  ): Incident[] {
     return seed.incidents
       .filter((i) => db.canSeeRoom(user, i.room.id))
+      .filter(
+        (i) =>
+          !between || (Date.parse(i.detectedAt) >= between.from && Date.parse(i.detectedAt) < between.to),
+      )
       .filter((i) => scope === 'all' || isActiveStatus(i.status))
       .toSorted((a, b) => Date.parse(b.detectedAt) - Date.parse(a.detectedAt))
       .slice(0, limit)
@@ -428,13 +539,32 @@ export const db = {
     });
   },
 
-  addActivity(user: SeedUser, summary: string) {
+  addActivity(
+    user: SeedUser,
+    summary: string,
+    module: ActivityModule,
+    action: ActivityAction,
+    record: string | null,
+  ) {
     seed.activity.unshift({
       id: nextId('act'),
       user: { id: user.id, fullName: user.fullName },
       summary,
       createdAt: new Date().toISOString(),
+      module,
+      action,
+      record,
     });
+  },
+
+  settings(): FacilitySettings {
+    return structuredClone(seed.settings);
+  },
+
+  saveSettings<S extends SettingsSection>(section: S, value: FacilitySettings[S]): FacilitySettings {
+    seed.settings = { ...seed.settings, [section]: value };
+    if (section === 'general') seed.facilityName = seed.settings.general.facilityName;
+    return db.settings();
   },
 
   listActivity(limit: number) {
@@ -629,7 +759,13 @@ export const db = {
       notes: req.note ? [{ id: nextId('note'), body: req.note, author: by, createdAt: now }] : [],
     };
     seed.incidents.push(incident);
-    db.addActivity(user, `${user.fullName} sent an SOS from ${room.name}`);
+    db.addActivity(
+      user,
+      `${user.fullName} sent an SOS from ${room.name}`,
+      'alerts',
+      'sent_sos',
+      incident.code,
+    );
     return incident;
   },
 

@@ -49,9 +49,14 @@ export function UsersPage() {
             : undefined
         }
         actions={
-          <Button variant="contained" startIcon={<AddOutlined />} component={RouterLink} to="/users/new">
-            Create user
-          </Button>
+          <Stack direction="row" spacing={2}>
+            <Button variant="outlined" component={RouterLink} to="/users/permissions">
+              Roles & permissions
+            </Button>
+            <Button variant="contained" startIcon={<AddOutlined />} component={RouterLink} to="/users/new">
+              Create user
+            </Button>
+          </Stack>
         }
       />
 

@@ -31,6 +31,24 @@ If the backend team prefers other paths or field names, that's fine. Change `web
 
 `areas` lists the rooms and areas a caregiver monitors (AREA_ASSIGNMENT). It is empty for the Admin/Head.
 
+### Forgot password (AUTH-02 to AUTH-05, no sign-in)
+
+| Method | Path                      | Body                          | Response                         |
+| ------ | ------------------------- | ----------------------------- | -------------------------------- |
+| POST   | `/auth/forgot-password`   | `{ login }`                   | `{ sentTo, resendAfterSeconds }` |
+| POST   | `/auth/verify-reset-code` | `{ login, code }`             | `{ resetToken }`                 |
+| POST   | `/auth/reset-password`    | `{ resetToken, newPassword }` | `{ ok: true }`                   |
+
+- `login` is the username or email, as on the login page. The server emails a 6-digit code that works for
+  10 minutes. `forgot-password` always answers 200: `sentTo` is the masked email (`j***@demohome.example`), or null
+  when no code was sent (unknown or deactivated account, or no email), so the answer doesn't confirm an account.
+  A new code can be sent after `resendAfterSeconds` (60).
+- `verify-reset-code`: **400** `invalid_code`; **410** `code_expired` after 10 minutes or 5 wrong tries. A correct
+  code works once and returns a one-time `resetToken` (15 minutes).
+- `reset-password`: **400** when the password is under 8 characters; **410** `reset_expired` when the token was used
+  or is too old. Afterwards the person logs in with the new password.
+- Staff without an email ask the Admin/Head for a temporary password (`POST /users/{id}/reset-password`).
+
 ## Who sees what
 
 - **Admin/Head:** everything.
@@ -56,9 +74,9 @@ Login errors the UI expects: `401 invalid_credentials`, `403 account_deactivated
 }
 ```
 
-`GET /activity?limit=3` returns `[{ id, user: { id, fullName }, summary, createdAt }]`, newest first.
+`GET /activity?limit=500` returns `[{ id, user: { id, fullName }, summary, createdAt, module, action, record }]`, newest first. `module` is one of `auth`, `alerts`, `cameras`, `rooms`, `residents`, `users`, `settings`. `action` is one of `logged_in`, `acknowledged`, `classified`, `resolved`, `cancelled`, `sent_sos`, `created`, `updated`, `deleted`, `archived`, `restored`, `deactivated`, `reactivated`, `password_reset`, `paused`. `record` names what the action was done to (an incident code, camera code, room, resident or staff name), or `null`. The dashboard shows the latest 3; the activity log (LOG-01) loads the latest 500.
 
-`GET /cameras` returns `[{ id, code, roomId, roomName, roomWing, resolutionFps, liveUrl, status: "online"|"offline"|"error"|"paused"|"connecting", detectionEnabled, lastSeenAt }]`. Caregivers only get the cameras in their areas.
+`GET /cameras` returns `[{ id, code, roomId, roomName, roomWing, resolutionFps, liveUrl, status: "online"|"offline"|"error"|"paused"|"connecting", detectionEnabled, lastSeenAt, statusDetail }]`. `statusDetail` is what is wrong, in words staff can act on (e.g. "Cannot open the video source"), or `null`. Caregivers only get the cameras in their areas.
 
 - `resolutionFps` is a display string such as `"1080p · 15 FPS"`, or `null`.
 - `liveUrl` is a URL the browser can play, and `liveFormat` says how: `"video"` for a `<video>` tag (for example an MP4 or HLS gateway in front of the RTSP camera), `"mjpeg"` for an `<img>` tag. Send `null` for both until streaming is ready; the camera page then shows a placeholder. The stream link must work without the login header (an `<img>` or `<video>` tag can't send one).
@@ -132,21 +150,24 @@ new → acknowledged → confirmed → resolved
                    ↘ false_alarm (closed)
 ```
 
-| Method | Path                            | Body                                                                | Response         |
-| ------ | ------------------------------- | ------------------------------------------------------------------- | ---------------- |
-| GET    | `/incidents?scope=active`       | none                                                                | `incident[]`     |
-| GET    | `/incidents?scope=all&limit=50` | none                                                                | `incident[]`     |
-| GET    | `/incidents/{code}`             | none                                                                | `incidentDetail` |
-| POST   | `/incidents/{code}/acknowledge` | none                                                                | `incidentDetail` |
-| POST   | `/incidents/{code}/classify`    | `{ classification: "confirmed"\|"false_alarm", falseAlarmReason? }` | `incidentDetail` |
-| POST   | `/incidents/{code}/resolve`     | `{ outcome, responseSummary? }`                                     | `incidentDetail` |
-| POST   | `/incidents/{code}/notes`       | `{ body }`                                                          | `incidentDetail` |
+| Method | Path                               | Body                                                                | Response         |
+| ------ | ---------------------------------- | ------------------------------------------------------------------- | ---------------- |
+| GET    | `/incidents?scope=active`          | none                                                                | `incident[]`     |
+| GET    | `/incidents?scope=all&limit=50`    | none                                                                | `incident[]`     |
+| GET    | `/incidents?scope=all&from=…&to=…` | none                                                                | `incident[]`     |
+| GET    | `/incidents/{code}`                | none                                                                | `incidentDetail` |
+| POST   | `/incidents/{code}/acknowledge`    | none                                                                | `incidentDetail` |
+| POST   | `/incidents/{code}/classify`       | `{ classification: "confirmed"\|"false_alarm", falseAlarmReason? }` | `incidentDetail` |
+| POST   | `/incidents/{code}/resolve`        | `{ outcome, responseSummary? }`                                     | `incidentDetail` |
+| POST   | `/incidents/{code}/notes`          | `{ body }`                                                          | `incidentDetail` |
 
 The Incidents page (INC-01/02) asks for `scope=all&limit=500`, newest first, and filters and pages in the browser
 (search, date, status, type, resident, room, who handled it, classification). `limit` must allow at least 500. If
 histories grow past that, the same filters can move to the server as query parameters.
 
 ### SOS
+
+`GET /incidents?scope=all&from=…&to=…` (Reports, RPT-01) returns every incident the caller can see with `from <= detectedAt < to` (ISO date-times), newest first, with no `limit`. Test alarms are left out.
 
 `POST /incidents/sos` with `{ roomId, residentId?, note? }` creates an incident with `type: "sos"`, `status: "new"`, `sentBy` = the caller, `camera: null`, `confidence: null`, and returns `incidentDetail` (status 201). The note, if any, becomes the first response note. A caregiver can only send from a room in their `areas` (otherwise **403**). Every other on-duty staff member then sees it through the usual active-incidents poll.
 
@@ -237,8 +258,10 @@ Every route here returns **403** for employees.
 | POST   | `/users/{id}/deactivate`     | none                                           | `staffMember`                      |
 | POST   | `/users/{id}/reactivate`     | none                                           | `staffMember`                      |
 | POST   | `/users/{id}/reset-password` | none                                           | `{ user, temporaryPassword }`      |
+| PUT    | `/users/{id}/assignments`    | `{ areaIds, residentIds }`                     | `staffMember`                      |
 
-`staffMember` = `user` plus `isActive`, `lastLoginAt` (null if they never logged in) and `createdAt`.
+`staffMember` = `user` plus `isActive`, `residents` (`{ id, fullName }[]`, the current residents they are a named
+caregiver for; empty for the Admin/Head), `lastLoginAt` (null if they never logged in) and `createdAt`.
 
 - `email` is optional (`null`). Usernames are lowercase letters, numbers, `.`, `-` and `_`, and can't be changed.
 - `areaIds` are room ids. They are ignored for the Admin/Head, who sees everything.
@@ -247,7 +270,49 @@ Every route here returns **403** for employees.
 - **409** when the username or email is already used, or when the change would leave no active Admin/Head.
   **400** when the Admin/Head tries to deactivate their own account.
 - A deactivated account can't log in, and its open sessions get **401**.
+- `PUT /users/{id}/assignments` (USR-10) replaces the employee's rooms and the current residents they are a caregiver
+  for (the same link as a resident's `caregiverIds`; residents who moved out keep theirs). **409** for the Admin/Head,
+  an unknown room, or a resident who doesn't exist or moved out.
 
 ## Live updates
 
 The app currently polls `GET /incidents?scope=active` every 5 seconds (`ALERT_POLL_MS` in `web/src/api/config.ts`). This works with any backend. Later, a WebSocket or Server-Sent Events stream can replace it, and only `web/src/api/queries.ts` would change.
+
+## Settings (SET-01 to SET-04)
+
+| Method | Path                  | Body                       | Returns    |
+| ------ | --------------------- | -------------------------- | ---------- |
+| GET    | `/settings`           | none                       | `settings` |
+| PUT    | `/settings/{section}` | that section's fields only | `settings` |
+
+Everyone signed in may `GET` (the top bar shows the facility name). Only the Admin/Head may `PUT` (others get **403**); a wrong value gets **400** `validation_error`. `{section}` is `general`, `detection`, `notifications` or `security`. The exact limits are the zod schemas in `shared/src/schemas.ts`.
+
+```json
+{
+  "general": {
+    "facilityName": "Demo Home for the Aged",
+    "address": "",
+    "contactNumber": "",
+    "timeZone": "Asia/Manila",
+    "dateFormat": "d MMM yyyy",
+    "timeFormat": "12h"
+  },
+  "detection": {
+    "confidenceThreshold": 0.4,
+    "confirmationSeconds": 1,
+    "duplicateCooldownSeconds": 60,
+    "retentionDays": null
+  },
+  "notifications": {
+    "push": false,
+    "sms": false,
+    "email": false,
+    "repeatUntilAcknowledged": true,
+    "escalate": true,
+    "escalateAfterMinutes": 3
+  },
+  "security": { "minPasswordLength": 8, "sessionHours": 8, "maxFailedLogins": 5, "lockMinutes": 15 }
+}
+```
+
+`retentionDays: null` keeps alert pictures until someone deletes them. Saving a section is logged in the activity log with `module: "settings"`, `action: "updated"`.

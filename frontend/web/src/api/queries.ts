@@ -10,11 +10,16 @@ import type {
   ResidentDetail,
   ResidentRequest,
   UpdateStaffRequest,
+  StaffAssignmentsRequest,
   IncidentDetail,
   ResolveRequest,
   SosRequest,
   CancelSosRequest,
+  ReportRange,
+  FacilitySettings,
+  SettingsSection,
 } from '@elderguard/shared';
+import { rangeBounds } from '@elderguard/shared';
 import { ALERT_POLL_MS, CAMERA_PICTURE_MS, HISTORY_LIMIT } from './config';
 import { api } from './endpoints';
 
@@ -30,6 +35,7 @@ export const queryKeys = {
   incidents: ['incidents', 'all'] as const,
   incident: (code: string) => ['incidents', 'detail', code] as const,
   staff: ['staff'] as const,
+  settings: ['settings'] as const,
   staffMember: (id: string) => ['staff', id] as const,
 };
 
@@ -53,6 +59,18 @@ export function useIncidentHistory() {
     queryKey: [...queryKeys.incidents, 'history'] as const,
     queryFn: () => api.incidents(HISTORY_LIMIT),
     refetchInterval: 30_000,
+  });
+}
+
+/** RPT-01: every incident detected inside the report's whole days. */
+export function useIncidentsBetween(range: ReportRange, enabled = true) {
+  return useQuery({
+    queryKey: [...queryKeys.incidents, 'between', range.from, range.to] as const,
+    queryFn: () => {
+      const { start, end } = rangeBounds(range);
+      return api.incidentsBetween(start.toISOString(), end.toISOString());
+    },
+    enabled,
   });
 }
 
@@ -242,6 +260,19 @@ export function useUpdateStaff(id: string) {
   });
 }
 
+/** USR-10. Rooms change what the employee sees, so their alerts, residents and cameras refresh too. */
+export function useAssignStaff(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: StaffAssignmentsRequest) => api.assignStaff(id, body),
+    onSuccess: (updated) => {
+      qc.setQueryData(queryKeys.staffMember(id), updated);
+      refreshStaff(qc);
+      void qc.invalidateQueries({ queryKey: queryKeys.residents });
+    },
+  });
+}
+
 type StaffAction = 'deactivate' | 'reactivate';
 
 export function useSetStaffActive(id: string) {
@@ -368,4 +399,25 @@ export function useDeleteCamera(id: string) {
 
 export function useTestCameraSource() {
   return useMutation({ mutationFn: (source: string) => api.testCameraSource(source) });
+}
+
+/** SET-01 to SET-04. Not retried: on a server without settings the 501 answer will not change. */
+export function useSettings() {
+  return useQuery({
+    queryKey: queryKeys.settings,
+    queryFn: api.settings,
+    retry: false,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useSaveSettings<S extends SettingsSection>(section: S) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: FacilitySettings[S]) => api.saveSettings(section, body),
+    onSuccess: (data) => {
+      qc.setQueryData(queryKeys.settings, data);
+      void qc.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
 }

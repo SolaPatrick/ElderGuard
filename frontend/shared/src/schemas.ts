@@ -67,6 +67,55 @@ export const changePasswordFormSchema = z
 export type ChangePasswordForm = z.infer<typeof changePasswordFormSchema>;
 export type ChangePasswordRequest = Pick<ChangePasswordForm, 'currentPassword' | 'newPassword'>;
 
+// ---------- forgot password (AUTH-02 to AUTH-05, no sign-in needed) ----------
+
+/** AUTH-02: POST /auth/forgot-password. `login` is the username or email, as on the login page. */
+export const forgotPasswordRequestSchema = z.object({
+  login: z.string().trim().min(1, 'Enter your username or email'),
+});
+export type ForgotPasswordRequest = z.infer<typeof forgotPasswordRequestSchema>;
+
+/**
+ * Always 200, so the answer doesn't confirm whether an account exists. `sentTo` is the masked
+ * email the code went to ("j***@demohome.example"), or null when no code was sent (unknown,
+ * deactivated or no email on the account).
+ */
+export const forgotPasswordResponseSchema = z.object({
+  sentTo: z.string().nullable(),
+  /** How long before another code can be sent. */
+  resendAfterSeconds: z.number().int().min(0),
+});
+export type ForgotPasswordResponse = z.infer<typeof forgotPasswordResponseSchema>;
+
+export const RESET_CODE_PATTERN = /^\d{6}$/;
+
+/** AUTH-03: POST /auth/verify-reset-code. 400 invalid_code, 410 code_expired. */
+export const verifyResetCodeRequestSchema = z.object({
+  login: z.string().min(1),
+  code: z.string().regex(RESET_CODE_PATTERN, 'Enter the 6-digit code'),
+});
+export type VerifyResetCodeRequest = z.infer<typeof verifyResetCodeRequestSchema>;
+export const verifyResetCodeResponseSchema = z.object({ resetToken: z.string().min(1) });
+
+/** AUTH-04: POST /auth/reset-password. 410 reset_expired when the token is used or too old. */
+export const resetPasswordRequestSchema = z.object({
+  resetToken: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+export type ResetPasswordRequest = z.infer<typeof resetPasswordRequestSchema>;
+
+/** AUTH-04 form. The server's only rule today is the length. */
+export const resetPasswordFormSchema = z
+  .object({
+    newPassword: z.string().min(8, 'Use at least 8 characters'),
+    confirmPassword: z.string(),
+  })
+  .refine((v) => v.newPassword === v.confirmPassword, {
+    message: 'The two passwords are different',
+    path: ['confirmPassword'],
+  });
+export type ResetPasswordForm = z.infer<typeof resetPasswordFormSchema>;
+
 export const incidentTypeSchema = z.enum(['fall', 'sos']);
 export type IncidentType = z.infer<typeof incidentTypeSchema>;
 
@@ -219,6 +268,8 @@ export const cameraSchema = z.object({
   status: cameraStatusSchema,
   detectionEnabled: z.boolean(),
   lastSeenAt: isoDateTime.nullable(),
+  /** What the server says is wrong, e.g. "Cannot open the video source". Null when nothing is. */
+  statusDetail: z.string().nullable(),
 });
 export type Camera = z.infer<typeof cameraSchema>;
 
@@ -438,11 +489,45 @@ export const dashboardSummarySchema = z.object({
 });
 export type DashboardSummary = z.infer<typeof dashboardSummarySchema>;
 
+export const activityModuleSchema = z.enum([
+  'auth',
+  'alerts',
+  'cameras',
+  'rooms',
+  'residents',
+  'users',
+  'settings',
+]);
+export type ActivityModule = z.infer<typeof activityModuleSchema>;
+
+export const activityActionSchema = z.enum([
+  'logged_in',
+  'acknowledged',
+  'classified',
+  'resolved',
+  'cancelled',
+  'created',
+  'updated',
+  'deleted',
+  'archived',
+  'restored',
+  'deactivated',
+  'reactivated',
+  'password_reset',
+  'paused',
+  'sent_sos',
+]);
+export type ActivityAction = z.infer<typeof activityActionSchema>;
+
+/** LOG-01: one thing a staff member did. `record` names what it was done to, e.g. "INC-2026-0142". */
 export const activityEntrySchema = z.object({
   id: z.string(),
   user: personRefSchema,
   summary: z.string(),
   createdAt: isoDateTime,
+  module: activityModuleSchema,
+  action: activityActionSchema,
+  record: z.string().nullable(),
 });
 export type ActivityEntry = z.infer<typeof activityEntrySchema>;
 
@@ -541,6 +626,8 @@ export const staffMemberSchema = z.object({
   mustChangePassword: z.boolean(),
   /** Rooms and areas a caregiver monitors. Always empty for the Admin/Head (sees everything). */
   areas: z.array(roomRefSchema),
+  /** Residents this person is a named caregiver for (USR-10). Always empty for the Admin/Head. */
+  residents: z.array(personRefSchema),
   /** Null when the person has never logged in (or the server does not record it). */
   lastLoginAt: isoDateTime.nullable(),
   createdAt: isoDateTime,
@@ -604,8 +691,83 @@ export type CreateStaffRequest = z.infer<typeof createStaffRequestSchema>;
 export const updateStaffRequestSchema = z.object(staffRequestFields);
 export type UpdateStaffRequest = z.infer<typeof updateStaffRequestSchema>;
 
+/**
+ * USR-10: what PUT /users/{id}/assignments receives. Rooms decide what the employee sees;
+ * residents make them a named caregiver (the same link as the resident form's caregivers).
+ */
+export const staffAssignmentsRequestSchema = z.object({
+  areaIds: z.array(z.string()),
+  residentIds: z.array(z.string()),
+});
+export type StaffAssignmentsRequest = z.infer<typeof staffAssignmentsRequestSchema>;
+
 export const apiErrorSchema = z.object({
   code: z.string(),
   message: z.string(),
 });
 export type ApiErrorBody = z.infer<typeof apiErrorSchema>;
+
+// ---------- facility settings (SET-01 to SET-04, Admin/Head edits, everyone reads) ----------
+
+const whole = (min: number, max: number, unit: string) =>
+  z.coerce
+    .number<number>({ error: 'Enter a number' })
+    .int('Use a whole number')
+    .min(min, `Use at least ${min} ${unit}`)
+    .max(max, `Use at most ${max} ${unit}`);
+
+/** SET-01 */
+export const generalSettingsSchema = z.object({
+  facilityName: z.string().trim().min(1, 'Enter the facility name').max(120, 'Use at most 120 characters'),
+  address: z.string().trim().max(300, 'Use at most 300 characters'),
+  contactNumber: z.string().trim().max(40, 'Use at most 40 characters'),
+  /** IANA time zone, e.g. "Asia/Manila". */
+  timeZone: z.string().min(1, 'Choose a time zone'),
+  dateFormat: z.enum(['d MMM yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd']),
+  timeFormat: z.enum(['12h', '24h']),
+});
+export type GeneralSettings = z.infer<typeof generalSettingsSchema>;
+
+/** SET-02. The defaults match the values Den's backend has in config.py and fall_logic.py. */
+export const detectionSettingsSchema = z.object({
+  /** 0.2 to 0.95: how sure the model must be before a pose counts. */
+  confidenceThreshold: z.coerce.number<number>().min(0.2).max(0.95),
+  /** How long a person must stay down before the alert is raised. */
+  confirmationSeconds: z.coerce
+    .number<number>({ error: 'Enter a number' })
+    .min(0.5, 'Use at least 0.5 seconds')
+    .max(10, 'Use at most 10 seconds'),
+  duplicateCooldownSeconds: whole(10, 600, 'seconds'),
+  /** How long snapshots are kept; null keeps them until deleted by hand (what Den's backend does today). */
+  retentionDays: whole(7, 365, 'days').nullable(),
+});
+export type DetectionSettings = z.infer<typeof detectionSettingsSchema>;
+
+/** SET-03. In-app alerts can't be turned off. */
+export const notificationSettingsSchema = z.object({
+  push: z.boolean(),
+  sms: z.boolean(),
+  email: z.boolean(),
+  repeatUntilAcknowledged: z.boolean(),
+  escalate: z.boolean(),
+  escalateAfterMinutes: whole(1, 30, 'minutes'),
+});
+export type NotificationSettings = z.infer<typeof notificationSettingsSchema>;
+
+/** SET-04 */
+export const securitySettingsSchema = z.object({
+  minPasswordLength: whole(8, 32, 'characters'),
+  sessionHours: whole(1, 12, 'hours'),
+  maxFailedLogins: whole(3, 10, 'attempts'),
+  lockMinutes: whole(5, 60, 'minutes'),
+});
+export type SecuritySettings = z.infer<typeof securitySettingsSchema>;
+
+export const facilitySettingsSchema = z.object({
+  general: generalSettingsSchema,
+  detection: detectionSettingsSchema,
+  notifications: notificationSettingsSchema,
+  security: securitySettingsSchema,
+});
+export type FacilitySettings = z.infer<typeof facilitySettingsSchema>;
+export type SettingsSection = keyof FacilitySettings;

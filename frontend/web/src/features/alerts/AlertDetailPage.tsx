@@ -27,6 +27,7 @@ import { ResolveDialog } from './ResolveDialog';
 import { AddNoteDialog } from './AddNoteDialog';
 import { useCurrentUser } from '../../auth/authContext';
 import { CancelSosDialog, SosStatusCard } from '../sos/SosStatus';
+import { useToast } from '../../components/toastContext';
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
@@ -112,6 +113,7 @@ export function AlertDetailPage() {
   const fromIncidents = location.pathname.startsWith('/incidents');
   const query = useIncident(code);
   const acknowledge = useAcknowledge();
+  const toast = useToast();
   const now = useNow();
   const user = useCurrentUser();
   const [dialog, setDialog] = useState<'classify' | 'resolve' | 'note' | 'cancel-sos' | null>(null);
@@ -246,7 +248,11 @@ export function AlertDetailPage() {
                   <Button
                     variant="contained"
                     loading={acknowledge.isPending}
-                    onClick={() => acknowledge.mutate(incident.code)}
+                    onClick={() =>
+                      acknowledge.mutate(incident.code, {
+                        onSuccess: (updated) => toast({ message: `Acknowledged · ${updated.code}` }),
+                      })
+                    }
                   >
                     Acknowledge
                   </Button>

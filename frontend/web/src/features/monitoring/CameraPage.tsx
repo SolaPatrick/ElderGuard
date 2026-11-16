@@ -45,6 +45,7 @@ import { SectionCard } from '../dashboard/DashboardCards';
 import { NotFoundPage } from '../system/NotFoundPage';
 import { alertForCamera } from './cameraFilters';
 import { useCameraSnapshot } from './snapshot';
+import { useToast } from '../../components/toastContext';
 
 const tag = {
   position: 'absolute',
@@ -204,6 +205,7 @@ export function CameraPage() {
   const active = useActiveIncidents();
   const feedRef = useRef<HTMLDivElement>(null);
   const snapshot = useCameraSnapshot();
+  const toast = useToast();
 
   if (cameras.isPending) return <LoadingBlock label="Loading camera" />;
   if (cameras.isError) return <ErrorState error={cameras.error} onRetry={() => void cameras.refetch()} />;
@@ -236,7 +238,11 @@ export function CameraPage() {
                 variant="outlined"
                 startIcon={<PhotoCameraOutlined />}
                 loading={snapshot.isPending}
-                onClick={() => snapshot.mutate(camera)}
+                onClick={() =>
+                  snapshot.mutate(camera, {
+                    onSuccess: (name) => toast({ message: `Snapshot saved · ${name}` }),
+                  })
+                }
               >
                 Snapshot
               </Button>

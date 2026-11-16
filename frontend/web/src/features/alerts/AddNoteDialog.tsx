@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { addNoteRequestSchema, type AddNoteRequest, type IncidentDetail } from '@elderguard/shared';
 import { useAddNote } from '../../api/queries';
 import { errorMessage } from '../../components/errorMessage';
+import { useToast } from '../../components/toastContext';
 
 /** INC-05 */
 export function AddNoteDialog({
@@ -16,6 +17,7 @@ export function AddNoteDialog({
   onClose: () => void;
 }) {
   const addNote = useAddNote(incident.code);
+  const toast = useToast();
   const { register, handleSubmit, reset, formState } = useForm<AddNoteRequest>({
     resolver: zodResolver(addNoteRequestSchema),
     defaultValues: { body: '' },
@@ -29,7 +31,17 @@ export function AddNoteDialog({
 
   return (
     <Dialog open={open} onClose={close} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit((values) => addNote.mutate(values, { onSuccess: close }))} noValidate>
+      <form
+        onSubmit={handleSubmit((values) =>
+          addNote.mutate(values, {
+            onSuccess: () => {
+              toast({ message: 'Note added' });
+              close();
+            },
+          }),
+        )}
+        noValidate
+      >
         <DialogTitle>Add response note</DialogTitle>
         <DialogContent>
           <TextField

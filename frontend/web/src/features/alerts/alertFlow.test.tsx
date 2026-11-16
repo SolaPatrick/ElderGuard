@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
-import { renderApp, signInAs } from '../../test/renderApp';
+import { renderApp, signInAs, closeAlertPopup as closeAlertPopupShared } from '../../test/renderApp';
 
 describe('Fall alert flow (SH-05 -> ALT-02 -> ALT-03 -> ALT-04)', () => {
   it('pops up the new fall alert and takes the caregiver through to resolved', async () => {
@@ -42,6 +42,7 @@ describe('Fall alert flow (SH-05 -> ALT-02 -> ALT-03 -> ALT-04)', () => {
   it('requires a reason before closing as a false alarm', async () => {
     signInAs('u-teresa');
     const { user } = renderApp('/alerts/INC-2026-0141'); // SOS, already acknowledged
+    await closeAlertPopupShared(user);
     await user.click(await screen.findByRole('button', { name: 'Classify' }));
     const dialog = await screen.findByRole('dialog', { name: 'Classify alert' });
     await user.click(within(dialog).getByRole('radio', { name: 'False alarm' }));
@@ -60,7 +61,8 @@ describe('Fall alert flow (SH-05 -> ALT-02 -> ALT-03 -> ALT-04)', () => {
 
   it('shows a 404 page for an unknown incident', async () => {
     signInAs('u-teresa');
-    renderApp('/incidents/INC-0000-0000');
+    const { user } = renderApp('/incidents/INC-0000-0000');
+    await closeAlertPopupShared(user);
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
   });
 });

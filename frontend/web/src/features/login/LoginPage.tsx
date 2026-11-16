@@ -17,10 +17,12 @@ import {
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Navigate, useLocation, useNavigate } from 'react-router';
+import { Link as RouterLink, Navigate, useLocation } from 'react-router';
 import { loginRequestSchema, type LoginRequest } from '@elderguard/shared';
+import { isAlertSetupDone } from '../alertSetup/alertPrefs';
+import { SessionExpiredCard } from './SessionExpiredCard';
 import { useAuth } from '../../auth/authContext';
 import { BrandMark } from '../../components/BrandMark';
 import { errorMessage } from '../../components/errorMessage';
@@ -34,33 +36,46 @@ interface LocationState {
 /** AUTH-01 */
 export function LoginPage() {
   const { state, login } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const { from, reason } = (location.state ?? {}) as LocationState;
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // AUTH-09: after the server ended the session, say so first, then show the form.
+  const [showForm, setShowForm] = useState(reason !== 'expired');
 
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<LoginRequest>({
     resolver: zodResolver(loginRequestSchema),
     defaultValues: { username: '', password: '' },
   });
+  // Carried to the forgot-password page so the person doesn't type it twice.
+  const typedLogin = useWatch({ control, name: 'username' });
 
-  if (state.status === 'authenticated') return <Navigate to={from ?? '/'} replace />;
+  if (state.status === 'authenticated') {
+    // Leaving the login page happens here, once the session is set, so there is only one redirect.
+    const next = from && from !== '/login' ? from : '/';
+    // AUTH-07: check notifications and the alarm sound once on each computer.
+    if (!isAlertSetupDone(state.user.id)) {
+      return <Navigate to="/setup-alerts" replace state={{ from: next }} />;
+    }
+    return <Navigate to={next} replace />;
+  }
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
     try {
       await login(values, remember);
-      void navigate(from && from !== '/login' ? from : '/', { replace: true });
     } catch (err) {
       setSubmitError(errorMessage(err));
     }
   });
+
+  if (!showForm) return <SessionExpiredCard onLogIn={() => setShowForm(true)} />;
 
   return (
     <Box
@@ -83,11 +98,6 @@ export function LoginPage() {
             Log in
           </Typography>
 
-          {reason === 'expired' && !submitError && (
-            <Alert severity="info" role="status" sx={{ mb: 4 }}>
-              Your session ended. Log in again to keep receiving alerts.
-            </Alert>
-          )}
           {submitError && (
             <Alert severity="error" sx={{ mb: 4 }} role="alert">
               {submitError}
@@ -136,11 +146,15 @@ export function LoginPage() {
                   control={<Checkbox checked={remember} onChange={(e) => setRemember(e.target.checked)} />}
                   label="Remember me"
                 />
-                <Tooltip describeChild title="Password reset is coming soon. Ask your Admin/Head for now.">
-                  <Link component="button" type="button" variant="body2" sx={{ fontWeight: 600 }}>
-                    Forgot password?
-                  </Link>
-                </Tooltip>
+                <Link
+                  component={RouterLink}
+                  to="/forgot-password"
+                  state={{ login: typedLogin }}
+                  variant="body2"
+                  sx={{ fontWeight: 600 }}
+                >
+                  Forgot password?
+                </Link>
               </Stack>
               <Button type="submit" variant="contained" size="large" loading={isSubmitting} fullWidth>
                 Log in

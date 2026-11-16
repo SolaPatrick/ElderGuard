@@ -281,3 +281,86 @@ describe('Deactivate, reactivate and reset password (USR-06, USR-07, USR-08)', (
     ).rejects.toMatchObject({ status: 409 });
   });
 });
+
+/** The "Assigned residents and areas" card on the user page. */
+async function assignmentsCard() {
+  const heading = await screen.findByRole('heading', { name: 'Assigned residents and areas' });
+  return heading.closest<HTMLElement>('.MuiCard-root')!;
+}
+
+describe('Assign residents and areas (USR-10)', () => {
+  it('shows who an employee looks after, and changes it from the dialog', async () => {
+    const { user } = await asAdmin('/users/u-angelica');
+    const card = await assignmentsCard();
+    const residents = within(card).getByLabelText('Assigned residents');
+    expect(
+      within(residents)
+        .getAllByRole('link')
+        .map((a) => a.textContent),
+    ).toEqual(['Felicidad Bautista', 'Antonio Navarro']);
+
+    await user.click(within(card).getByRole('button', { name: 'Assign' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Assign residents and areas' });
+    // Her residents live in rooms 105 and 106, which she isn't assigned to.
+    expect(
+      await within(dialog).findByText(/Felicidad Bautista, Antonio Navarro live outside the chosen rooms/),
+    ).toBeInTheDocument();
+
+    const rooms = within(dialog).getByRole('combobox', { name: 'Rooms and areas' });
+    await user.click(rooms);
+    await user.click(await screen.findByRole('option', { name: 'Room 105 · West Wing' }));
+    await user.click(screen.getByRole('option', { name: 'Room 106 · West Wing' }));
+    await user.keyboard('{Escape}');
+    expect(within(dialog).queryByText(/outside the chosen rooms/)).not.toBeInTheDocument();
+
+    const antonio = within(dialog).getByRole('button', { name: 'Antonio Navarro' });
+    await user.click(within(antonio).getByTestId('CancelIcon'));
+    const people = within(dialog).getByRole('combobox', { name: 'Residents' });
+    await user.click(people);
+    await user.click(await screen.findByRole('option', { name: 'Benjamin Torres · Room 106' }));
+    await user.keyboard('{Escape}');
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Assignments saved for Angelica Cruz')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Assign residents and areas' })).not.toBeInTheDocument();
+    const after = within(card).getByLabelText('Assigned residents');
+    expect(
+      within(after)
+        .getAllByRole('link')
+        .map((a) => a.textContent),
+    ).toEqual(['Felicidad Bautista', 'Benjamin Torres']);
+    expect(
+      within(within(card).getByLabelText('Assigned rooms')).getByText('Room 106 · West Wing'),
+    ).toBeInTheDocument();
+
+    // The rooms are what she sees when she logs in.
+    const signedIn = await canLogIn('angelica.cruz', 'elderguard123');
+    expect(signedIn?.areas.map((a) => a.name).toSorted()).toEqual([
+      'Activity Area',
+      'Dining Hall',
+      'Room 105',
+      'Room 106',
+    ]);
+  });
+
+  it('has nothing to assign for the Admin/Head', async () => {
+    await asAdmin('/users/u-teresa');
+    const card = await assignmentsCard();
+    expect(within(card).getByText('The Admin/Head sees every room, area and resident.')).toBeInTheDocument();
+    expect(within(card).queryByRole('button', { name: 'Assign' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the dialog open with the reason when the server refuses', async () => {
+    server.use(
+      http.put('/api/users/:id/assignments', () =>
+        HttpResponse.json({ code: 'conflict', message: 'That resident has moved out.' }, { status: 409 }),
+      ),
+    );
+    const { user } = await asAdmin('/users/u-joel');
+    const card = await assignmentsCard();
+    await user.click(within(card).getByRole('button', { name: 'Assign' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Assign residents and areas' });
+    await user.click(await within(dialog).findByRole('button', { name: 'Save' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('That resident has moved out.');
+  });
+});

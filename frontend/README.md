@@ -1,6 +1,6 @@
 # ElderGuard frontend
 
-The ElderGuard web console (Admin/Head and caregivers). It is built from the Figma hi-fi design and the ElderGuard design system. A mobile app (Expo / React Native) will be added next to it later and reuse the `shared` package.
+The ElderGuard web console (Admin/Head and caregivers). It is built from the Figma hi-fi design and the ElderGuard design system. The mobile app (Expo / React Native) is in `mobile/` and reuses the `shared` package; see `mobile/README.md` for what it has.
 
 ## Quick start (Windows, macOS or Linux)
 
@@ -47,7 +47,7 @@ GitHub runs the same checks on every push and pull request (`.github/workflows/f
 
 ```
 frontend/
-  shared/            Code for both web and (later) mobile
+  shared/            Code for both web and mobile
     tokens/          Design tokens exported from Figma (DTCG JSON). Replace these files to update colors.
     scripts/         build-tokens.mjs turns the token files into TypeScript (npm run tokens)
     src/schemas.ts   The API contract as zod schemas + TypeScript types
@@ -70,19 +70,42 @@ React 19 · TypeScript 7 (strict) · Vite 8 · MUI 9 · React Router 8 · TanSta
 
 ## What is built so far
 
-| Screen                                                                        | Status                         |
-| ----------------------------------------------------------------------------- | ------------------------------ |
-| AUTH-01 Login (errors, deactivated, remember me)                              | Done                           |
-| SH-01/02 Layout shell (admin and caregiver sidebars)                          | Done                           |
-| SH-05/06 Incoming alert popup with alarm sound                                | Done                           |
-| SH-07 Active alert banner, SH-09 connection lost banner                       | Done                           |
-| SOS-01 Send SOS (press and hold 3 s, from the top bar or caregiver dashboard) | Done                           |
-| DASH-01 Admin dashboard                                                       | Done                           |
-| DASH-02 Caregiver dashboard (only their own alerts, residents and cameras)    | Done                           |
-| ALT-01 Alert queue, ALT-02 alert detail, ALT-03 classify, ALT-04 resolve      | Done                           |
-| INC-01 Incident history (no filters yet), INC-03/04 detail, INC-05 add note   | Done                           |
-| MON-01 Live Monitoring grid (layouts, area filter, search), MON-02 camera     | Done (placeholder until feeds) |
-| RES-01 Resident list (cards and table, filters), RES-03 resident profile      | Done (editing comes next)      |
-| SYS-01 404, SYS-02 403, SYS-03 crash page                                     | Done                           |
-| Night mode                                                                    | Done (profile menu)            |
-| Everything else in the Figma file                                             | Placeholder "coming soon" page |
+Web app screens. Every "Done" screen works with the built-in fake server. The last column says how much of it works with Den's FastAPI backend today; `docs/backend-gaps.md` has the details.
+
+| Screen                                                                                                                     | Status | Den's backend                                                                                                                 |
+| -------------------------------------------------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| AUTH-01 Login (errors, deactivated, remember me), change password after a temporary one                                    | Done   | Yes                                                                                                                           |
+| SH-01/02 Layout shell (admin and caregiver sidebars), night mode                                                           | Done   | Yes                                                                                                                           |
+| SH-05/06 Incoming alert popup with alarm sound                                                                             | Done   | Yes                                                                                                                           |
+| SH-07 Active alert banner, SH-09 connection lost banner                                                                    | Done   | Yes                                                                                                                           |
+| SOS-01 Send SOS (press and hold 3 s), SOS-02 SOS status, SOS-03 cancel SOS                                                 | Done   | No, SOS is not on the server yet                                                                                              |
+| DASH-01 Admin dashboard, DASH-02 caregiver dashboard                                                                       | Done   | Partly: no staff activity card, caregivers see all rooms                                                                      |
+| ALT-01 Alert queue, ALT-02 alert detail, ALT-03 classify, ALT-04 resolve                                                   | Done   | Yes                                                                                                                           |
+| INC-01 Incident history, INC-02 filters, INC-03/04 detail, INC-05 add note                                                 | Done   | Yes                                                                                                                           |
+| MON-01 Live Monitoring grid (camera pictures every 2 s), MON-02 single camera live video                                   | Done   | Yes, except cameras with detection paused                                                                                     |
+| RES-01 to RES-07 Residents: list, add, profile, edit, assign, archive and restore                                          | Done   | Partly: age and one contact only, no caregivers or photos                                                                     |
+| ROOM-01 to ROOM-04 Rooms & areas: list, add/edit, detail, delete                                                           | Done   | Yes, no capacity                                                                                                              |
+| CAM-01 to CAM-05, CAM-07 Cameras: list, register, detail, edit, move, remove                                               | Done   | Yes                                                                                                                           |
+| USR-01 to USR-08 Users & access: list, create, detail, edit, deactivate, reset password                                    | Done   | Yes, without room assignment                                                                                                  |
+| AUTH-02 to AUTH-05 Forgot password: code by email, 60 s resend, new password with live rules, success                      | Done   | No: the server can't send emails or codes, so the page tells people to ask their Admin/Head                                   |
+| USR-09 Roles & permissions (read-only matrix of the rules the app and server enforce, per role)                            | Done   | Yes; changing rules or per-user overrides needs Den's backend                                                                 |
+| USR-10 Assign residents and areas to an employee (dialog on the user page; warns about residents outside their rooms)      | Done   | No: the server has no room assignments or resident caregivers, so the page says it isn't available yet                        |
+| NTF-01 Notification center, PRF-04 Help & About                                                                            | Done   | Yes                                                                                                                           |
+| AUTH-07 Enable alerts and sound check, PRF-03 alert preferences (desktop notifications, alarm volume)                      | Done   | Kept on each computer, not on the server                                                                                      |
+| AUTH-09 Session expired, AUTH-10 timeout warning (password to stay signed in), SYS-04 server unreachable page              | Done   | Yes, the login end time comes from the server's token                                                                         |
+| PRF-01 My profile (read-only; the Admin/Head edits their own details in Users & access), change password from the profile  | Done   | Partly: no photo or mobile number, and staff can't edit their own details                                                     |
+| SH-03 Notification bell dropdown, SH-08 toasts (acknowledge, classify, resolve, note, snapshot)                            | Done   | Yes                                                                                                                           |
+| SYS-05 Scheduled maintenance page and banner (any HTTP 503 from the server or the proxy in front of it)                    | Done   | Den's backend never sends 503 yet, so a proxy must send it                                                                    |
+| RPT-01 Reports & analytics (date range, key figures, falls by day, room, resident and hour, outcomes, false alarm reasons) | Done   | Yes, without camera uptime (no camera history on the server)                                                                  |
+| RPT-02 Generate report (7 types, date range, room), RPT-03 A4 preview, print or save as PDF, CSV download                  | Done   | Yes, without camera uptime; reports aren't saved (no history on the server)                                                   |
+| LOG-01 Activity log (filters by user, action, module and date; CSV export), LOG-02 entry details                           | Done   | Partly: only alert actions (acknowledge, classify, resolve), since the server logs nothing else; no before/after values or IP |
+| SET-01 to SET-04 Settings (general, detection, notifications, security)                                                    | Done   | No: the server keeps its settings in config.py, so the page says they can't be changed from the app yet                       |
+| CAM-06 Device health (server check, fall detection, every camera with FPS and the server's error text)                     | Done   | Partly: no CPU/GPU load, detection delay, notification service or storage (the server doesn't report them)                    |
+| SYS-01 404, SYS-02 403, SYS-03 crash page                                                                                  | Done   | n/a                                                                                                                           |
+
+Still to do on the web (each needs something Den's backend doesn't store yet):
+
+| Screen                                                             | Waiting on    |
+| ------------------------------------------------------------------ | ------------- |
+| RPT-04 Report history (saved reports)                              | Den's backend |
+| Resident photos, room capacity, camera uptime, incident PDF export | Den's backend |

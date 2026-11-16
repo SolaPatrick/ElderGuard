@@ -11,18 +11,27 @@ import {
   archiveBodySchema,
   roomRequestSchema,
   updateStaffRequestSchema,
+  staffAssignmentsRequestSchema,
+  forgotPasswordRequestSchema,
+  verifyResetCodeRequestSchema,
+  resetPasswordRequestSchema,
   loginRequestSchema,
   resolveRequestSchema,
   sosRequestSchema,
 } from '@elderguard/shared';
 import { CANCEL_SOS_REASON_LABEL, cancelSosRequestSchema, isActiveStatus } from '@elderguard/shared';
+import { facilitySettingsSchema, type SettingsSection } from '@elderguard/shared';
 import type { SeedUser } from '@elderguard/shared/fixtures';
 import { delay, http, HttpResponse } from 'msw';
 import { API_BASE_URL } from '../api/config';
-import { db } from './db';
+import { db, maskEmail, RESET_RESEND_SECONDS } from './db';
 
 const url = (path: string) => `${API_BASE_URL}${path}`;
 const TOKEN_PREFIX = 'mock-token:';
+
+/** Like Den's backend, a login lasts one 8-hour shift. */
+const SESSION_MS = 8 * 3600_000;
+const mockToken = (userId: string) => `${TOKEN_PREFIX}${userId}:${Date.now() + SESSION_MS}`;
 
 const error = (status: number, code: string, message: string) =>
   HttpResponse.json({ code, message }, { status });
@@ -31,7 +40,12 @@ const error = (status: number, code: string, message: string) =>
 function authenticate(request: Request): SeedUser | Response {
   const header = request.headers.get('Authorization') ?? '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-  const user = token.startsWith(TOKEN_PREFIX) ? db.findUserById(token.slice(TOKEN_PREFIX.length)) : undefined;
+  // "mock-token:<userId>" or "mock-token:<userId>:<expiresAtMs>"
+  const [userId, expiresAt] = token.startsWith(TOKEN_PREFIX)
+    ? token.slice(TOKEN_PREFIX.length).split(':')
+    : [];
+  const expired = expiresAt !== undefined && Number(expiresAt) <= Date.now();
+  const user = userId && !expired ? db.findUserById(userId) : undefined;
   if (!user || user.status !== 'active')
     return error(401, 'unauthorized', 'Your session has expired. Log in again.');
   return user;
@@ -73,8 +87,8 @@ export const handlers = [
       return error(403, 'account_deactivated', 'This account has been deactivated. Contact your Admin/Head.');
     }
     db.recordLogin(user);
-    db.addActivity(user, `${user.fullName} logged in`);
-    return HttpResponse.json({ token: `${TOKEN_PREFIX}${user.id}`, user: db.toPublicUser(user) });
+    db.addActivity(user, `${user.fullName} logged in`, 'auth', 'logged_in', null);
+    return HttpResponse.json({ token: mockToken(user.id), user: db.toPublicUser(user) });
   }),
 
   http.post(url('/auth/change-password'), async ({ request }) => {
@@ -88,7 +102,54 @@ export const handlers = [
     if (next.length < 8) return error(400, 'weak_password', 'Use at least 8 characters.');
     if (next === current) return error(400, 'same_password', 'Choose a different password.');
     db.changePassword(user, next);
-    return HttpResponse.json({ token: `${TOKEN_PREFIX}${user.id}`, user: db.toPublicUser(user) });
+    return HttpResponse.json({ token: mockToken(user.id), user: db.toPublicUser(user) });
+  }),
+
+  http.post(url('/auth/forgot-password'), async ({ request }) => {
+    await latency();
+    const parsed = forgotPasswordRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success) return error(400, 'validation_error', 'Enter your username or email.');
+    const user = db.findUserByLogin(parsed.data.login);
+    const sent = user ? db.sendResetCode(user) : null;
+    if (user && sent?.code) {
+      // Stands in for the email. Shown in the browser console so the demo can be followed.
+      console.info(`[ElderGuard demo] Password reset code for ${user.username}: ${sent.code}`);
+      db.addActivity(
+        user,
+        `${user.fullName} asked for a password reset code`,
+        'auth',
+        'password_reset',
+        null,
+      );
+    }
+    return HttpResponse.json({
+      sentTo: user && sent ? maskEmail(user.email!) : null,
+      resendAfterSeconds: sent?.waitSeconds ?? RESET_RESEND_SECONDS,
+    });
+  }),
+
+  http.post(url('/auth/verify-reset-code'), async ({ request }) => {
+    await latency();
+    const parsed = verifyResetCodeRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success) return error(400, 'invalid_code', 'Enter the 6-digit code from the email.');
+    const user = db.findUserByLogin(parsed.data.login);
+    const result = user ? db.checkResetCode(user, parsed.data.code) : 'invalid';
+    if (result === 'expired')
+      return error(410, 'code_expired', 'This code has expired. Send a new code and try again.');
+    if (result === 'invalid')
+      return error(400, 'invalid_code', "That code isn't right. Check the email and try again.");
+    return HttpResponse.json({ resetToken: result.token });
+  }),
+
+  http.post(url('/auth/reset-password'), async ({ request }) => {
+    await latency();
+    const parsed = resetPasswordRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success) return error(400, 'weak_password', 'Use at least 8 characters.');
+    const user = db.useResetToken(parsed.data.resetToken, parsed.data.newPassword);
+    if (!user)
+      return error(410, 'reset_expired', 'This reset link has expired. Start again from the login page.');
+    db.addActivity(user, `${user.fullName} reset their password`, 'auth', 'password_reset', null);
+    return HttpResponse.json({ ok: true });
   }),
 
   http.get(url('/auth/me'), ({ request }) => {
@@ -115,6 +176,35 @@ export const handlers = [
       return error(403, 'forbidden', 'Only the Admin/Head can see the activity log.');
     const limit = Number(new URL(request.url).searchParams.get('limit') ?? 20);
     return HttpResponse.json(db.listActivity(Number.isFinite(limit) ? limit : 20));
+  }),
+
+  http.get(url('/settings'), async ({ request }) => {
+    const user = authenticate(request);
+    if (user instanceof Response) return user;
+    await latency();
+    return HttpResponse.json(db.settings());
+  }),
+
+  http.put(url('/settings/:section'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const section = String(params.section);
+    const shape = facilitySettingsSchema.shape;
+    if (!(section in shape)) return error(404, 'not_found', 'There are no such settings.');
+    const key = section as SettingsSection;
+    const parsed = shape[key].safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    await latency();
+    const saved = db.saveSettings(key, parsed.data);
+    const name = {
+      general: 'general',
+      detection: 'detection',
+      notifications: 'notification',
+      security: 'security',
+    }[key];
+    db.addActivity(admin, `${admin.fullName} changed the ${name} settings`, 'settings', 'updated', null);
+    return HttpResponse.json(saved);
   }),
 
   http.get(url('/cameras'), ({ request }) => {
@@ -168,7 +258,7 @@ export const handlers = [
     const problem = db.cameraProblem(parsed.data);
     if (problem) return error(409, 'conflict', problem);
     const saved = db.saveCamera(parsed.data);
-    db.addActivity(admin, `${admin.fullName} registered ${saved.code}`);
+    db.addActivity(admin, `${admin.fullName} registered ${saved.code}`, 'cameras', 'created', saved.code);
     return HttpResponse.json(saved, { status: 201 });
   }),
 
@@ -184,7 +274,13 @@ export const handlers = [
     const problem = db.cameraProblem(parsed.data, id);
     if (problem) return error(409, 'conflict', problem);
     const saved = db.saveCamera(parsed.data, id);
-    db.addActivity(admin, `${admin.fullName} changed the settings of ${saved.code}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} changed the settings of ${saved.code}`,
+      'cameras',
+      'updated',
+      saved.code,
+    );
     return HttpResponse.json(saved);
   }),
 
@@ -197,7 +293,7 @@ export const handlers = [
     const blocker = db.cameraDeleteBlocker(camera.id);
     if (blocker) return error(409, 'camera_in_use', blocker);
     db.deleteCamera(camera.id);
-    db.addActivity(admin, `${admin.fullName} removed ${camera.code}`);
+    db.addActivity(admin, `${admin.fullName} removed ${camera.code}`, 'cameras', 'deleted', camera.code);
     return new HttpResponse(null, { status: 204 });
   }),
 
@@ -206,9 +302,14 @@ export const handlers = [
     if (user instanceof Response) return user;
     const params = new URL(request.url).searchParams;
     const scope = params.get('scope') === 'active' ? 'active' : 'all';
-    const limit = Number(params.get('limit') ?? 50);
+    const from = Date.parse(params.get('from') ?? '');
+    const to = Date.parse(params.get('to') ?? '');
+    const between = Number.isFinite(from) && Number.isFinite(to) ? { from, to } : undefined;
+    const limit = between ? Infinity : Number(params.get('limit') ?? 50);
     await latency();
-    return HttpResponse.json(db.listIncidents(user, scope, Number.isFinite(limit) ? limit : 50));
+    return HttpResponse.json(
+      db.listIncidents(user, scope, Number.isFinite(limit) || between ? limit : 50, between),
+    );
   }),
 
   http.get(url('/incidents/:code'), async ({ request, params }) => {
@@ -236,7 +337,13 @@ export const handlers = [
       i.acknowledgedBy = { id: user.id, fullName: user.fullName };
       db.addEvent(i, 'acknowledged', user);
     });
-    db.addActivity(user, `${user.fullName} acknowledged ${incident.code}`);
+    db.addActivity(
+      user,
+      `${user.fullName} acknowledged ${incident.code}`,
+      'alerts',
+      'acknowledged',
+      incident.code,
+    );
     return HttpResponse.json(incident);
   }),
 
@@ -262,7 +369,13 @@ export const handlers = [
       }
       db.addEvent(i, 'classified', user, classification === 'false_alarm' ? 'False alarm' : 'Confirmed fall');
     });
-    db.addActivity(user, `${user.fullName} classified ${incident.code}`);
+    db.addActivity(
+      user,
+      `${user.fullName} classified ${incident.code}`,
+      'alerts',
+      'classified',
+      incident.code,
+    );
     return HttpResponse.json(incident);
   }),
 
@@ -286,7 +399,7 @@ export const handlers = [
       if (parsed.data.responseSummary) db.addNote(i, user, parsed.data.responseSummary);
       db.addEvent(i, 'resolved', user, parsed.data.outcome);
     });
-    db.addActivity(user, `${user.fullName} resolved ${incident.code}`);
+    db.addActivity(user, `${user.fullName} resolved ${incident.code}`, 'alerts', 'resolved', incident.code);
     return HttpResponse.json(incident);
   }),
 
@@ -314,7 +427,7 @@ export const handlers = [
       if (parsed.data.note) db.addNote(i, user, parsed.data.note);
       db.addEvent(i, 'resolved', user, `SOS cancelled · ${label}`);
     });
-    db.addActivity(user, `${user.fullName} cancelled ${incident.code}`);
+    db.addActivity(user, `${user.fullName} cancelled ${incident.code}`, 'alerts', 'cancelled', incident.code);
     return HttpResponse.json(db.getIncident(user, incident.code));
   }),
 
@@ -358,7 +471,7 @@ export const handlers = [
     const conflict = db.roomConflict(parsed.data);
     if (conflict) return error(409, 'conflict', conflict);
     const room = db.createRoom(parsed.data);
-    db.addActivity(admin, `${admin.fullName} added ${room.name}`);
+    db.addActivity(admin, `${admin.fullName} added ${room.name}`, 'rooms', 'created', room.name);
     return HttpResponse.json(room, { status: 201 });
   }),
 
@@ -374,7 +487,7 @@ export const handlers = [
     const conflict = db.roomConflict(parsed.data, id);
     if (conflict) return error(409, 'conflict', conflict);
     const room = db.updateRoom(id, parsed.data)!;
-    db.addActivity(admin, `${admin.fullName} updated ${room.name}`);
+    db.addActivity(admin, `${admin.fullName} updated ${room.name}`, 'rooms', 'updated', room.name);
     return HttpResponse.json(room);
   }),
 
@@ -387,7 +500,7 @@ export const handlers = [
     const blocker = db.roomDeleteBlocker(room.id);
     if (blocker) return error(409, 'room_in_use', blocker);
     db.deleteRoom(room.id);
-    db.addActivity(admin, `${admin.fullName} deleted ${room.name}`);
+    db.addActivity(admin, `${admin.fullName} deleted ${room.name}`, 'rooms', 'deleted', room.name);
     return new HttpResponse(null, { status: 204 });
   }),
 
@@ -410,7 +523,13 @@ export const handlers = [
     const problem = db.residentProblem(parsed.data);
     if (problem) return error(400, 'validation_error', problem);
     const saved = db.saveResident(parsed.data);
-    db.addActivity(admin, `${admin.fullName} added resident ${saved.fullName}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} added resident ${saved.fullName}`,
+      'residents',
+      'created',
+      saved.fullName,
+    );
     return HttpResponse.json(db.getResident(admin, saved.id), { status: 201 });
   }),
 
@@ -427,7 +546,13 @@ export const handlers = [
     const problem = db.residentProblem(parsed.data, current);
     if (problem) return error(400, 'validation_error', problem);
     const saved = db.saveResident(parsed.data, id);
-    db.addActivity(admin, `${admin.fullName} updated resident ${saved.fullName}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} updated resident ${saved.fullName}`,
+      'residents',
+      'updated',
+      saved.fullName,
+    );
     return HttpResponse.json(db.getResident(admin, saved.id));
   }),
 
@@ -443,7 +568,13 @@ export const handlers = [
     const r = db.findResident(String(params.id));
     if (!r) return error(404, 'not_found', 'This resident does not exist.');
     db.setArchived(r, { reason: parsed.data.reason, note: parsed.data.note?.trim() || null });
-    db.addActivity(admin, `${admin.fullName} archived resident ${r.fullName}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} archived resident ${r.fullName}`,
+      'residents',
+      'archived',
+      r.fullName,
+    );
     return HttpResponse.json(db.getResident(admin, r.id));
   }),
 
@@ -454,7 +585,13 @@ export const handlers = [
     const r = db.findResident(String(params.id));
     if (!r) return error(404, 'not_found', 'This resident does not exist.');
     db.setArchived(r, null);
-    db.addActivity(admin, `${admin.fullName} restored resident ${r.fullName}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} restored resident ${r.fullName}`,
+      'residents',
+      'restored',
+      r.fullName,
+    );
     return HttpResponse.json(db.getResident(admin, r.id));
   }),
 
@@ -492,7 +629,13 @@ export const handlers = [
     const conflict = db.staffConflict(parsed.data.username, parsed.data.email);
     if (conflict) return error(409, 'conflict', conflict);
     const created = db.createStaff(parsed.data);
-    db.addActivity(admin, `${admin.fullName} created an account for ${created.user.fullName}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} created an account for ${created.user.fullName}`,
+      'users',
+      'created',
+      created.user.fullName,
+    );
     return HttpResponse.json(created, { status: 201 });
   }),
 
@@ -515,7 +658,35 @@ export const handlers = [
       );
     }
     const updated = db.updateStaff(staff, parsed.data);
-    db.addActivity(admin, `${admin.fullName} updated ${updated.fullName}'s account`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} updated ${updated.fullName}'s account`,
+      'users',
+      'updated',
+      updated.fullName,
+    );
+    return HttpResponse.json(updated);
+  }),
+
+  http.put(url('/users/:id/assignments'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const staff = staffFrom(params);
+    if (staff instanceof Response) return staff;
+    const parsed = staffAssignmentsRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    const problem = db.assignmentProblem(staff, parsed.data);
+    if (problem) return error(409, 'conflict', problem);
+    await latency();
+    const updated = db.assignStaff(staff, parsed.data);
+    db.addActivity(
+      admin,
+      `${admin.fullName} changed the residents and areas assigned to ${updated.fullName}`,
+      'users',
+      'updated',
+      updated.fullName,
+    );
     return HttpResponse.json(updated);
   }),
 
@@ -527,7 +698,13 @@ export const handlers = [
     if (staff.id === admin.id) return error(400, 'self', "You can't deactivate your own account.");
     await latency();
     const updated = db.setStaffActive(staff, false);
-    db.addActivity(admin, `${admin.fullName} deactivated ${updated.fullName}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} deactivated ${updated.fullName}`,
+      'users',
+      'deactivated',
+      updated.fullName,
+    );
     return HttpResponse.json(updated);
   }),
 
@@ -538,7 +715,13 @@ export const handlers = [
     if (staff instanceof Response) return staff;
     await latency();
     const updated = db.setStaffActive(staff, true);
-    db.addActivity(admin, `${admin.fullName} reactivated ${updated.fullName}`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} reactivated ${updated.fullName}`,
+      'users',
+      'reactivated',
+      updated.fullName,
+    );
     return HttpResponse.json(updated);
   }),
 
@@ -549,7 +732,13 @@ export const handlers = [
     if (staff instanceof Response) return staff;
     await latency();
     const result = db.resetStaffPassword(staff);
-    db.addActivity(admin, `${admin.fullName} reset ${staff.fullName}'s password`);
+    db.addActivity(
+      admin,
+      `${admin.fullName} reset ${staff.fullName}'s password`,
+      'users',
+      'password_reset',
+      staff.fullName,
+    );
     return HttpResponse.json(result);
   }),
 

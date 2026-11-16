@@ -255,9 +255,10 @@ describe('FastAPI adapter: requests', () => {
       liveFormat: 'mjpeg',
       liveUrl: '/api/cameras/3/stream?token=jwt-abc',
     });
-    expect(cam2).toMatchObject({ status: 'error', roomName: null });
+    expect(cam1!.statusDetail).toBeNull();
+    expect(cam2).toMatchObject({ status: 'error', roomName: null, statusDetail: 'Cannot open the camera' });
     // The server only runs a camera while detection is on; otherwise its stream is a grey card.
-    expect(cam3).toMatchObject({ status: 'paused', liveUrl: null, liveFormat: null });
+    expect(cam3).toMatchObject({ status: 'paused', liveUrl: null, liveFormat: null, statusDetail: null });
   });
 
   it('downloads the newest picture with the login header, not a token in the link', async () => {
@@ -303,6 +304,84 @@ describe('FastAPI adapter: requests', () => {
   it('says clearly that SOS is not on the server yet', async () => {
     await expect(fastApi.sendSos({})).rejects.toMatchObject({ status: 501 });
   });
+
+  it('says clearly that password reset by email and staff assignments are not on the server yet', async () => {
+    await expect(fastApi.forgotPassword({ login: 'joel' })).rejects.toMatchObject({ status: 501 });
+    await expect(fastApi.verifyResetCode({})).rejects.toMatchObject({ status: 501 });
+    await expect(fastApi.resetPassword({})).rejects.toMatchObject({ status: 501 });
+    await expect(fastApi.assignStaff('7', { areaIds: [], residentIds: [] })).rejects.toMatchObject({
+      status: 501,
+    });
+  });
+});
+
+describe('FastAPI adapter: activity log', () => {
+  it('builds the log from who acknowledged, classified and resolved each alert', async () => {
+    backend([
+      http.get('/api/users', () =>
+        HttpResponse.json([rawUser, { ...rawUser, id: 8, full_name: 'Ana Reyes' }]),
+      ),
+      http.get('/api/alerts', () =>
+        HttpResponse.json([
+          rawAlert({
+            id: 12,
+            status: 'resolved',
+            acknowledged_at: '2026-11-09T03:42:00',
+            acknowledged_by: 7,
+            classification: 'confirmed',
+            classified_at: '2026-11-09T03:44:00',
+            classified_by: 7,
+            resolved_at: '2026-11-09T03:50:00',
+            resolved_by: 8,
+          }),
+          rawAlert({
+            id: 13,
+            is_test: true,
+            status: 'resolved',
+            acknowledged_at: '2026-11-09T04:00:00',
+            acknowledged_by: 8,
+            classification: 'false_alarm',
+            classified_at: '2026-11-09T04:01:00',
+            classified_by: 8,
+            resolved_at: '2026-11-09T04:01:00',
+            resolved_by: 8,
+          }),
+        ]),
+      ),
+    ]);
+    // Logging in clears the cached staff names from earlier tests.
+    server.use(
+      http.post('/api/auth/login', () =>
+        HttpResponse.json({ access_token: 'jwt-1', token_type: 'bearer', user: rawUser }),
+      ),
+    );
+    await fastApi.login({ username: 'admin', password: 'x' });
+    const log = await fastApi.activity(10);
+    expect(log.map((e) => [e.summary, e.action, e.record, e.createdAt])).toEqual([
+      [
+        'Ana Reyes marked INC-2026-0013 as a false alarm (test alarm)',
+        'classified',
+        'INC-2026-0013',
+        '2026-11-09T04:01:00.000Z',
+      ],
+      [
+        'Ana Reyes acknowledged INC-2026-0013 (test alarm)',
+        'acknowledged',
+        'INC-2026-0013',
+        '2026-11-09T04:00:00.000Z',
+      ],
+      ['Ana Reyes resolved INC-2026-0012', 'resolved', 'INC-2026-0012', '2026-11-09T03:50:00.000Z'],
+      [
+        'Joel Ramos confirmed INC-2026-0012 as a fall',
+        'classified',
+        'INC-2026-0012',
+        '2026-11-09T03:44:00.000Z',
+      ],
+      ['Joel Ramos acknowledged INC-2026-0012', 'acknowledged', 'INC-2026-0012', '2026-11-09T03:42:00.000Z'],
+    ]);
+    expect(log.every((e) => e.module === 'alerts')).toBe(true);
+    expect(await fastApi.activity(2)).toHaveLength(2);
+  });
 });
 
 describe('FastAPI adapter: staff accounts', () => {
@@ -323,6 +402,7 @@ describe('FastAPI adapter: staff accounts', () => {
       isActive: true,
       mustChangePassword: false,
       areas: [],
+      residents: [],
       lastLoginAt: null,
       createdAt: '2026-11-01T08:00:00.000Z',
     });
