@@ -313,6 +313,11 @@ describe('FastAPI adapter: requests', () => {
       status: 501,
     });
   });
+
+  it('says clearly that rest zones are not on the server yet', async () => {
+    await expect(fastApi.restZones('1')).rejects.toMatchObject({ status: 501 });
+    await expect(fastApi.saveRestZones('1', { zones: [] })).rejects.toMatchObject({ status: 501 });
+  });
 });
 
 describe('FastAPI adapter: activity log', () => {

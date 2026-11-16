@@ -6,6 +6,7 @@ import type {
   CreateStaffRequest,
   RoomRequest,
   CameraRequest,
+  SaveRestZonesRequest,
   ArchiveRequest,
   ResidentDetail,
   ResidentRequest,
@@ -395,6 +396,28 @@ export function useSaveCamera(id: string | null) {
 export function useDeleteCamera(id: string) {
   const qc = useQueryClient();
   return useMutation({ mutationFn: () => api.deleteCamera(id), onSuccess: () => refreshCameras(qc) });
+}
+
+/** CAM-08: a camera's rest zones. Den's server answers 501 until it stores them. */
+export function useRestZones(cameraId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['cameras', 'zones', cameraId] as const,
+    queryFn: () => api.restZones(cameraId),
+    enabled,
+    retry: false,
+    staleTime: 60_000,
+  });
+}
+
+export function useSaveRestZones(cameraId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SaveRestZonesRequest) => api.saveRestZones(cameraId, body),
+    onSuccess: (saved) => {
+      qc.setQueryData(['cameras', 'zones', cameraId], saved);
+      void qc.invalidateQueries({ queryKey: ['activity'] });
+    },
+  });
 }
 
 export function useTestCameraSource() {

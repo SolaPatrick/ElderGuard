@@ -231,6 +231,25 @@ For SOS: `type: "sos"`, `camera: null`, `confidence: null`, and `sentBy: { id, f
 - DELETE returns **409** when the camera has alerts in the incident history (turn detection off instead).
 - `/cameras/test` reads one picture from the source and returns its size, or **400** with a message.
 
+### Rest zones (CAM-08)
+
+| Method | Path                  | Who                                     | Body                                         | Response     |
+| ------ | --------------------- | --------------------------------------- | -------------------------------------------- | ------------ |
+| GET    | `/cameras/{id}/zones` | anyone signed in who can see the camera | none                                         | `restZone[]` |
+| PUT    | `/cameras/{id}/zones` | Admin/Head                              | `{ zones: [{ name, x, y, width, height }] }` | `restZone[]` |
+
+`restZone` = `{ id, name, x, y, width, height }`
+
+- A rest zone is a part of the picture where lying down is normal, such as a bed or sofa, so fall detection can tell
+  resting from a fall.
+- `x`, `y`, `width` and `height` are shares of the picture from 0 to 1, measured from its top-left corner, so they fit
+  any picture size: pixels = share × picture width (or height). `x + width` and `y + height` are at most 1, and
+  `width` and `height` are at least 0.02.
+- `name` is 1 to 40 characters. At most 10 zones per camera.
+- PUT replaces the camera's whole list; send `[]` to remove them all. **409** for a bathroom camera, which has no rest
+  zones. **400** for a zone that is out of range.
+- Live Monitoring draws the zones as faint outlines over the picture.
+
 ## Rooms & Areas
 
 | Method | Path          | Body             | Response                                         |

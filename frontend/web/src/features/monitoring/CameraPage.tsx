@@ -35,6 +35,8 @@ import {
   useIncidents,
   useResidents,
 } from '../../api/queries';
+import { RestZoneOutlines } from '../../components/RestZoneOutlines';
+import { useImageSize } from '../../hooks/useImageSize';
 import { PageHeader } from '../../components/PageHeader';
 import { ErrorState, LoadingBlock, SkeletonRows } from '../../components/QueryStates';
 import { StatusChip } from '../../components/StatusChip';
@@ -102,6 +104,9 @@ function CameraFeed({ camera, alerting }: { camera: Camera; alerting: boolean })
   }, [failed, visible, attempt.n]);
 
   const onError = () => setFailedAttempt(attempt.n);
+  // The rest zones are drawn over the MJPEG picture, which shows whole ("contain").
+  const feedImg = useRef<HTMLImageElement>(null);
+  const feedSize = useImageSize(feedImg, stream && `${stream}#${attempt.n}`);
   const feedSx = { width: '100%', height: '100%', objectFit: 'contain' } as const;
   const nowIso = new Date(now).toISOString();
 
@@ -134,14 +139,18 @@ function CameraFeed({ camera, alerting }: { camera: Camera; alerting: boolean })
           <Typography variant="body2">Live video is paused while this tab is hidden.</Typography>
         </FeedMessage>
       ) : stream && camera.liveFormat === 'mjpeg' ? (
-        <Box
-          key={attempt.n}
-          component="img"
-          src={stream}
-          alt={`Live feed from ${camera.code}`}
-          onError={onError}
-          sx={feedSx}
-        />
+        <>
+          <Box
+            key={attempt.n}
+            ref={feedImg}
+            component="img"
+            src={stream}
+            alt={`Live feed from ${camera.code}`}
+            onError={onError}
+            sx={feedSx}
+          />
+          <RestZoneOutlines cameraId={camera.id} size={feedSize} fit="contain" />
+        </>
       ) : stream ? (
         <Box
           key={attempt.n}

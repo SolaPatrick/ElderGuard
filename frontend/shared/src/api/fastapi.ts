@@ -39,6 +39,7 @@ import {
   type ResolveRequest,
   type Resident,
   type ResidentDetail,
+  type RestZone,
   type RoomRef,
   type User,
   isActiveStatus,
@@ -699,6 +700,13 @@ export const fastApi = {
       { method: 'POST' },
     );
     return { width: res.width, height: res.height };
+  },
+  // Den's backend has no rest zones yet (CAM-08): see backend-gaps.md.
+  restZones: async (_cameraId: string): Promise<RestZone[]> => {
+    throw notYet('Rest zones');
+  },
+  saveRestZones: async (_cameraId: string, _body: unknown): Promise<RestZone[]> => {
+    throw notYet('Rest zones');
   },
   createRoom: async (body: RoomRequest): Promise<RoomRef> =>
     toRoom(

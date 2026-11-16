@@ -605,6 +605,41 @@ export const cameraRequestSchema = z.object({
 });
 export type CameraRequest = z.infer<typeof cameraRequestSchema>;
 
+// ---------- rest zones (CAM-08) ----------
+
+/** How many rest zones one camera can have. */
+export const MAX_REST_ZONES = 10;
+/** A zone narrower or shorter than this share of the picture is treated as a slip of the mouse. */
+export const MIN_REST_ZONE_SIZE = 0.02;
+
+const fraction = z.number().min(0).max(1);
+
+/**
+ * A part of one camera's picture where lying down is normal, such as a bed or a sofa. Every value
+ * is a share of the picture (0 to 1), from its top-left corner, so it fits any picture size.
+ */
+export const restZoneInputSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Name the zone, e.g. Bed').max(40, 'Use at most 40 characters'),
+    x: fraction,
+    y: fraction,
+    width: fraction.min(MIN_REST_ZONE_SIZE),
+    height: fraction.min(MIN_REST_ZONE_SIZE),
+  })
+  .refine((r) => r.x + r.width <= 1.000001 && r.y + r.height <= 1.000001, 'The zone must fit in the picture');
+export type RestZoneInput = z.infer<typeof restZoneInputSchema>;
+
+export const restZoneSchema = restZoneInputSchema.and(z.object({ id: z.string() }));
+export type RestZone = z.infer<typeof restZoneSchema>;
+
+/** PUT /cameras/{id}/zones: the camera's whole list of rest zones, which replaces the old one. */
+export const saveRestZonesRequestSchema = z.object({
+  zones: z
+    .array(restZoneInputSchema)
+    .max(MAX_REST_ZONES, `A camera can have at most ${MAX_REST_ZONES} rest zones`),
+});
+export type SaveRestZonesRequest = z.infer<typeof saveRestZonesRequestSchema>;
+
 /** POST /cameras/test: one picture was read from the source. */
 export const cameraTestResultSchema = z.object({ width: z.number().int(), height: z.number().int() });
 export type CameraTestResult = z.infer<typeof cameraTestResultSchema>;

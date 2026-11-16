@@ -7,6 +7,7 @@ import {
   classifyRequestSchema,
   createStaffRequestSchema,
   cameraRequestSchema,
+  saveRestZonesRequestSchema,
   residentRequestSchema,
   archiveBodySchema,
   roomRequestSchema,
@@ -238,6 +239,38 @@ export const handlers = [
       );
     }
     return HttpResponse.json(result);
+  }),
+
+  http.get(url('/cameras/:id/zones'), ({ request, params }) => {
+    const user = authenticate(request);
+    if (user instanceof Response) return user;
+    const id = String(params.id);
+    if (!db.listCameras(user).some((c) => c.id === id))
+      return error(404, 'not_found', 'This camera does not exist.');
+    return HttpResponse.json(db.restZones(id));
+  }),
+
+  http.put(url('/cameras/:id/zones'), async ({ request, params }) => {
+    const admin = authenticateAdmin(request);
+    if (admin instanceof Response) return admin;
+    const id = String(params.id);
+    const camera = db.findCamera(id);
+    if (!camera) return error(404, 'not_found', 'This camera does not exist.');
+    const parsed = saveRestZonesRequestSchema.safeParse(await readJson(request));
+    if (!parsed.success)
+      return error(400, 'validation_error', parsed.error.issues[0]?.message ?? 'Invalid input.');
+    const problem = db.restZonesProblem(id);
+    if (problem) return error(409, 'conflict', problem);
+    await latency();
+    const saved = db.saveRestZones(id, parsed.data.zones);
+    db.addActivity(
+      admin,
+      `${admin.fullName} changed the rest zones of ${camera.code}`,
+      'cameras',
+      'updated',
+      camera.code,
+    );
+    return HttpResponse.json(saved);
   }),
 
   http.get(url('/cameras/:id/settings'), ({ request, params }) => {

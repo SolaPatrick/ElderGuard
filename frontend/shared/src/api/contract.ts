@@ -7,6 +7,7 @@ import {
   cameraSchema,
   cameraSettingsSchema,
   cameraTestResultSchema,
+  restZoneSchema,
   dashboardSummarySchema,
   incidentDetailSchema,
   incidentSchema,
@@ -25,6 +26,7 @@ import {
   type ResidentRequest,
   type ArchiveRequest,
   type CameraRequest,
+  type SaveRestZonesRequest,
   type UpdateStaffRequest,
   forgotPasswordResponseSchema,
   verifyResetCodeResponseSchema,
@@ -108,6 +110,11 @@ export const contractApi = {
   },
   testCameraSource: (source: string) =>
     apiRequest('/cameras/test', cameraTestResultSchema, { method: 'POST', body: { source } }),
+  /** CAM-08: any signed-in user who can see the camera. */
+  restZones: (cameraId: string) => apiRequest(`/cameras/${enc(cameraId)}/zones`, z.array(restZoneSchema)),
+  /** CAM-08: Admin/Head only. Replaces every zone of the camera. */
+  saveRestZones: (cameraId: string, body: SaveRestZonesRequest) =>
+    apiRequest(`/cameras/${enc(cameraId)}/zones`, z.array(restZoneSchema), { method: 'PUT', body }),
 
   // Rooms & Areas (Admin/Head only)
   createRoom: (body: RoomRequest) => apiRequest('/rooms', roomRefSchema, { method: 'POST', body }),
