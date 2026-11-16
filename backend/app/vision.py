@@ -23,6 +23,9 @@ from .fall_logic import BLUR_CONF, COLORS, CONF, FallMonitor, blur_people, iou, 
 from .models import Blur, Camera, required_blur
 from .models import now as now_utc
 from .routers.alerts import create_alert
+from .pose import PoseChecker  
+
+pose = PoseChecker(device=config.DEVICE)
 
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 SAME_SPOT_IOU = 0.3   # boxes overlapping this much count as the same person lying in the same spot
@@ -166,12 +169,13 @@ class CameraWorker(threading.Thread):
         elif self.blur == Blur.person.value:
             blur_people(frame, all_boxes)
 
-        # 3. boxes, labels and the time on top
-        for (x1, y1, x2, y2), label, color in people:
-            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 3)
-            cv2.putText(frame, label, (int(x1), max(20, int(y1) - 10)), FONT, 0.7, color, 2, cv2.LINE_AA)
-        cv2.putText(frame, f"{self.name_}  {time.strftime('%I:%M:%S %p')}", (10, 30), FONT, 0.8,
-                    (255, 255, 255), 2, cv2.LINE_AA)
+        # 3. boxes, labels and the time on top, only while testing (the web app shows its own name and clock)
+        if config.SHOW_DETECTIONS:
+            for (x1, y1, x2, y2), label, color in people:
+                cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 3)
+                cv2.putText(frame, label, (int(x1), max(20, int(y1) - 10)), FONT, 0.7, color, 2, cv2.LINE_AA)
+            cv2.putText(frame, f"{self.name_}  {time.strftime('%I:%M:%S %p')}", (10, 30), FONT, 0.8,
+                        (255, 255, 255), 2, cv2.LINE_AA)
         jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, config.JPEG_QUALITY])[1].tobytes()
 
         # 4. a confirmed fall becomes an alert (the snapshot is the blurred picture)
