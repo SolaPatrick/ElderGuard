@@ -13,7 +13,7 @@ from ..database import SessionDep
 from ..models import (FALL_TYPES, Alert, AlertBase, AlertNote, AlertStatus, Camera, Classification, ClassifyIn,
                       FalseAlarmReason, NoteIn, Resident, Room, User, now)
 from ..realtime import hub
-from ..security import AdminUser, CurrentUser
+from ..security import AdminUser, CurrentUser, viewer_from_token
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
@@ -195,7 +195,11 @@ def get_alert(alert_id: int, session: SessionDep, user: CurrentUser):
 
 
 @router.get("/{alert_id}/snapshot")
-def get_snapshot(alert_id: int, session: SessionDep, user: CurrentUser):
+def get_snapshot(alert_id: int, token: str, session: SessionDep):
+    """The fall picture. Shown with an <img> tag, which can't send a login header, so the token comes in the
+    link (?token=...), like the live video. A temporary password can't see it, the same as the other pages."""
+    if viewer_from_token(token, session) is None:
+        raise HTTPException(401, "Session expired. Please log in again.")
     alert = get_alert_or_404(session, alert_id)
     if not alert.snapshot or not (SNAPSHOT_DIR / alert.snapshot).exists():
         raise HTTPException(404, "This alert has no snapshot.")
