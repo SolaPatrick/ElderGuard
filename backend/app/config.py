@@ -46,8 +46,9 @@ FRONTEND_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 # Live monitoring
 START_CAMERAS = os.getenv("ELDERGUARD_START_CAMERAS", "1") == "1"   # run the fall model on start-up
-PROCESS_FPS = 10                  # frames per second the model checks on each camera
-STREAM_FPS = 10                   # frames per second sent to the browser
+PROCESS_FPS = 10                  # frames per second the model checks on each camera (the fall rules are tested at 10)
+STREAM_FPS = 30                   # most frames per second sent to the browser: every camera frame is shown,
+                                  # the ones between model checks blurred with the last check's boxes
 LIVE_CHECK_SECONDS = 2            # how often an open video stream re-checks that its login is still allowed
 JPEG_QUALITY = 70                 # 0-100, lower = smaller and faster stream
 # Boxes and labels ("upright 0.91") on the video and alert pictures. Off = a clean picture, for real use.

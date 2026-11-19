@@ -29,6 +29,7 @@ FONT = cv2.FONT_HERSHEY_SIMPLEX
 SAME_SPOT_IOU = 0.3   # boxes overlapping this much count as the same person lying in the same spot
 REST_ZONE_SHARE = 0.7    # this much of the person's box inside a rest zone = lying there, not on the floor
 ZONES_RELOAD_SECONDS = 10   # how often a camera re-reads its rest zones, so the admin's changes apply by themselves
+BETWEEN_MARGIN = 0.3     # blur margin on frames between model checks: the person may have moved since the last one
 
 
 def share_inside(box, zone, w, h) -> float:
@@ -68,6 +69,8 @@ class CameraWorker(threading.Thread):
         self.pose = None          # PoseChecker, loaded in run() next to the fall model
         self._zone_list = []      # this camera's rest zones, see _zones()
         self._zones_at = 0.0
+        self.last_boxes = []      # people found by the last model check, to blur the frames shown in between
+        self.last_people = []     # their labels, drawn in between while SHOW_DETECTIONS is on
 
     # ---- what the API reads ----
     def latest_jpeg(self) -> bytes:
@@ -153,8 +156,13 @@ class CameraWorker(threading.Thread):
                     time.sleep(wait)
             now = time.monotonic()
             if now < next_time:
-                continue                       # skip frames so the model checks PROCESS_FPS per second
-            next_time = now + every
+                # between model checks: still show this frame, blurred with the boxes from the last check
+                self._set_jpeg(self._render(frame, self.last_boxes, self.last_people, BETWEEN_MARGIN))
+                frames += 1
+                continue
+            # a steady beat of PROCESS_FPS checks per second. "now + every" would wait for the first frame
+            # AFTER a full interval and drift to about 8 checks per second with a 30 FPS webcam.
+            next_time = max(next_time + every, now)
             jpeg = self._process(frame, model, monitor)
             self._set_jpeg(jpeg)
             self.online, self.error = True, ""   # only after a frame really went through the model
@@ -194,21 +202,10 @@ class CameraWorker(threading.Thread):
                 else:
                     people.append((box, f"{state} {c:.2f}", COLORS.get(state, (200, 200, 200))))
         monitor.forget()
+        self.last_boxes, self.last_people = all_boxes, people   # for the frames shown until the next check
 
-        # 2. privacy blur, only after the model has decided
-        if self.blur == Blur.whole.value:
-            frame = cv2.GaussianBlur(pixelate(frame, 24), (51, 51), 0)
-        elif self.blur == Blur.person.value:
-            blur_people(frame, all_boxes)
-
-        # 3. boxes, labels and the time on top, only while testing (the web app shows its own name and clock)
-        if config.SHOW_DETECTIONS:
-            for (x1, y1, x2, y2), label, color in people:
-                cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 3)
-                cv2.putText(frame, label, (int(x1), max(20, int(y1) - 10)), FONT, 0.7, color, 2, cv2.LINE_AA)
-            cv2.putText(frame, f"{self.name_}  {time.strftime('%I:%M:%S %p')}", (10, 30), FONT, 0.8,
-                        (255, 255, 255), 2, cv2.LINE_AA)
-        jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, config.JPEG_QUALITY])[1].tobytes()
+        # 2 and 3: privacy blur (only after the model has decided), then boxes and labels while testing
+        jpeg = self._render(frame, all_boxes, people)
 
         # 4. a confirmed fall becomes an alert (the snapshot is the blurred picture)
         for fall_type, conf, box in falls:
@@ -220,6 +217,22 @@ class CameraWorker(threading.Thread):
             self.pending_alerts.append((fall_type, conf, jpeg, now_utc()))
         self._save_pending_alerts()
         return jpeg
+
+    def _render(self, frame, boxes, people, margin=0.1) -> bytes:
+        """Privacy blur, then (only while testing) boxes, labels and the time, then JPEG.
+        Used on every frame: with this frame's boxes after a model check, and with the last check's boxes
+        (and a wider margin, since the person may have moved a little) on the frames in between."""
+        if self.blur == Blur.whole.value:
+            frame = cv2.GaussianBlur(pixelate(frame, 24), (51, 51), 0)
+        elif self.blur == Blur.person.value:
+            blur_people(frame, boxes, margin)
+        if config.SHOW_DETECTIONS:      # the web app shows its own name and clock
+            for (x1, y1, x2, y2), label, color in people:
+                cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 3)
+                cv2.putText(frame, label, (int(x1), max(20, int(y1) - 10)), FONT, 0.7, color, 2, cv2.LINE_AA)
+            cv2.putText(frame, f"{self.name_}  {time.strftime('%I:%M:%S %p')}", (10, 30), FONT, 0.8,
+                        (255, 255, 255), 2, cv2.LINE_AA)
+        return cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, config.JPEG_QUALITY])[1].tobytes()
 
     def _zones(self) -> list:
         """This camera's rest zones, re-read every ZONES_RELOAD_SECONDS. Bathrooms never have any.

@@ -35,15 +35,24 @@ async def stream(camera_id: int, token: str, request: Request):
     async def frames():
         off = placeholder("Detection is off for this camera")
         next_check = time.monotonic() + LIVE_CHECK_SECONDS
+        last, last_sent = None, 0.0
+        beat = time.monotonic()
         while not await request.is_disconnected():
             if time.monotonic() >= next_check:   # a stream stays open for hours: the login may have ended
                 next_check = time.monotonic() + LIVE_CHECK_SECONDS
                 if not await asyncio.to_thread(live_view_allowed, token):
                     return
             jpeg = manager.latest_jpeg(camera_id) or off
-            yield b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: " + str(len(jpeg)).encode() \
-                + b"\r\n\r\n" + jpeg + b"\r\n"
-            await asyncio.sleep(1 / STREAM_FPS)
+            # Only new pictures, so a 10 FPS video file isn't sent 30 times a second. The same picture is
+            # still re-sent every second: browsers show an MJPEG picture only once the next one starts.
+            if jpeg is not last or time.monotonic() - last_sent >= 1:
+                last, last_sent = jpeg, time.monotonic()
+                yield b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: " + str(len(jpeg)).encode() \
+                    + b"\r\n\r\n" + jpeg + b"\r\n"
+            # a steady beat: Windows sleeps in steps of about 15 ms, so a plain sleep(1/30) gives only ~22 FPS.
+            # Aiming at fixed times makes up for each late wake-up on the next turn.
+            beat = max(beat + 1 / STREAM_FPS, time.monotonic() - 1)
+            await asyncio.sleep(max(0.0, beat - time.monotonic()))
 
     return StreamingResponse(frames(), media_type="multipart/x-mixed-replace; boundary=frame")
 

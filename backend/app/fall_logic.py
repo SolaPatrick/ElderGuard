@@ -217,10 +217,10 @@ def pixelate(img, blocks):
     return cv2.resize(small, (w, h), interpolation=cv2.INTER_NEAREST)
 
 
-def blur_people(frame, boxes):
+def blur_people(frame, boxes, margin=0.1):
     h, w = frame.shape[:2]
     for x1, y1, x2, y2 in boxes:
-        px, py = 0.1 * (x2 - x1), 0.1 * (y2 - y1)   # a bit of margin around the person
+        px, py = margin * (x2 - x1), margin * (y2 - y1)   # a bit of margin around the person
         x1, y1 = max(0, int(x1 - px)), max(0, int(y1 - py))
         x2, y2 = min(w, int(x2 + px)), min(h, int(y2 + py))
         frame[y1:y2, x1:x2] = pixelate(frame[y1:y2, x1:x2], 6)   # about 6 blocks across a person
