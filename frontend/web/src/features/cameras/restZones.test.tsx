@@ -4,7 +4,15 @@ import { http, HttpResponse } from 'msw';
 import { db } from '../../mocks/db';
 import { server } from '../../mocks/node';
 import { closeAlertPopup, renderApp, signInAs } from '../../test/renderApp';
-import { boxBetween, isBigEnough, toFraction } from './zoneGeometry';
+import { boxBetween, dotsFromBox, isBigEnough, nudge, toFraction } from './zoneGeometry';
+
+/** A rectangle as the 4 dots a zone saved before shapes existed has. */
+const rect = (x: number, y: number, w: number, h: number) => [
+  { x, y },
+  { x: x + w, y },
+  { x: x + w, y: y + h },
+  { x, y: y + h },
+];
 
 const LIVE_URL = '/live/cam-01.mjpg';
 
@@ -50,7 +58,7 @@ function drag(area: HTMLElement, from: [number, number], to: [number, number]) {
 afterEach(() => vi.restoreAllMocks());
 
 describe('Rest zones (CAM-08)', () => {
-  it('draws a zone, names it and saves it as shares of the picture', async () => {
+  it('draws a zone, which becomes 6 dots, names it and saves it as shares of the picture', async () => {
     liveCam01();
     const { user } = await openZones();
     expect(screen.getByRole('tab', { name: 'Rest zones', selected: true })).toBeInTheDocument();
@@ -68,12 +76,24 @@ describe('Rest zones (CAM-08)', () => {
 
     const list = screen.getByRole('list', { name: 'Rest zones' });
     expect(within(list).getByText('Bed')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^Dot \d of Bed$/ })).toHaveLength(6);
     expect(screen.getByText('Changes not saved yet.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByText('Rest zones saved for CAM-01')).toBeInTheDocument();
     expect(db.restZones('cam-01')).toEqual([
-      { id: expect.any(String), name: 'Bed', x: 0.1, y: 0.1, width: 0.5, height: 0.5 },
+      {
+        id: expect.any(String),
+        name: 'Bed',
+        points: [
+          { x: 0.1, y: 0.1 },
+          { x: 0.35, y: 0.1 },
+          { x: 0.6, y: 0.1 },
+          { x: 0.6, y: 0.6 },
+          { x: 0.35, y: 0.6 },
+          { x: 0.1, y: 0.6 },
+        ],
+      },
     ]);
     expect(screen.queryByText('Changes not saved yet.')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
@@ -81,7 +101,7 @@ describe('Rest zones (CAM-08)', () => {
 
   it('ignores a click, refuses a name that is used, and deletes a zone', async () => {
     liveCam01();
-    db.saveRestZones('cam-01', [{ name: 'Bed', x: 0.1, y: 0.1, width: 0.5, height: 0.5 }]);
+    db.saveRestZones('cam-01', [{ name: 'Bed', points: rect(0.1, 0.1, 0.5, 0.5) }]);
     const { user } = await openZones();
     const area = await drawingArea();
     expect(within(screen.getByRole('list', { name: 'Rest zones' })).getByText('Bed')).toBeInTheDocument();
@@ -104,8 +124,46 @@ describe('Rest zones (CAM-08)', () => {
     expect(db.restZones('cam-01')).toEqual([]);
   });
 
+  it('moves a dot by dragging and with the arrow keys, then saves the new shape', async () => {
+    liveCam01();
+    db.saveRestZones('cam-01', [
+      { name: 'Bed', points: dotsFromBox({ x: 0.1, y: 0.1, width: 0.5, height: 0.5 }) },
+    ]);
+    const { user } = await openZones();
+    await drawingArea();
+    // the top-middle dot of a bed seen at an angle: pull it up and to the right
+    const dot = screen.getByRole('button', { name: 'Dot 2 of Bed' });
+    fireEvent.pointerDown(dot, { clientX: 140, clientY: 20, button: 0, pointerId: 2 });
+    fireEvent.pointerMove(dot, { clientX: 160, clientY: 10, pointerId: 2 });
+    fireEvent.pointerUp(dot, { clientX: 160, clientY: 10, pointerId: 2 });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); // moving a dot doesn't draw a new zone
+    expect(screen.getByText('Changes not saved yet.')).toBeInTheDocument();
+    // fine-tune the bottom-left dot with the keyboard
+    screen.getByRole('button', { name: 'Dot 6 of Bed' }).focus();
+    await user.keyboard('{ArrowRight}{ArrowRight}');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Rest zones saved for CAM-01');
+    const points = db.restZones('cam-01')[0]!.points;
+    expect(points[1]).toEqual({ x: 0.4, y: 0.05 });
+    expect(points[5]).toEqual({ x: 0.11, y: 0.6 });
+  });
+
+  it("won't save a shape whose lines cross", async () => {
+    liveCam01();
+    db.saveRestZones('cam-01', [{ name: 'Bed', points: rect(0.1, 0.1, 0.5, 0.5) }]);
+    await openZones();
+    await drawingArea();
+    // drag the bottom-right dot above the top edge: the shape becomes a bow-tie
+    const dot = screen.getByRole('button', { name: 'Dot 3 of Bed' });
+    fireEvent.pointerDown(dot, { clientX: 240, clientY: 120, button: 0, pointerId: 3 });
+    fireEvent.pointerMove(dot, { clientX: 240, clientY: 0, pointerId: 3 });
+    fireEvent.pointerUp(dot, { clientX: 240, clientY: 0, pointerId: 3 });
+    expect(screen.getByRole('alert')).toHaveTextContent("Bed: The zone's lines cross.");
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
   it("can't draw without a picture, but still lists the saved zones", async () => {
-    db.saveRestZones('cam-01', [{ name: 'Sofa', x: 0, y: 0, width: 0.3, height: 0.3 }]);
+    db.saveRestZones('cam-01', [{ name: 'Sofa', points: rect(0, 0, 0.3, 0.3) }]);
     await openZones();
     expect(
       await screen.findByText(/CAM-01 isn’t sending a picture right now, so zones can’t be drawn/),
@@ -137,7 +195,7 @@ describe('Rest zones (CAM-08)', () => {
   });
 
   it('the server refuses zones for a bathroom camera and from employees', async () => {
-    const zones = { zones: [{ name: 'Bed', x: 0, y: 0, width: 0.5, height: 0.5 }] };
+    const zones = { zones: [{ name: 'Bed', points: rect(0, 0, 0.5, 0.5) }] };
     const put = (user: string, id: string) =>
       fetch(`/api/cameras/${id}/zones`, {
         method: 'PUT',
@@ -154,7 +212,7 @@ describe('Rest zones (CAM-08)', () => {
 describe('Rest zones on Live Monitoring', () => {
   it('draws faint outlines over the live picture, scaled to the picture', async () => {
     liveCam01();
-    db.saveRestZones('cam-01', [{ name: 'Bed', x: 0.1, y: 0.2, width: 0.5, height: 0.25 }]);
+    db.saveRestZones('cam-01', [{ name: 'Bed', points: rect(0.1, 0.2, 0.5, 0.25) }]);
     vi.spyOn(HTMLImageElement.prototype, 'naturalWidth', 'get').mockReturnValue(640);
     vi.spyOn(HTMLImageElement.prototype, 'naturalHeight', 'get').mockReturnValue(480);
     signInAs('u-joel');
@@ -163,9 +221,7 @@ describe('Rest zones on Live Monitoring', () => {
     const outlines = await screen.findByTestId('rest-zone-outlines');
     expect(outlines).toHaveAttribute('viewBox', '0 0 640 480');
     expect(outlines).toHaveAttribute('preserveAspectRatio', 'xMidYMid meet');
-    const rect = outlines.querySelector('rect')!;
-    expect([rect.getAttribute('x'), rect.getAttribute('y')]).toEqual(['64', '96']);
-    expect([rect.getAttribute('width'), rect.getAttribute('height')]).toEqual(['320', '120']);
+    expect(outlines.querySelector('polygon')!.getAttribute('points')).toBe('64,96 384,96 384,216 64,216');
   });
 
   it('draws nothing when the camera has no zones', async () => {
@@ -186,6 +242,26 @@ describe('zoneGeometry', () => {
   it('turns pointer positions into shares of the picture, edges included', () => {
     expect(toFraction(300, 150, rect)).toEqual({ x: 0.5, y: 0.5 });
     expect(toFraction(0, 999, rect)).toEqual({ x: 0, y: 1 });
+  });
+
+  it('turns a drawn box into 6 dots, with the extra two on the long sides', () => {
+    expect(dotsFromBox({ x: 0.1, y: 0.2, width: 0.4, height: 0.2 })).toEqual([
+      { x: 0.1, y: 0.2 },
+      { x: 0.3, y: 0.2 },
+      { x: 0.5, y: 0.2 },
+      { x: 0.5, y: 0.4 },
+      { x: 0.3, y: 0.4 },
+      { x: 0.1, y: 0.4 },
+    ]);
+    expect(dotsFromBox({ x: 0, y: 0, width: 0.2, height: 0.6 })).toEqual([
+      { x: 0, y: 0 },
+      { x: 0.2, y: 0 },
+      { x: 0.2, y: 0.3 },
+      { x: 0.2, y: 0.6 },
+      { x: 0, y: 0.6 },
+      { x: 0, y: 0.3 },
+    ]);
+    expect(nudge({ x: 0.999, y: 0.5 }, 0.005, 0)).toEqual({ x: 1, y: 0.5 });
   });
 
   it('builds the box whichever way it was dragged, and spots slips of the mouse', () => {

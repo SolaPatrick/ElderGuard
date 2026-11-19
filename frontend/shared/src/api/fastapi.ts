@@ -179,29 +179,22 @@ const notYet = (what: string) =>
 const rawRestZone = z.object({
   id: z.number(),
   name: z.string(),
-  x1: z.number(),
-  y1: z.number(),
-  x2: z.number(),
-  y2: z.number(),
+  points: z.array(z.object({ x: z.number(), y: z.number() })),
 });
 
 const toRestZone = (r: z.infer<typeof rawRestZone>): RestZone => ({
   id: String(r.id),
   name: r.name,
-  x: r.x1,
-  y: r.y1,
-  width: r.x2 - r.x1,
-  height: r.y2 - r.y1,
+  points: r.points.map(({ x, y }) => ({ x, y })),
 });
 
-/** The screens send x, y, width, height; the backend wants the two corners, as a plain list. */
+const inPicture = (v: number) => Math.min(1, Math.max(0, v));
+
+/** The backend wants a plain list, and never a dot past the edge of the picture. */
 const restZonesBody = (b: SaveRestZonesRequest) =>
   b.zones.map((zone) => ({
     name: zone.name,
-    x1: zone.x,
-    y1: zone.y,
-    x2: Math.min(1, zone.x + zone.width),
-    y2: Math.min(1, zone.y + zone.height),
+    points: zone.points.map((p) => ({ x: inPicture(p.x), y: inPicture(p.y) })),
   }));
 
 /** The classify dialog's reasons, and the backend's codes for them. */
@@ -731,8 +724,7 @@ export const fastApi = {
     );
     return { width: res.width, height: res.height };
   },
-  // Den's backend has no rest zones yet (CAM-08): see backend-gaps.md.
-  // CAM-08: the backend keeps zones as corners (x1, y1, x2, y2); the screens use x, y, width, height.
+  // CAM-08: a zone is a shape of dots ({ x, y } shares of the picture), the same on both sides.
   restZones: async (cameraId: string): Promise<RestZone[]> =>
     (await get(`/cameras/${numericId(cameraId, 'camera')}/zones`, z.array(rawRestZone))).map(toRestZone),
   saveRestZones: async (cameraId: string, body: SaveRestZonesRequest): Promise<RestZone[]> =>

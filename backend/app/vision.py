@@ -20,10 +20,11 @@ from sqlmodel import Session, select
 from . import config
 from .database import engine
 from .fall_logic import BLUR_CONF, COLORS, CONF, FallMonitor, blur_people, iou, min_conf, pixelate
-from .models import Blur, Camera, RestZone, required_blur
+from .models import Blur, Camera, RestZone, required_blur, zone_points
 from .models import now as now_utc
 from .routers.alerts import create_alert
 from .pose import PoseChecker
+from .zone_geometry import share_of_box_inside
 
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 SAME_SPOT_IOU = 0.3   # boxes overlapping this much count as the same person lying in the same spot
@@ -33,12 +34,9 @@ BETWEEN_MARGIN = 0.3     # blur margin on frames between model checks: the perso
 
 
 def share_inside(box, zone, w, h) -> float:
-    """How much of the person's box (0..1) lies inside the zone. Zones are stored as fractions of the picture."""
-    zx1, zy1, zx2, zy2 = zone.x1 * w, zone.y1 * h, zone.x2 * w, zone.y2 * h
-    ix = max(0, min(box[2], zx2) - max(box[0], zx1))
-    iy = max(0, min(box[3], zy2) - max(box[1], zy1))
-    area = (box[2] - box[0]) * (box[3] - box[1])
-    return ix * iy / area if area > 0 else 0.0
+    """How much of the person's box (0..1) lies inside the zone's shape. Zones are stored as fractions of
+    the picture, so they are scaled to this picture's w × h first."""
+    return share_of_box_inside(box, [(x * w, y * h) for x, y in zone_points(zone)])
 
 
 def placeholder(text: str) -> bytes:

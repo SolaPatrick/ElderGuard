@@ -233,19 +233,21 @@ For SOS: `type: "sos"`, `camera: null`, `confidence: null`, and `sentBy: { id, f
 
 ### Rest zones (CAM-08)
 
-| Method | Path                  | Who                                     | Body                                         | Response     |
-| ------ | --------------------- | --------------------------------------- | -------------------------------------------- | ------------ |
-| GET    | `/cameras/{id}/zones` | anyone signed in who can see the camera | none                                         | `restZone[]` |
-| PUT    | `/cameras/{id}/zones` | Admin/Head                              | `{ zones: [{ name, x, y, width, height }] }` | `restZone[]` |
+| Method | Path                  | Who                                     | Body                                        | Response     |
+| ------ | --------------------- | --------------------------------------- | ------------------------------------------- | ------------ |
+| GET    | `/cameras/{id}/zones` | anyone signed in who can see the camera | none                                        | `restZone[]` |
+| PUT    | `/cameras/{id}/zones` | Admin/Head                              | `{ zones: [{ name, points: [{ x, y }] }] }` | `restZone[]` |
 
-`restZone` = `{ id, name, x, y, width, height }`
+`restZone` = `{ id, name, points: [{ x, y }] }`
 
 - A rest zone is a part of the picture where lying down is normal, such as a bed or sofa, so fall detection can tell
   resting from a fall.
-- `x`, `y`, `width` and `height` are shares of the picture from 0 to 1, measured from its top-left corner, so they fit
-  any picture size: pixels = share × picture width (or height). `x + width` and `y + height` are at most 1, and
-  `width` and `height` are at least 0.02.
+- A zone is a shape: its dots in order around its edge. The app draws a rectangle that becomes 6 dots, which the
+  Admin/Head drags so the shape fits a bed seen at an angle. 3 to 12 dots; the edges must not cross each other.
+- `x` and `y` are shares of the picture from 0 to 1, measured from its top-left corner, so they fit any picture size:
+  pixels = share × picture width (or height). The box around the dots is at least 0.02 wide and high.
 - `name` is 1 to 40 characters. At most 10 zones per camera.
+- Zones saved before shapes existed (rectangles) come back as 4 dots.
 - PUT replaces the camera's whole list; send `[]` to remove them all. **409** for a bathroom camera, which has no rest
   zones. **400** for a zone that is out of range.
 - Live Monitoring draws the zones as faint outlines over the picture.

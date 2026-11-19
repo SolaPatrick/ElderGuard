@@ -285,9 +285,16 @@ class ClassifyIn(SQLModel):
 class NoteIn(SQLModel):
     text: str
 
+class ZonePoint(SQLModel):
+    """A spot on the picture, as fractions of it (0 = left/top, 1 = right/bottom)."""
+    x: float
+    y: float
+
+
 class RestZone(SQLModel, table=True):
-    """A place on one camera's picture where lying down is normal (bed, floor mat, sofa).
-    Positions are fractions of the picture (0 = left/top, 1 = right/bottom), so they survive resolution changes."""
+    """A place on one camera's picture where lying down is normal (bed, floor mat, sofa): a shape of dots in order
+    around its edge, as fractions of the picture, so it survives resolution changes.
+    x1..y2 is the box around the dots. Zones saved before shapes existed have only the box (points is NULL)."""
     id: int | None = Field(default=None, primary_key=True)
     camera_id: int = Field(foreign_key="camera.id", index=True)
     name: str
@@ -295,13 +302,31 @@ class RestZone(SQLModel, table=True):
     y1: float
     x2: float
     y2: float
+    points: list[list[float]] | None = Field(default=None, sa_column=Column(JSON(none_as_null=True)))
     created_by: int = Field(foreign_key="user.id")
     created_at: datetime = Field(default_factory=now)
 
 
+def zone_points(zone: RestZone) -> list[tuple[float, float]]:
+    """The zone's dots; an older rectangle zone gives its 4 corners."""
+    if zone.points:
+        return [(x, y) for x, y in zone.points]
+    return [(zone.x1, zone.y1), (zone.x2, zone.y1), (zone.x2, zone.y2), (zone.x1, zone.y2)]
+
+
 class RestZoneIn(SQLModel):
     name: str
-    x1: float
-    y1: float
-    x2: float
-    y2: float
+    points: list[ZonePoint]
+
+
+class RestZoneOut(SQLModel):
+    id: int
+    camera_id: int
+    name: str
+    points: list[ZonePoint]
+    created_at: datetime
+
+
+def rest_zone_out(zone: RestZone) -> RestZoneOut:
+    return RestZoneOut(id=zone.id, camera_id=zone.camera_id, name=zone.name, created_at=zone.created_at,
+                       points=[ZonePoint(x=x, y=y) for x, y in zone_points(zone)])

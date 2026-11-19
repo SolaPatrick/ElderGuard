@@ -612,21 +612,65 @@ export const MAX_REST_ZONES = 10;
 /** A zone narrower or shorter than this share of the picture is treated as a slip of the mouse. */
 export const MIN_REST_ZONE_SIZE = 0.02;
 
+/** A zone is a shape with this many dots (a drawn rectangle becomes this many, which can then be moved). */
+export const REST_ZONE_DOTS = 6;
+/** Fewest and most dots a zone may have (older zones were rectangles: 4 dots). */
+export const MIN_ZONE_POINTS = 3;
+export const MAX_ZONE_POINTS = 12;
+
 const fraction = z.number().min(0).max(1);
 
+/** A spot on the picture: shares of its width and height, from its top-left corner. */
+export const zonePointSchema = z.object({ x: fraction, y: fraction });
+export type ZonePoint = z.infer<typeof zonePointSchema>;
+
+/** The smallest box around the dots. */
+export function zoneBounds(points: ZonePoint[]) {
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
+}
+
+const side = (a: ZonePoint, b: ZonePoint, c: ZonePoint) =>
+  (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+
+/** True if two of the shape's edges cross each other (a bow-tie shape), which has no clear inside. */
+export function zoneEdgesCross(points: ZonePoint[]): boolean {
+  const n = points.length;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (j === i + 1 || (i === 0 && j === n - 1)) continue; // neighbouring edges share a dot
+      const [a, b] = [points[i]!, points[(i + 1) % n]!];
+      const [c, d] = [points[j]!, points[(j + 1) % n]!];
+      if (side(a, b, c) * side(a, b, d) < 0 && side(c, d, a) * side(c, d, b) < 0) return true;
+    }
+  }
+  return false;
+}
+
 /**
- * A part of one camera's picture where lying down is normal, such as a bed or a sofa. Every value
- * is a share of the picture (0 to 1), from its top-left corner, so it fits any picture size.
+ * A part of one camera's picture where lying down is normal, such as a bed or a sofa: a shape made of
+ * dots, in order around its edge. Every value is a share of the picture (0 to 1), from its top-left
+ * corner, so it fits any picture size.
  */
 export const restZoneInputSchema = z
   .object({
     name: z.string().trim().min(1, 'Name the zone, e.g. Bed').max(40, 'Use at most 40 characters'),
-    x: fraction,
-    y: fraction,
-    width: fraction.min(MIN_REST_ZONE_SIZE),
-    height: fraction.min(MIN_REST_ZONE_SIZE),
+    points: z
+      .array(zonePointSchema)
+      .min(MIN_ZONE_POINTS, `A zone needs at least ${MIN_ZONE_POINTS} dots`)
+      .max(MAX_ZONE_POINTS, `A zone can have at most ${MAX_ZONE_POINTS} dots`),
   })
-  .refine((r) => r.x + r.width <= 1.000001 && r.y + r.height <= 1.000001, 'The zone must fit in the picture');
+  .refine((r) => {
+    const b = zoneBounds(r.points);
+    return b.width >= MIN_REST_ZONE_SIZE && b.height >= MIN_REST_ZONE_SIZE;
+  }, 'The zone is too small')
+  .refine(
+    (r) => !zoneEdgesCross(r.points),
+    "The zone's lines cross. Move the dots so the lines don't cross.",
+  );
 export type RestZoneInput = z.infer<typeof restZoneInputSchema>;
 
 export const restZoneSchema = restZoneInputSchema.and(z.object({ id: z.string() }));

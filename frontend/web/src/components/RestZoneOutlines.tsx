@@ -28,12 +28,9 @@ export function RestZoneOutlines({
       sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
     >
       {zones.data.map((z) => (
-        <rect
+        <polygon
           key={z.id}
-          x={z.x * w}
-          y={z.y * h}
-          width={z.width * w}
-          height={z.height * h}
+          points={z.points.map((p) => `${p.x * w},${p.y * h}`).join(' ')}
           fill="none"
           stroke="rgba(255,255,255,0.55)"
           strokeWidth={1.5}
@@ -41,7 +38,7 @@ export function RestZoneOutlines({
           vectorEffect="non-scaling-stroke"
         >
           <title>{z.name}</title>
-        </rect>
+        </polygon>
       ))}
     </Box>
   );

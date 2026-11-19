@@ -1,18 +1,22 @@
 """Cameras (the CAM screens). The live video and fall model come in step 7 (vision.py)."""
+import math
+
 import cv2
 from fastapi import APIRouter, HTTPException
 from sqlmodel import func, select
 
 from ..database import SessionDep
-from ..models import (Alert, Camera, CameraCreate, CameraOut, CameraUpdate, Place, RestZone, RestZoneIn, Role,
-                      Room, User, required_blur)
+from ..models import (Alert, Camera, CameraCreate, CameraOut, CameraUpdate, Place, RestZone, RestZoneIn, RestZoneOut,
+                      Role, Room, User, required_blur, rest_zone_out)
 from ..security import AdminUser, CurrentUser
+from ..zone_geometry import edges_cross
 
 router = APIRouter(prefix="/api/cameras", tags=["cameras"])
 
 # Rest zones, the same rules as the web app (frontend/docs/api-contract.md, CAM-08)
 MAX_REST_ZONES = 10
 MAX_ZONE_NAME = 40
+MIN_ZONE_POINTS, MAX_ZONE_POINTS = 3, 12
 MIN_ZONE_SIZE = 0.02      # narrower or shorter than this share of the picture = a slip of the mouse
 EPS = 1e-6                # rounding room for fractions sent by the browser
 
@@ -107,14 +111,30 @@ def delete_camera(camera_id: int, session: SessionDep, admin: AdminUser):
     session.commit()
 
 
-@router.get("/{camera_id}/zones", response_model=list[RestZone])
+@router.get("/{camera_id}/zones", response_model=list[RestZoneOut])
 def list_zones(camera_id: int, session: SessionDep, user: CurrentUser):
     """The rest zones of one camera: places where lying down is normal (bed, floor mat, sofa)."""
     get_camera_or_404(session, camera_id)
-    return session.exec(select(RestZone).where(RestZone.camera_id == camera_id)).all()
+    return [rest_zone_out(z) for z in session.exec(select(RestZone).where(RestZone.camera_id == camera_id))]
 
 
-@router.put("/{camera_id}/zones", response_model=list[RestZone])
+def check_zone(z: RestZoneIn) -> list[tuple[float, float]]:
+    """The zone's dots, inside the picture, or 400 saying what is wrong."""
+    if not MIN_ZONE_POINTS <= len(z.points) <= MAX_ZONE_POINTS:
+        raise HTTPException(400, f"Zone '{z.name}' needs {MIN_ZONE_POINTS} to {MAX_ZONE_POINTS} dots.")
+    pts = [(p.x, p.y) for p in z.points]
+    if not all(math.isfinite(v) and -EPS <= v <= 1 + EPS for p in pts for v in p):
+        raise HTTPException(400, f"Zone '{z.name}' must lie inside the picture.")
+    pts = [(min(1.0, max(0.0, x)), min(1.0, max(0.0, y))) for x, y in pts]   # browser rounding at the edge
+    xs, ys = [x for x, _ in pts], [y for _, y in pts]
+    if max(xs) - min(xs) < MIN_ZONE_SIZE - EPS or max(ys) - min(ys) < MIN_ZONE_SIZE - EPS:
+        raise HTTPException(400, f"Zone '{z.name}' must be at least {MIN_ZONE_SIZE:.0%} of the picture wide and high.")
+    if edges_cross(pts):
+        raise HTTPException(400, f"Zone '{z.name}': its lines cross. Move the dots so the lines don't cross.")
+    return pts
+
+
+@router.put("/{camera_id}/zones", response_model=list[RestZoneOut])
 def replace_zones(camera_id: int, zones: list[RestZoneIn], session: SessionDep, admin: AdminUser):
     """Saves the camera's whole list of zones at once (what the drawing screen sends)."""
     camera = get_camera_or_404(session, camera_id)
@@ -122,20 +142,20 @@ def replace_zones(camera_id: int, zones: list[RestZoneIn], session: SessionDep, 
         raise HTTPException(409, "Bathroom cameras can't have rest zones: lying down there is always checked.")
     if len(zones) > MAX_REST_ZONES:
         raise HTTPException(400, f"A camera can have at most {MAX_REST_ZONES} rest zones.")
+    new = []
     for z in zones:
         z.name = z.name.strip()
         if not 1 <= len(z.name) <= MAX_ZONE_NAME:
             raise HTTPException(400, f"Each zone needs a name of 1 to {MAX_ZONE_NAME} characters.")
-        if not (0 <= z.x1 and 0 <= z.y1 and z.x2 <= 1 + EPS and z.y2 <= 1 + EPS
-                and z.x2 - z.x1 >= MIN_ZONE_SIZE - EPS and z.y2 - z.y1 >= MIN_ZONE_SIZE - EPS):
-            raise HTTPException(400, f"Zone '{z.name}' must lie inside the picture and be at least "
-                                     f"{MIN_ZONE_SIZE:.0%} of it wide and high.")
+        pts = check_zone(z)
+        xs, ys = [x for x, _ in pts], [y for _, y in pts]
+        new.append(RestZone(camera_id=camera_id, created_by=admin.id, name=z.name, points=[list(p) for p in pts],
+                            x1=min(xs), y1=min(ys), x2=max(xs), y2=max(ys)))
     for old in session.exec(select(RestZone).where(RestZone.camera_id == camera_id)):
         session.delete(old)
     session.flush()
-    new = [RestZone(camera_id=camera_id, created_by=admin.id, **z.model_dump()) for z in zones]
     session.add_all(new)
     session.commit()
     for z in new:
         session.refresh(z)
-    return new
+    return [rest_zone_out(z) for z in new]

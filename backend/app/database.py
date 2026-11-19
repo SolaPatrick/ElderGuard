@@ -18,12 +18,16 @@ else:
 def create_tables():
     SQLModel.metadata.create_all(engine)
     # create_all only makes missing tables, so a column added later has to be added to existing databases here.
-    new_columns = {"residents_at_alert": "JSON", "is_test": "BOOLEAN NOT NULL DEFAULT FALSE"}
-    existing = {c["name"] for c in inspect(engine).get_columns("alert")}
+    new_columns = {
+        "alert": {"residents_at_alert": "JSON", "is_test": "BOOLEAN NOT NULL DEFAULT FALSE"},
+        "restzone": {"points": "JSON"},          # zones became shapes of dots; older rows keep only their box
+    }
     with engine.begin() as connection:
-        for name, definition in new_columns.items():
-            if name not in existing:
-                connection.execute(text(f"ALTER TABLE alert ADD COLUMN {name} {definition}"))
+        for table, columns in new_columns.items():
+            existing = {c["name"] for c in inspect(connection).get_columns(table)}
+            for name, definition in columns.items():
+                if name not in existing:
+                    connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {definition}"))
 
 
 def get_session():
